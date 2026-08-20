@@ -1,0 +1,3 @@
+# Request: a standard job-queue module for our services
+
+Our services all need queues for background work — image processing, email sends, webhook retries — and every team wires up SQS a little differently, usually learning about lost messages the hard way. Build the reusable OpenTofu module that becomes the standard way a service team gets a job queue. The people using it are application developers who think "a queue for my worker," not SQS settings: they'll copy an example, fill in a couple of obvious inputs, and trust the module's judgment for the rest. You own every design decision the module makes.

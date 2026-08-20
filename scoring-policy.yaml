@@ -1,0 +1,13 @@
+# Composite grading policy (versioned — recorded into reports; changing it
+# re-grades all stored results for free).
+#
+# v3 (2026-08-19): composite = 100 * (w_rubric*semantic + w_expertise*expertise
+# + w_grade*absolute_grade/100). NO score caps anywhere — scores are true
+# values. Mandatory-item failures (security) are tracked as FINDINGS: reported
+# in their own section, flagged on scored rows, and they fail the verdict —
+# but they do not distort the numeric score.
+policy_version: v3
+weights:
+  rubric: 0.60      # weighted semantic score (the H-items)
+  expertise: 0.15   # expertise checklist fraction (the E-items)
+  grade: 0.25       # absolute judge grade vs good-opentofu.md, /100

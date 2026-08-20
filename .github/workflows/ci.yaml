@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: 1.12.5
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Lint
+        run: uv run ruff check src
+
+      - name: Selftest (hermetic tier)
+        # Validates every checker against the known-answer solution matrices.
+        # Tier-2 (AWS) and generation fixtures are skipped without IACBENCH_AWS=1
+        # — CI runs only credential-free, deterministic scoring validation.
+        env:
+          TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.cache/providers
+        run: |
+          mkdir -p .cache/providers
+          uv run iacbench selftest

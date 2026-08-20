@@ -1,0 +1,35 @@
+{
+	"name": "Python Development",
+	"image": "ghcr.io/metinsenturk/devcontainer-templates/simple-python:3.14",
+	"workspaceFolder": "/workspace",
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+	"remoteUser": "vscode",
+	"runArgs": ["--name", "iacbench-dev"],
+
+	"features": {
+		"ghcr.io/alertbox/opentofu/tofu:1": {
+			"version": "1.10.6"
+		}
+	},
+
+	"containerEnv": {
+		"TF_PLUGIN_CACHE_DIR": "/workspace/.cache/providers",
+		"ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+		"OPENAI_API_KEY": "${localEnv:OPENAI_API_KEY}",
+		"GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}",
+		"GOOGLE_API_KEY": "${localEnv:GEMINI_API_KEY}"
+	},
+
+	"postCreateCommand": "pip install --user uv && uv sync",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"ms-python.isort",
+				"ms-python.autopep8",
+				"ms-python.mypy-type-checker"
+			]
+		}
+	}
+}

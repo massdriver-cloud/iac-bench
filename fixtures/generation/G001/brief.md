@@ -1,0 +1,3 @@
+# Request: a standard bucket module for our app teams
+
+Our application teams keep hand-rolling S3 buckets for their static assets — built frontend bundles, images, downloadable files — and every one comes out slightly different and usually wrong somewhere. Build the reusable OpenTofu module that will become the standard way an app team gets an asset bucket. The people who will use it are application developers who don't know S3 well and shouldn't have to: they'll copy an example, fill in a couple of obvious inputs, and trust the module's judgment for everything else. You own every design decision the module makes.

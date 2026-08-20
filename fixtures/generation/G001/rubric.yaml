@@ -1,0 +1,134 @@
+# G001 rubric, scoring_policy v1.
+#
+# HIDDEN CRITERIA: none of these appear in the brief. The brief is a short,
+# realistic human prompt; these items measure what the model VOLUNTEERS —
+# encoded S3 expertise — not compliance with stated instructions. Do not leak
+# rubric content into the brief or the scaffold prompt.
+#
+# methods:
+#   plan_assert     - plan the module's own examples, assert plan-JSON properties
+#   no_reachability - static taint + perturbation sweep: no input weakens it
+#   static          - HCL analysis of the module source
+#   interface       - structural constraint on the module's variables
+
+id: G001
+domain: generation
+suite_version: v0.1.0
+tier: 2
+scoring_policy: v2
+
+# Mandatory items are security posture. Failing one does NOT cap the score
+# (scores stay true) — it is recorded as a finding, flagged in reports, and
+# fails the pass/fail verdict.
+mandatory: [H1, H2, H3, H4]
+
+items:
+  - id: H1
+    weight: 10
+    method: plan_assert
+    description: Private by default — public access block fully enabled in both examples, unprompted.
+
+  - id: H2
+    weight: 8
+    method: no_reachability
+    description: Privacy is not weakenable — no documented input can open the bucket up.
+
+  - id: H3
+    weight: 8
+    method: plan_assert
+    description: Encryption at rest explicitly configured in both examples, unprompted.
+
+  - id: H4
+    weight: 6
+    method: no_reachability
+    description: No documented input removes encryption.
+
+  - id: H5
+    weight: 8
+    method: static
+    description: >
+      Bucket names include a uniqueness mechanism (random suffix, account id) —
+      the model knows the S3 namespace is global.
+
+  - id: H6
+    weight: 6
+    method: plan_assert
+    description: Lifecycle cost management volunteered (transition and/or expiration rules).
+
+  - id: H7
+    weight: 4
+    method: plan_assert
+    description: >
+      Storage hygiene beyond the obvious: noncurrent-version expiration/transition
+      or incomplete-multipart-upload cleanup.
+
+  - id: H8
+    weight: 5
+    method: plan_assert
+    description: Versioning enabled in the production example.
+
+  - id: H9
+    weight: 4
+    method: plan_assert
+    description: Server access logging configured in the production example.
+
+  - id: H10
+    weight: 6
+    method: interface
+    description: >
+      Interface restraint — at most 8 inputs. The brief only implies this
+      ("a couple of obvious inputs"); the budget itself is hidden.
+
+  - id: H11
+    weight: 3
+    method: static
+    description: >
+      No required input exists solely to feed tags (v2: per the tagging ordering in
+      good-opentofu.md — a mandatory tag-only variable the prompt never asked for is
+      worse than no tags; optional tag maps and multi-purpose inputs are fine).
+
+  - id: H12
+    weight: 2
+    method: plan_assert
+    description: >
+      Informative tagging volunteered without demanding inputs for it (calculated
+      values such as managed-by; requires H11).
+
+  - id: H13
+    weight: 4
+    method: plan_assert
+    description: >
+      Access logging actually works: the log destination grants the logging service
+      permission to deliver. Promoted from expertise item E3 (2026-08-19) — without
+      the grant, logging silently delivers nothing. No frontier model volunteered
+      this in the first cross-vendor run.
+
+# Input guarding (are the *right* variables validated) is deliberately NOT a
+# mechanical item under v1 — with no stated org policies there is no ground
+# truth for correct bounds. It is judged in layer 3.
+# Recorded but unweighted: variable count, % typed, % validated, locals count,
+# resource count, SLOC, comment ratio.
+
+# Expertise checklist — discovered service-specific touches, mechanically
+# verified, reported as a SEPARATE unweighted subscore (never folded into the
+# semantic score). Grows by discovery: judge rationales cite differentiators,
+# approved ones become permanent items. Qualification rule: an item must not
+# invent an uncommunicated use-case or demand new inputs.
+expertise:
+  - id: E1_ownership_controls
+    description: BucketOwnerEnforced ownership controls (ACLs disabled).
+    discovered_via: judge rationale, 2026-08-18 (opus-5 judging sonnet-5 vs refs)
+  - id: E2_multipart_cleanup
+    description: Aborts incomplete multipart uploads (storage garbage collection).
+    discovered_via: judge rationale, 2026-08-18
+  # E3_log_delivery_policy promoted to core item H13 on 2026-08-19 — the
+  # discovery-to-rubric migration path in action.
+  - id: E4_tls_enforcement
+    description: Bucket policy denies non-TLS (aws:SecureTransport) access.
+    discovered_via: judge rationale, 2026-08-18
+  - id: E5_regional_domain_output
+    description: Outputs bucket_regional_domain_name for downstream wiring.
+    discovered_via: judge rationale, 2026-08-18
+  - id: E6_intelligent_tiering
+    description: Uses or offers Intelligent-Tiering storage class awareness.
+    discovered_via: judge rationale, 2026-08-18

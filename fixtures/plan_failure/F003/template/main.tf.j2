@@ -1,0 +1,11 @@
+resource "random_id" "{{ resource_prefix }}_gen" {
+  byte_length = 4
+}
+
+resource "null_resource" "{{ resource_prefix }}_worker" {
+  for_each = toset([for i in range({{ worker_count }}) : "${random_id.{{ resource_prefix }}_gen.hex}-${i}"])
+
+  triggers = {
+    name = each.key
+  }
+}

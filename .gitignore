@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Tooling caches
+.mypy_cache/
+.ruff_cache/
+
+# Local Claude Code settings
+.claude/settings.local.json
+
+# Benchmark output
+runs/
+logs/
+report.md
+
+# OpenTofu provider cache and working dirs
+.cache/
+.terraform/
+*.tfplan
+
+# Internal genesis document — not part of the public project
+iac-bench-milestone-0.md
