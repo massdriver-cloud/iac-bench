@@ -39,3 +39,9 @@ variable "noncurrent_expiration_days" {
     error_message = "noncurrent_expiration_days must be 0 (disabled) or a positive number of days."
   }
 }
+
+variable "extra_tags" {
+  description = "Additional tags merged onto every resource. Optional."
+  type        = map(string)
+  default     = {}
+}

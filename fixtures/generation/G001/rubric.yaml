@@ -193,18 +193,13 @@ items:
   - id: H12
     weight: 2
     description: >
-      Tagging supported without demanding inputs for it — resources carry
-      calculated tags out of the box and/or consumers can add tags through an
-      optional input (requires H11: no required tag-only variables).
+      Tagging support is table stakes — consumers can add their own tags
+      through an optional input, without being forced to (requires H11: no
+      required tag-only variables).
     check:
       all_of:
         - ref: H11
-        - any_of:
-            - resource:
-                plans: defaults
-                type: aws_s3_bucket
-                where: {tags: {exists: true}}
-            - var_feeds_attr: {attr: tags, has_default: true}
+        - var_feeds_attr: {attr: tags, has_default: true}
 
   - id: H13
     weight: 4
