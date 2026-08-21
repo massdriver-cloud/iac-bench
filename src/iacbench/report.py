@@ -190,7 +190,7 @@ def _load_policy() -> dict | None:
 
     from .paths import REPO_ROOT
 
-    path = REPO_ROOT / "scoring-policy.yaml"
+    path = REPO_ROOT / "composite-scoring-policy.yaml"
     return yaml.safe_load(path.read_text()) if path.is_file() else None
 
 
@@ -214,7 +214,7 @@ def _grade_for_model(model: str, grades: dict) -> float | None:
 
 
 def render_leaderboard(attempts: list, judge_dirs: list) -> str:
-    """Composite 0-100 grades per scoring-policy.yaml. Scores are TRUE values —
+    """Composite 0-100 grades per composite-scoring-policy.yaml. Scores are TRUE values —
     mandatory (security) failures are flagged, listed as findings, and fail the
     verdict, but never cap or distort the numbers."""
     policy = _load_policy()

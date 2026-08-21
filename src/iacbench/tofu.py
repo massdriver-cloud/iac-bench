@@ -110,8 +110,10 @@ class Tofu:
     def validate(self) -> TofuResult:
         return self.run("validate", "-no-color")
 
-    def plan(self, out_file: Path | None = None) -> TofuResult:
+    def plan(self, out_file: Path | None = None, var_file: Path | None = None) -> TofuResult:
         args = ["plan", "-input=false", "-lock=false", "-no-color"]
+        if var_file is not None:
+            args.append(f"-var-file={var_file}")
         if out_file is not None:
             args.append(f"-out={out_file}")
         return self.run(*args)

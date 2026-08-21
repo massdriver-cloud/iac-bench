@@ -25,6 +25,7 @@ from inspect_ai.util import store
 
 # Absolute imports: inspect loads this file as a standalone module by path,
 # which breaks package-relative imports.
+from iacbench import CHECK_DSL_VERSION
 from iacbench.checkers import (
     matches_forbidden,
     score_directory,
@@ -149,7 +150,7 @@ def write_file():
     return execute
 
 
-async def _run_tofu(path: str, method: str, needs_init: bool = True) -> str:
+async def _run_tofu(path: str, method: str, needs_init: bool = True, **kwargs) -> str:
     try:
         tofu = _tofu(path)
     except ValueError as exc:
@@ -158,7 +159,8 @@ async def _run_tofu(path: str, method: str, needs_init: bool = True) -> str:
         init_res = await asyncio.to_thread(tofu.ensure_init)
         if init_res is not None and init_res.exit_code != 0:
             return _record_tofu(init_res)
-    return _record_tofu(await asyncio.to_thread(getattr(tofu, method)))
+    bound = getattr(tofu, method)
+    return _record_tofu(await asyncio.to_thread(lambda: bound(**kwargs)))
 
 
 @tool
@@ -176,13 +178,21 @@ def tofu_validate():
 
 @tool
 def tofu_plan():
-    async def execute(path: str = ".") -> str:
+    async def execute(path: str = ".", var_file: str = "") -> str:
         """Run `tofu plan -input=false -lock=false`.
 
         Args:
             path: Directory to run in, relative to the working directory root.
+            var_file: Optional tfvars file passed as -var-file, relative to the
+                working directory root (e.g. "minimal.tfvars").
         """
-        return await _run_tofu(path, "plan")
+        kwargs = {}
+        if var_file:
+            try:
+                kwargs["var_file"] = _confine(var_file)
+            except ValueError as exc:
+                return f"ERROR: {exc}"
+        return await _run_tofu(path, "plan", **kwargs)
 
     return execute
 
@@ -303,6 +313,7 @@ def generation_scorer():
                 "expertise_score": result.expertise_score,
                 "mandatory_failures": result.mandatory_failures,
                 "probe_plans": result.probe_plans,
+                "check_dsl_version": CHECK_DSL_VERSION,
                 "fixture": fixture.id,
                 "tofu_version": tofu_version(),
             },
@@ -430,8 +441,8 @@ def fix_apply_failure(
 ):
     """Tier 2: diagnose and fix a configuration whose apply failed partway.
 
-    Requires AWS credentials in the environment. Scaffold contract v2:
-    the v1 toolset plus tofu_apply.
+    Requires AWS credentials in the environment. Toolset: the plan-failure
+    tools plus tofu_apply.
     """
     seed_list = [int(s) for s in str(seeds).split(",")]
     prompt = (PROMPTS_DIR / "fix-apply-error.md").read_text()

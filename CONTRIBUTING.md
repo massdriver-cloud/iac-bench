@@ -51,7 +51,7 @@ Scoring changes rewrite history (stored results are re-scorable by design), so:
 - Judge-affecting changes (prompts, doctrine, judge model) create a new hashed
   edition; substantial changes require re-checking calibration against the
   human-ranked set before the judged column is trusted.
-- Weights and composite formulas change only via `scoring-policy.yaml` /
+- Weights and composite formulas change only via `composite-scoring-policy.yaml` /
   `rubric.yaml` version bumps — never silently.
 
 ## Ground rules

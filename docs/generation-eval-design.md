@@ -1,6 +1,10 @@
 # Generation evaluation design (draft for review)
 
-**Status:** proposal — no scoring code implemented yet
+**Status:** implemented, with one major revision — the mechanical layer
+(layer 2) described here was superseded by root-module evaluation and the
+declarative check engine; see `generation-check-engine.md` for the current
+mechanics. The layer model, brief philosophy, expertise checklists, reference
+matrix, and judge layer below remain current.
 **Domain:** `generation` (Tier 2, real AWS)
 **First fixture:** G001
 

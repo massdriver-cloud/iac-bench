@@ -1,111 +1,220 @@
-# G001 rubric, scoring_policy v1.
+# G001 rubric — declarative check engine (docs/generation-check-engine.md).
 #
 # HIDDEN CRITERIA: none of these appear in the brief. The brief is a short,
 # realistic human prompt; these items measure what the model VOLUNTEERS —
 # encoded S3 expertise — not compliance with stated instructions. Do not leak
 # rubric content into the brief or the scaffold prompt.
 #
-# methods:
-#   plan_assert     - plan the module's own examples, assert plan-JSON properties
-#   no_reachability - static taint + perturbation sweep: no input weakens it
-#   static          - HCL analysis of the module source
-#   interface       - structural constraint on the module's variables
+# Evidence model: the module is planned as a ROOT module at its defaults
+# (required variables only, values from the model's own minimal.tfvars), then
+# swept across its declared interface. Security items (posture: hardcoded)
+# are judged on the static source — a knob is the defect, even with a safe
+# default. Behavioral items (posture: reachable) pass if the capability
+# appears at defaults or under any perturbation — the mechanism (direct
+# boolean, environment-inferred, locals-routed) is a design choice and is
+# deliberately not scored.
 
 id: G001
 domain: generation
 suite_version: v0.1.0
 tier: 2
-scoring_policy: v2
+scoring_policy: v1  # pinned pre-publication; see docs/generation-check-engine.md
 
 # Mandatory items are security posture. Failing one does NOT cap the score
 # (scores stay true) — it is recorded as a finding, flagged in reports, and
 # fails the pass/fail verdict.
-mandatory: [H1, H2, H3, H4]
+mandatory: [H1, H3]
 
 items:
   - id: H1
-    weight: 10
-    method: plan_assert
-    description: Private by default — public access block fully enabled in both examples, unprompted.
-
-  - id: H2
-    weight: 8
-    method: no_reachability
-    description: Privacy is not weakenable — no documented input can open the bucket up.
+    weight: 18  # straight sum of former H1 (10) + H2 (8)
+    posture: hardcoded
+    description: >
+      Privacy is a property, not a knob — a public access block exists with all
+      four settings hardcoded true, its existence unconditional, and every
+      planned instance stays fully enabled across the entire sweep.
+    check:
+      all_of:
+        - hardcoded:
+            type: aws_s3_bucket_public_access_block
+            attrs:
+              block_public_acls: true
+              block_public_policy: true
+              ignore_public_acls: true
+              restrict_public_buckets: true
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: aws_s3_bucket_public_access_block
+            match: every
+            where:
+              block_public_acls: true
+              block_public_policy: true
+              ignore_public_acls: true
+              restrict_public_buckets: true
 
   - id: H3
-    weight: 8
-    method: plan_assert
-    description: Encryption at rest explicitly configured in both examples, unprompted.
-
-  - id: H4
-    weight: 6
-    method: no_reachability
-    description: No documented input removes encryption.
+    weight: 14  # straight sum of former H3 (8) + H4 (6)
+    posture: hardcoded
+    description: >
+      Encryption at rest is a property, not a knob — configured unconditionally
+      in the source (dedicated resource or inline), present in every reachable
+      plan. Which algorithm is a design choice; whether to encrypt is not.
+    check:
+      all_of:
+        - any_of:
+            - hardcoded:
+                type: aws_s3_bucket_server_side_encryption_configuration
+            - hardcoded:
+                type: aws_s3_bucket
+                attrs_exist: [server_side_encryption_configuration]
+        - any_of:
+            - resource:
+                plans: [defaults, sweep]
+                quantifier: all
+                type: aws_s3_bucket_server_side_encryption_configuration
+            - resource:
+                plans: [defaults, sweep]
+                quantifier: all
+                type: aws_s3_bucket
+                match: every
+                where:
+                  server_side_encryption_configuration: {exists: true}
 
   - id: H5
     weight: 8
-    method: static
     description: >
-      Bucket names include a uniqueness mechanism (random suffix, account id) —
-      the model knows the S3 namespace is global.
+      Bucket names include a uniqueness mechanism (random suffix, account id)
+      seen through locals, or delegate to bucket_prefix — the model knows the
+      S3 namespace is global.
+    check:
+      expr_matches:
+        type: aws_s3_bucket
+        attr: bucket
+        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity|bucket_prefix'
+        or_attr_present: bucket_prefix
 
   - id: H6
     weight: 6
-    method: plan_assert
-    description: Lifecycle cost management volunteered (transition and/or expiration rules).
+    posture: reachable
+    description: >
+      Lifecycle cost management volunteered — transition and/or expiration
+      rules appear at defaults or under some documented input.
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {transition: {exists: true}}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {expiration: {exists: true}}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {noncurrent_version_expiration: {exists: true}}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {noncurrent_version_transition: {exists: true}}}
 
   - id: H7
     weight: 4
-    method: plan_assert
+    posture: reachable
     description: >
-      Storage hygiene beyond the obvious: noncurrent-version expiration/transition
-      or incomplete-multipart-upload cleanup.
+      Storage hygiene beyond the obvious — noncurrent-version handling or
+      incomplete-multipart-upload cleanup.
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {noncurrent_version_expiration: {exists: true}}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {noncurrent_version_transition: {exists: true}}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {abort_incomplete_multipart_upload: {exists: true}}}
 
   - id: H8
     weight: 5
-    method: plan_assert
-    description: Versioning enabled in the production example.
+    posture: reachable
+    description: Versioning offered — enabled at defaults or under some input.
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: aws_s3_bucket_versioning
+        where: {versioning_configuration: {status: "Enabled"}}
 
   - id: H9
     weight: 4
-    method: plan_assert
-    description: Server access logging configured in the production example.
+    posture: reachable
+    description: >
+      Server access logging offered — the mechanism (direct toggle or inferred
+      from a generalized setting) is a design choice and not scored.
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: aws_s3_bucket_logging
 
   - id: H10
     weight: 6
-    method: interface
     description: >
       Interface restraint — at most 8 inputs. The brief only implies this
       ("a couple of obvious inputs"); the budget itself is hidden.
+    check:
+      interface: {max_variables: 8}
 
   - id: H11
     weight: 3
-    method: static
     description: >
-      No required input exists solely to feed tags (v2: per the tagging ordering in
-      good-opentofu.md — a mandatory tag-only variable the prompt never asked for is
-      worse than no tags; optional tag maps and multi-purpose inputs are fine).
+      No required input exists solely to feed tags (per the tagging ordering in
+      good-opentofu.md — a mandatory tag-only variable the prompt never asked
+      for is worse than no tags; optional tag maps and multi-purpose inputs are
+      fine).
+    check:
+      no_single_purpose_required_var: {attr: tags}
 
   - id: H12
     weight: 2
-    method: plan_assert
     description: >
-      Informative tagging volunteered without demanding inputs for it (calculated
-      values such as managed-by; requires H11).
+      Informative tagging volunteered without demanding inputs for it —
+      buckets carry tags out of the box (requires H11).
+    check:
+      all_of:
+        - ref: H11
+        - resource:
+            plans: defaults
+            type: aws_s3_bucket
+            where: {tags: {exists: true}}
 
   - id: H13
     weight: 4
-    method: plan_assert
     description: >
-      Access logging actually works: the log destination grants the logging service
-      permission to deliver. Promoted from expertise item E3 (2026-08-19) — without
-      the grant, logging silently delivers nothing. No frontier model volunteered
-      this in the first cross-vendor run.
+      Access logging actually works: the log destination grants the logging
+      service permission to deliver. Checked in source — ARN-interpolating
+      policies are unknown at plan time. Promoted from expertise item E3
+      (2026-08-19); no frontier model volunteered this in the first
+      cross-vendor run.
+    check:
+      source_contains: "logging.s3.amazonaws.com"
 
 # Input guarding (are the *right* variables validated) is deliberately NOT a
-# mechanical item under v1 — with no stated org policies there is no ground
-# truth for correct bounds. It is judged in layer 3.
+# mechanical item — with no stated org policies there is no ground truth for
+# correct bounds. It is judged in layer 3.
 # Recorded but unweighted: variable count, % typed, % validated, locals count,
 # resource count, SLOC, comment ratio.
 
@@ -118,17 +227,44 @@ expertise:
   - id: E1_ownership_controls
     description: BucketOwnerEnforced ownership controls (ACLs disabled).
     discovered_via: judge rationale, 2026-08-18 (opus-5 judging sonnet-5 vs refs)
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: aws_s3_bucket_ownership_controls
+        where: {rule: {object_ownership: "BucketOwnerEnforced"}}
   - id: E2_multipart_cleanup
     description: Aborts incomplete multipart uploads (storage garbage collection).
     discovered_via: judge rationale, 2026-08-18
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: aws_s3_bucket_lifecycle_configuration
+        where: {rule: {abort_incomplete_multipart_upload: {exists: true}}}
   # E3_log_delivery_policy promoted to core item H13 on 2026-08-19 — the
   # discovery-to-rubric migration path in action.
   - id: E4_tls_enforcement
     description: Bucket policy denies non-TLS (aws:SecureTransport) access.
     discovered_via: judge rationale, 2026-08-18
+    check:
+      source_contains: "aws:SecureTransport"
   - id: E5_regional_domain_output
     description: Outputs bucket_regional_domain_name for downstream wiring.
     discovered_via: judge rationale, 2026-08-18
+    check:
+      output_named: {value_contains: bucket_regional_domain_name}
   - id: E6_intelligent_tiering
     description: Uses or offers Intelligent-Tiering storage class awareness.
     discovered_via: judge rationale, 2026-08-18
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_intelligent_tiering_configuration
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_s3_bucket_lifecycle_configuration
+            where: {rule: {transition: {storage_class: "INTELLIGENT_TIERING"}}}

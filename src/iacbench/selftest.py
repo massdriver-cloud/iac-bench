@@ -230,11 +230,12 @@ def _selftest_generation(fixture_dir: Path, work_root: Path) -> list:
             failures.append(Failure(fixture.id, name, f"score below {expect['min_score']}: {summary} details={result.details}"))
         if "max_score" in expect and result.semantic_score > expect["max_score"]:
             failures.append(Failure(fixture.id, name, f"score above {expect['max_score']}: {summary}"))
+        # Graded (default_on) items report floats; full credit means >= 1.
         for item_id in expect.get("must_pass", []) or []:
-            if not result.items.get(item_id, False):
+            if float(result.items.get(item_id, 0.0)) < 1.0:
                 failures.append(Failure(fixture.id, name, f"expected {item_id} to pass: {summary} details={result.details}"))
         for item_id in expect.get("must_fail", []) or []:
-            if result.items.get(item_id, False):
+            if float(result.items.get(item_id, 0.0)) >= 1.0:
                 failures.append(Failure(fixture.id, name, f"expected {item_id} to fail: {summary}"))
     return failures
 
