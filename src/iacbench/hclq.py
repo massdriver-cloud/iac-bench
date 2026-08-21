@@ -46,18 +46,42 @@ def parse_dir(module_dir: Path) -> list:
 
 
 def variables(module_dir: Path) -> dict:
-    """name -> {typed: bool, has_default: bool, has_validation: bool}"""
+    """name -> {typed, has_default, has_validation, default, type, validation_conditions}
+
+    `default` is the parsed default value (None either means "no default" or a
+    literal null — disambiguate with has_default). `validation_conditions` are
+    the raw condition expression texts, used by the perturbation sweep to
+    harvest allowed values."""
     out: dict = {}
     for doc in parse_dir(module_dir):
         for block in doc.get("variable", []) or []:
             for name, spec in block.items():
                 spec = spec or {}
+                validations = spec.get("validation") or []
+                if isinstance(validations, dict):
+                    validations = [validations]
                 out[name] = {
                     "typed": "type" in spec,
                     "has_default": "default" in spec,
-                    "has_validation": bool(spec.get("validation")),
+                    "has_validation": bool(validations),
+                    "default": spec.get("default"),
+                    "type": str(spec.get("type", "")),
+                    "validation_conditions": [
+                        str((v or {}).get("condition", "")) for v in validations
+                    ],
                 }
     return out
+
+
+def parse_tfvars(path: Path) -> dict:
+    """Parse a .tfvars (HCL) or .tfvars.json file into a plain dict. tfvars
+    values are literals by definition; expressions surface as ${...} strings
+    and are the author's contract violation, not ours to resolve."""
+    path = Path(path)
+    if path.suffix == ".json":
+        return json.loads(path.read_text())
+    with open(path) as f:
+        return _clean(hcl2.load(f))
 
 
 def locals_map(module_dir: Path) -> dict:

@@ -20,6 +20,3 @@ report.md
 .cache/
 .terraform/
 *.tfplan
-
-# Internal genesis document — not part of the public project
-iac-bench-milestone-0.md

@@ -3,6 +3,7 @@
 __version__ = "0.1.0"
 
 SUITE_VERSION = "v0.1.0"
-# v2: tofu tools accept an optional path argument (needed for generation
-# fixtures, where examples/ dirs are the plannable roots).
-SCAFFOLD_CONTRACT_VERSION = "2"
+# Pinned at "1" until the benchmark is published; pre-launch contract changes
+# invalidate old runs instead of bumping (docs/generation-check-engine.md).
+SCAFFOLD_CONTRACT_VERSION = "1"
+CHECK_DSL_VERSION = "1"

@@ -19,8 +19,14 @@ Two tiers, end to end:
   applies partway, fails, and the model must fix the config and converge it. Everything is
   tagged `iacbench=true`, every scored attempt ends in `tofu destroy`, and `iacbench sweep`
   finds/removes leaks.
-- **Tier 2 — `generation`** (G001+): the model builds a module from a use-case brief and is
-  scored against a weighted, brief-specific rubric — plan-only, no resources created. See
+- **Tier 2 — `generation`** (G001+): the model builds a standalone root module from a
+  use-case brief (shipping a `minimal.tfvars` for its required variables) and is scored
+  against a weighted, brief-specific rubric — plan-only, no resources created. The module
+  is evaluated **at its own defaults**, never through the model's example input choices:
+  security items require hardcoded-secure source, behavioral items pass if reachable
+  through the documented interface. Checks are declared in each fixture's `rubric.yaml`
+  and evaluated by a service-agnostic verb engine — adding a fixture requires no Python.
+  See `docs/generation-check-engine.md` for the evidence model and verb vocabulary, and
   `docs/generation-eval-design.md` for the layered scoring model (functional gate →
   semantic rubric → judged layer → unweighted descriptive stats) and why generic metrics
   like "% of variables validated" are deliberately never scored.
@@ -162,7 +168,9 @@ rules, and `SECURITY.md` for private vulnerability reporting.
 
 The model gets exactly these tools: `list_files`, `read_file`, `write_file` (whole-file,
 confined to the scratch dir, forbidden paths rejected and recorded), `tofu_validate`,
-`tofu_plan`, `tofu_fmt`, `submit`. No arbitrary shell. `tofu init` is run by the harness
-before turn one. Limits: 600s wall clock per attempt, 120s per tofu invocation, tool output
-truncated at 8 KB. Changing any of this invalidates comparisons with earlier runs — treat it
-as versioned (`SCAFFOLD_CONTRACT_VERSION` in `src/iacbench/__init__.py`).
+`tofu_plan` (accepts an optional `var_file`), `tofu_fmt`, `submit`. No arbitrary shell.
+`tofu init` is run by the harness. Limits: 600s wall clock per attempt, 120s per tofu
+invocation, tool output truncated at 8 KB. Changing any of this invalidates comparisons
+with earlier runs — versioned as `SCAFFOLD_CONTRACT_VERSION` in `src/iacbench/__init__.py`,
+pinned at "1" until the benchmark is published (pre-launch changes simply invalidate old
+runs; see the versioning stance in `docs/generation-check-engine.md`).
