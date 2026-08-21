@@ -213,17 +213,40 @@ def _is_ref_pair(pair: dict) -> bool:
     return any(str(pair[k]).startswith("ref") for k in ("a", "b"))
 
 
-def finalize(verdicts_path: Path, adjudication_path: Path, judge_dir: Path) -> dict:
+def finalize(
+    verdicts_path: Path,
+    adjudication_path: Path,
+    judge_dir: Path,
+    near_tie_gap: float = 10.0,
+) -> dict:
     verdicts = yaml.safe_load(Path(verdicts_path).read_text())
     adjudication = yaml.safe_load(Path(adjudication_path).read_text())
     judgments = _load_judgments(judge_dir)
     resolved = {d["id"]: d for d in adjudication.get("disagreements", [])}
 
+    # Near-tie exclusion: pairs whose absolute grades sit within near_tie_gap
+    # of each other are preference territory — which way they fall says nothing
+    # about the judge's fitness, so they are excluded from the gate statistic
+    # and disclosed. Applies only when grades exist for both candidates.
+    grades: dict = {}
+    grades_path = Path(judge_dir) / "grades.json"
+    if grades_path.is_file():
+        data = json.loads(grades_path.read_text())
+        grades = {k: v for k, v in (data.get("grades") or {}).items() if v is not None}
+
+    def decisive(pair: dict) -> bool:
+        ga, gb = grades.get(pair["a"]), grades.get(pair["b"])
+        if ga is None or gb is None:
+            return True
+        return abs(ga - gb) >= near_tie_gap
+
+    near_ties = [p["id"] for p in verdicts["pairs"] if p.get("winner") and not decisive(p)]
+
     def tally(pairs: list) -> dict:
         graded = agree_raw = agree_adj = 0
         for pair in pairs:
             human = pair.get("winner")
-            if not human or str(human).lower() == "tie":
+            if not human or str(human).lower() == "tie" or not decisive(pair):
                 continue
             judge_winner, _, _ = _judge_majority(judgments, pair["a"], pair["b"])
             graded += 1
@@ -243,9 +266,11 @@ def finalize(verdicts_path: Path, adjudication_path: Path, judge_dir: Path) -> d
     all_pairs = verdicts["pairs"]
     result = {
         "fixture": verdicts["fixture"],
-        "method": "evidence-assisted verdicts with adjudication",
+        "method": "evidence-assisted verdicts with adjudication; "
+                  f"near-tie pairs (grade gap < {near_tie_gap:g}) excluded",
         "overall": tally(all_pairs),
         "models_only": tally([p for p in all_pairs if not _is_ref_pair(p)]),
+        "near_tie_excluded": near_ties,
         "unresolved_disagreements": [
             d["id"] for d in adjudication.get("disagreements", []) if d.get("uphold") is None
         ],
