@@ -81,21 +81,6 @@ items:
                 where:
                   server_side_encryption_configuration: {exists: true}
 
-  - id: H5
-    weight: 8
-    description: >
-      Bucket names include a uniqueness mechanism (random suffix, account id)
-      seen through locals, or delegate to bucket_prefix — the model knows the
-      S3 namespace is global.
-    check:
-      expr_matches:
-        type: aws_s3_bucket
-        attr: bucket
-        # \. suffixes so the pattern only matches real references — a local
-        # merely NAMED aws_caller_identity_foo must not count as uniqueness
-        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity\.'
-        or_attr_present: bucket_prefix
-
   - id: H6
     weight: 6
     posture: reachable
@@ -217,9 +202,11 @@ items:
 # resource count, SLOC, comment ratio.
 
 # Expertise checklist — discovered service-specific touches, mechanically
-# verified, reported as a SEPARATE unweighted subscore (never folded into the
-# semantic score). Grows by discovery: judge rationales cite differentiators,
-# approved ones become permanent items. Qualification rule: an item must not
+# verified. Each item carries weight 1 (unless overridden) in the pooled
+# mechanical score, so rubric items dominate by construction and growing the
+# checklist cannot swamp the core rubric. Also reported as its own differential
+# table. Grows by discovery: judge rationales cite differentiators, approved
+# ones become permanent items. Qualification rule: an item must not
 # invent an uncommunicated use-case or demand new inputs.
 expertise:
   - id: E1_ownership_controls
@@ -264,3 +251,23 @@ expertise:
             quantifier: any
             type: aws_s3_bucket_lifecycle_configuration
             where: {rule: {transition: {storage_class: "INTELLIGENT_TIERING"}}}
+  - id: E7_name_uniqueness
+    description: >
+      Bucket names include a uniqueness mechanism (random suffix, account id)
+      seen through locals, or delegate to bucket_prefix — S3's namespace is
+      global. Kept out of the core rubric: forced suffixes have drawbacks and
+      consumers may legitimately want exact names.
+    discovered_via: owner review, 2026-08-21
+    check:
+      expr_matches:
+        type: aws_s3_bucket
+        attr: bucket
+        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity\.'
+        or_attr_present: bucket_prefix
+  - id: E8_custom_kms_key
+    description: >
+      Consumers can supply their own KMS key for encryption — as an optional
+      reference, never a raw secret.
+    discovered_via: owner review, 2026-08-21
+    check:
+      var_feeds_attr: {attr: kms_master_key_id, has_default: true}

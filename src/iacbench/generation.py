@@ -81,9 +81,13 @@ class GenerationResult:
     # score with a judge grade computed over a different artifact.
     module_sha: str | None = None
     # Expertise checklist: discovered service-specific touches, present/absent.
-    # A separate subscore — never folded into semantic_score.
+    # Reported as its own subscore; pooled with the rubric (at weight 1 per
+    # item) into mechanical_score.
     expertise: dict = field(default_factory=dict)
     expertise_score: float | None = None
+    # Rubric + expertise pooled into one weighted fraction — the mechanical
+    # component of the composite. semantic_score stays rubric-only.
+    mechanical_score: float | None = None
     # Mandatory (security) items that failed. Scores stay true — these are
     # reported as findings and fail the verdict instead of capping the number.
     mandatory_failures: list = field(default_factory=list)
@@ -197,6 +201,7 @@ def _gate_failure(
         gate=False,
         items={i["id"]: False for i in fixture.items},
         semantic_score=0.0,
+        mechanical_score=0.0,
         details=details,
         stats=stats,
         scoring_policy=fixture.scoring_policy,
@@ -339,9 +344,20 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         round(sum(expertise.values()) / len(expertise), 3) if expertise else None
     )
 
+    # Pooled mechanical score: rubric items at their rubric weights, expertise
+    # items at weight 1 (unless overridden) — the rubric dominates by
+    # construction, and growing the checklist cannot swamp it.
+    exp_total = sum(e.get("weight", 1) for e in fixture.expertise)
+    exp_passed = sum(e.get("weight", 1) for e in fixture.expertise if expertise.get(e["id"]))
+    mech_denominator = total_weight + exp_total
+    mechanical_score = (
+        round((passed_weight + exp_passed) / mech_denominator, 3) if mech_denominator else 0.0
+    )
+
     return GenerationResult(
         expertise=expertise,
         expertise_score=expertise_score,
+        mechanical_score=mechanical_score,
         mandatory_failures=mandatory_failures,
         gate=True,
         items=items,

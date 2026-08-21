@@ -307,6 +307,7 @@ def generation_scorer():
                 "gate": result.gate,
                 "items": result.items,
                 "semantic_score": result.semantic_score,
+                "mechanical_score": result.mechanical_score,
                 "scoring_policy": result.scoring_policy,
                 "stats": result.stats,
                 "expertise": result.expertise,

@@ -51,6 +51,7 @@ class Attempt:
     expertise: dict | None = None
     expertise_score: float | None = None
     semantic_score: float | None = None
+    mechanical_score: float | None = None
     mandatory_failures: list | None = None
     module_sha: str | None = None
     kind: str = "fix"  # "fix" (binary invariants) or "generation" (fractional rubric)
@@ -114,6 +115,7 @@ def collect_attempts(log_dir: Path) -> list:
                     expertise=meta.get("expertise"),
                     expertise_score=meta.get("expertise_score"),
                     semantic_score=meta.get("semantic_score", score.value if score else None),
+                    mechanical_score=meta.get("mechanical_score"),
                     mandatory_failures=meta.get("mandatory_failures"),
                     module_sha=meta.get("module_sha"),
                     kind=kind,
@@ -255,13 +257,14 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
     w = policy["weights"]
     groups: dict = {}
     for a in gen:
-        if a.semantic_score is not None and a.expertise:
+        if a.semantic_score is not None and a.mechanical_score is not None and a.expertise:
             groups.setdefault((a.model, a.fixture), []).append(a)
 
     notes: list = []
     rows = []
     for (model, fixture), group in groups.items():
         rubrics = [a.semantic_score for a in group]
+        mechs = [a.mechanical_score for a in group]
         exps = [sum(a.expertise.values()) / len(a.expertise) for a in group]
         entry = _grade_for_model(model, grade_data["detail"])
         grade = entry.get("overall") if entry else None
@@ -283,17 +286,12 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
                 f"judge grades excluded from composite: status is {grade_data['status']!r}"
             )
 
-        def composite(rubric: float, exp: float, grade=grade, use_grade=use_grade) -> float:
+        def composite(mech: float, grade=grade, use_grade=use_grade) -> float:
             if use_grade:
-                return 100 * (
-                    w["rubric"] * rubric + w["expertise"] * exp + w["grade"] * grade / 100
-                )
-            mech = w["rubric"] + w["expertise"]
-            return 100 * (w["rubric"] * rubric + w["expertise"] * exp) / mech
+                return 100 * (w["mechanical"] * mech + w["grade"] * grade / 100)
+            return 100 * mech  # mechanical-only: the composite IS the pooled score
 
-        composites = sorted(
-            composite(r, e) for r, e in zip(rubrics, exps, strict=True)
-        )
+        composites = sorted(composite(m) for m in mechs)
         findings: dict = {}
         for a in group:
             for item in a.mandatory_failures or []:
@@ -304,26 +302,27 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
         )
         rows.append((
             statistics.median(composites), model, fixture, len(group),
-            statistics.median(rubrics), statistics.median(exps), grade_cell,
+            statistics.median(rubrics), statistics.median(exps),
+            statistics.median(mechs), grade_cell,
             f"{composites[0]:.0f}–{composites[-1]:.0f}" if len(group) > 1 else "—",
             flag, findings,
         ))
 
     mode = (
-        "rubric + expertise + calibrated judge grade"
+        "0.70·mechanical + 0.30·calibrated judge grade"
         if grade_data["calibrated"] and grade_data["detail"]
-        else "mechanical only — rubric + expertise, weights renormalized; judge grade shown but not folded in"
+        else "mechanical only (pooled rubric + expertise); judge grade shown but not folded in"
     )
     lines = [
         "",
         f"## Composite grades (scoring policy {policy.get('policy_version', '?')} — {mode})",
         "",
-        "| model | fixture | n | rubric (med) | expertise (med) | judge grade | **composite (med)** | range | findings |",
-        "|-------|---------|---|--------------|-----------------|-------------|---------------------|-------|----------|",
+        "| model | fixture | n | rubric (med) | expertise (med) | mechanical (med) | judge grade | **composite (med)** | range | findings |",
+        "|-------|---------|---|--------------|-----------------|------------------|-------------|---------------------|-------|----------|",
     ]
-    for med, model, fixture, n, rubric, exp, grade_cell, rng, flag, _ in sorted(rows, reverse=True):
+    for med, model, fixture, n, rubric, exp, mech, grade_cell, rng, flag, _ in sorted(rows, reverse=True):
         lines.append(
-            f"| {model} | {fixture} | {n} | {rubric:.3f} | {exp:.2f} | {grade_cell} "
+            f"| {model} | {fixture} | {n} | {rubric:.3f} | {exp:.2f} | {mech:.3f} | {grade_cell} "
             f"| **{med:.0f}** | {rng} | {flag} |"
         )
     lines.append("")
