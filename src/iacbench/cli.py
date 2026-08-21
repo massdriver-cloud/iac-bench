@@ -49,6 +49,16 @@ def main(argv=None) -> int:
     p_judge.add_argument("--grade", action="store_true", help="absolute grading mode: score each candidate 0-100 against good-opentofu.md, no comparisons")
     p_judge.add_argument("--samples", type=int, default=3, help="grading samples per candidate (grade mode)")
 
+    p_cal = sub.add_parser(
+        "calibrate",
+        help="evidence-assisted judge calibration: packets -> human verdicts -> adjudicate -> finalize",
+    )
+    p_cal.add_argument("stage", choices=["packets", "adjudicate", "finalize"])
+    p_cal.add_argument("--fixture", default="G001")
+    p_cal.add_argument("--candidates", help="directory of candidate module dirs (packets stage)")
+    p_cal.add_argument("--judge-dir", required=True, help="dir with judgments.jsonl + scores.json")
+    p_cal.add_argument("--out", required=True, help="calibration working directory")
+
     args = parser.parse_args(argv)
 
     if args.command == "render":
@@ -74,6 +84,51 @@ def main(argv=None) -> int:
         from .sweep import run_sweep
 
         return run_sweep(args.region or os.environ.get("AWS_REGION", "us-east-1"), args.delete)
+
+    if args.command == "calibrate":
+        import json
+        import shutil
+        import tempfile
+
+        from . import calibrate
+        from .generation import GenerationFixture, score_generation
+
+        out_dir = Path(args.out)
+        judge_dir = Path(args.judge_dir)
+        if args.stage == "packets":
+            if not args.candidates:
+                print("packets stage requires --candidates")
+                return 1
+            fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
+            candidates = {
+                d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
+            }
+            scores = json.loads((judge_dir / "scores.json").read_text())
+            pairs = calibrate.select_pairs(scores["bt_scores"])
+            findings: dict = {}
+            with tempfile.TemporaryDirectory(prefix="iacbench-calib-") as tmp:
+                for label, d in candidates.items():
+                    module_copy = Path(tmp) / label / "module"
+                    shutil.copytree(d, module_copy)
+                    print(f"scoring {label} for mechanical findings...", flush=True)
+                    findings[label] = score_generation(fixture, module_copy, Path(tmp) / label / "work")
+            verdicts = calibrate.write_packets(fixture, candidates, findings, pairs, out_dir)
+            print(f"wrote {len(pairs)} packets under {out_dir / 'pairs'}")
+            print(f"fill in {verdicts} (winner per pair), then run the adjudicate stage")
+            return 0
+        if args.stage == "adjudicate":
+            summary = calibrate.adjudicate(out_dir / "verdicts.yaml", judge_dir, out_dir)
+            print(json.dumps(summary, indent=2))
+            if summary["disagree"]:
+                print(f"\nresolve uphold/reason in {summary['adjudication']}, then run finalize")
+            return 0
+        if args.stage == "finalize":
+            result = calibrate.finalize(out_dir / "verdicts.yaml", out_dir / "adjudication.yaml", judge_dir)
+            print(json.dumps(result, indent=2))
+            if result.get("unresolved_disagreements"):
+                print("\nunresolved disagreements remain — fill uphold/reason and re-run")
+                return 1
+            return 0
 
     if args.command == "judge":
         import asyncio
