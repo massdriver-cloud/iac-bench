@@ -91,7 +91,9 @@ items:
       expr_matches:
         type: aws_s3_bucket
         attr: bucket
-        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity|bucket_prefix'
+        # \. suffixes so the pattern only matches real references — a local
+        # merely NAMED aws_caller_identity_foo must not count as uniqueness
+        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity\.'
         or_attr_present: bucket_prefix
 
   - id: H6

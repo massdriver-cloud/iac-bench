@@ -115,6 +115,11 @@ Two modes, implemented in `src/iacbench/judge.py`:
 - **Absolute grading** (`iacbench judge --grade`): each candidate scored 0–4 per
   good-opentofu.md section independently (multiple samples, medians, evidence required),
   normalized to 0–100. Roster-independent, so it is the judged component of the composite.
+  Section scores are reported as their own table — one row per doctrine section, one
+  column per candidate — so a reader who disagrees with a specific documented preference
+  can discount exactly that row. Calibration (`--grade --human`) compares the judge's
+  grades to human grades of the same candidates by rank (Spearman ≥ 0.8); the report
+  folds grades into the composite only once that gate is cleared.
 - **Blind pairwise** ("which module would you rather inherit?"), each pair judged in both
   presentation orders, aggregated Bradley–Terry. Used for discovery and audit — its
   rationales feed the expertise checklist — not for the composite.

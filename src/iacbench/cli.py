@@ -41,7 +41,11 @@ def main(argv=None) -> int:
     p_judge.add_argument("--model", default="anthropic/claude-opus-5", help="judge model")
     p_judge.add_argument("--rounds", type=int, default=1, help="judgments per pair per presentation order")
     p_judge.add_argument("--out", default=None, help="output dir (default: runs/judge/<fixture>)")
-    p_judge.add_argument("--human", default=None, help="human calibration yaml; computes judge-vs-human agreement")
+    p_judge.add_argument(
+        "--human", default=None,
+        help="human calibration yaml: pairs (pairwise mode) or grades (with --grade); "
+             "computes judge-vs-human agreement and updates the stored status",
+    )
     p_judge.add_argument("--grade", action="store_true", help="absolute grading mode: score each candidate 0-100 against good-opentofu.md, no comparisons")
     p_judge.add_argument("--samples", type=int, default=3, help="grading samples per candidate (grade mode)")
 
@@ -80,19 +84,27 @@ def main(argv=None) -> int:
 
         out_dir = Path(args.out) if args.out else RUNS_DIR / "judge" / args.fixture
         if args.grade:
-            from .judge import run_grade
+            from .judge import grade_agreement, run_grade
 
-            if not args.candidates:
-                print("--grade requires --candidates")
+            if not args.candidates and not args.human:
+                print("--grade requires --candidates (to grade) and/or --human (to calibrate)")
                 return 1
-            fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
-            candidates = {
-                d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
-            }
-            summary = asyncio.run(
-                run_grade(fixture.id, fixture.brief, candidates, args.model, out_dir, args.samples)
-            )
-            print(json.dumps(summary["grades"], indent=2))
+            if args.candidates:
+                fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
+                candidates = {
+                    d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
+                }
+                summary = asyncio.run(
+                    run_grade(fixture.id, fixture.brief, candidates, args.model, out_dir, args.samples)
+                )
+                print(json.dumps(summary["grades"], indent=2))
+            if args.human:
+                result = grade_agreement(out_dir / "grades.json", Path(args.human))
+                print(json.dumps(result, indent=2))
+                if result["agreement"] is not None and result["agreement"] < 0.8:
+                    print("\nabsolute grading is NOT calibrated (spearman < 0.8) — "
+                          "the report will keep grades out of the composite")
+                    return 1
             return 0
         if args.candidates:
             fixture = GenerationFixture.load(find_fixture_dir(args.fixture))

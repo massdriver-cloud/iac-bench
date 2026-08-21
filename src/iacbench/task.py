@@ -313,6 +313,7 @@ def generation_scorer():
                 "expertise_score": result.expertise_score,
                 "mandatory_failures": result.mandatory_failures,
                 "probe_plans": result.probe_plans,
+                "module_sha": result.module_sha,
                 "check_dsl_version": CHECK_DSL_VERSION,
                 "fixture": fixture.id,
                 "tofu_version": tofu_version(),

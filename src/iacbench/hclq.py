@@ -201,14 +201,32 @@ def value_text_closure(module_dir: Path, value) -> str:
     return " ".join(parts)
 
 
+def value_text(value) -> str:
+    """Textual form of a parsed HCL value (no locals resolution)."""
+    return json.dumps(value, default=str)
+
+
 def outputs(module_dir: Path) -> dict:
-    """name -> raw value text of output blocks in the module root."""
+    """name -> parsed output spec dict ({value, description, ...})."""
     out: dict = {}
     for doc in parse_dir(module_dir):
         for block in doc.get("output", []) or []:
             for name, spec in block.items():
-                out[name] = json.dumps(spec, default=str)
+                out[name] = spec or {}
     return out
+
+
+def unparsed_files(module_dir: Path) -> list:
+    """*.tf files in the module root that python-hcl2 cannot parse. Static
+    checks are blind to these — callers must surface them, never hide them."""
+    failed = []
+    for tf in sorted(Path(module_dir).glob("*.tf")):
+        try:
+            with open(tf) as f:
+                hcl2.load(f)
+        except Exception:
+            failed.append(tf.name)
+    return failed
 
 
 def _line_counts(module_dir: Path) -> tuple:

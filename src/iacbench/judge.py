@@ -27,6 +27,7 @@ from pathlib import Path
 
 import yaml
 
+from .artifacts import module_sha
 from .paths import PROMPTS_DIR, REPO_ROOT
 
 DEFAULT_PRINCIPLES = REPO_ROOT / "docs" / "good-opentofu.md"
@@ -34,13 +35,26 @@ MAX_MODULE_CHARS = 30_000
 _WINNER_RE = re.compile(r"WINNER:\s*(?:MODULE\s*)?([12])", re.IGNORECASE)
 
 
+_RENDER_GLOBS = ("*.tf", "*.tfvars", "*.tfvars.json", "*.md")
+_RENDER_LANG = {".tf": "hcl", ".tfvars": "hcl", ".json": "json", ".md": "markdown"}
+
+
 def render_module(module_dir: Path) -> str:
+    """The full deliverable as the judge sees it: HCL, tfvars, and docs.
+    The doctrine grades documentation and consumer experience, so README and
+    examples must be visible — grading a section while withholding its
+    evidence would be a measurement bug."""
+    module_dir = Path(module_dir)
+    files: list = []
+    for pattern in _RENDER_GLOBS:
+        files.extend(module_dir.rglob(pattern))
     parts = []
-    for tf in sorted(Path(module_dir).rglob("*.tf")):
-        if ".terraform" in tf.parts:
+    for path in sorted(set(files)):
+        if ".terraform" in path.parts:
             continue
-        rel = tf.relative_to(module_dir)
-        parts.append(f"### {rel}\n```hcl\n{tf.read_text(errors='replace')}\n```")
+        rel = path.relative_to(module_dir)
+        lang = _RENDER_LANG.get(path.suffix, "")
+        parts.append(f"### {rel}\n```{lang}\n{path.read_text(errors='replace')}\n```")
     text = "\n\n".join(parts)
     if len(text) > MAX_MODULE_CHARS:
         text = text[:MAX_MODULE_CHARS] + f"\n[truncated {len(text) - MAX_MODULE_CHARS} chars]"
@@ -114,15 +128,25 @@ async def run_judge(
                 tasks.append(_judge_once(model, system_prompt, brief, rendered[first], rendered[second]))
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # BT aggregates over ALL accumulated judgments for this out_dir (same
-    # candidates/config appended across runs), not just this run's batch
+    # BT aggregates accumulated judgments for this out_dir, but only those
+    # produced by the same judge under the same prompt and doctrine edition —
+    # mixing editions would blend verdicts from different definitions of good.
     judgments: list = []
+    stale = 0
     jsonl_path = out_dir / "judgments.jsonl"
     if jsonl_path.is_file():
         for line in jsonl_path.read_text().splitlines():
-            if line.strip():
-                prior = json.loads(line)
-                judgments.append(Judgment(**prior))
+            if not line.strip():
+                continue
+            prior = Judgment(**json.loads(line))
+            if (
+                prior.prompt_sha256 == prompt_sha
+                and prior.principles_sha256 == principles_sha
+                and prior.judge_model == judge_model
+            ):
+                judgments.append(prior)
+            else:
+                stale += 1
     with open(jsonl_path, "a") as f:
         for (first, second), result in zip(order, results, strict=True):
             if isinstance(result, Exception):
@@ -153,6 +177,7 @@ async def run_judge(
         "status": "experimental (not calibrated against human ranking)",
         "candidates": labels,
         "judgments": len(judgments),
+        "stale_judgments_excluded": stale,
         "unparseable": sum(1 for j in judgments if j.winner is None),
         "bt_scores": scores,
         "pair_wins": _pair_table(labels, judgments),
@@ -269,7 +294,11 @@ async def run_grade(
             per_section[section] = _median(votes) if votes else None
         applicable = [v for v in per_section.values() if v is not None]
         overall = round(sum(applicable) / len(applicable) / 4 * 100, 1) if applicable else None
-        results[label] = {"overall": overall, "sections": per_section}
+        results[label] = {
+            "overall": overall,
+            "sections": per_section,
+            "module_sha": module_sha(module_dir),
+        }
 
     summary = {
         "fixture": fixture_id,
@@ -296,6 +325,7 @@ def agreement(judgments_path: Path, human_path: Path) -> dict:
     results = []
     agree = 0
     graded = 0
+    ties = 0
     for pair in human.get("pairs", []):
         a, b, human_winner = pair["a"], pair["b"], pair.get("winner")
         if not human_winner:
@@ -309,13 +339,14 @@ def agreement(judgments_path: Path, human_path: Path) -> dict:
         leaders = [label for label, c in counts.items() if c == top]
         graded += 1
         if len(leaders) > 1:
-            # an order-split is a tie, not a majority — score it half credit
-            agree += 0.5
+            # An order-split means the judge has no verdict where the human
+            # has one — that is a disagreement, not half of an agreement.
+            ties += 1
             results.append({
                 "pair": f"{a} vs {b}",
                 "human": human_winner,
                 "judge": f"TIE ({', '.join(f'{label}:{c}' for label, c in sorted(counts.items()))})",
-                "agree": "tie",
+                "agree": False,
             })
             continue
         judge_winner = leaders[0]
@@ -329,6 +360,71 @@ def agreement(judgments_path: Path, human_path: Path) -> dict:
         })
     return {
         "graded_pairs": graded,
+        "judge_ties": ties,
         "agreement": round(agree / graded, 3) if graded else None,
         "pairs": results,
     }
+
+
+def _spearman(xs: list, ys: list) -> float | None:
+    """Spearman rank correlation (average ranks for ties)."""
+    if len(xs) < 3 or len(xs) != len(ys):
+        return None
+
+    def ranks(values: list) -> list:
+        order = sorted(range(len(values)), key=lambda i: values[i])
+        r = [0.0] * len(values)
+        i = 0
+        while i < len(order):
+            j = i
+            while j + 1 < len(order) and values[order[j + 1]] == values[order[i]]:
+                j += 1
+            avg = (i + j) / 2 + 1
+            for k in range(i, j + 1):
+                r[order[k]] = avg
+            i = j + 1
+        return r
+
+    rx, ry = ranks(xs), ranks(ys)
+    mx, my = sum(rx) / len(rx), sum(ry) / len(ry)
+    num = sum((a - mx) * (b - my) for a, b in zip(rx, ry, strict=True))
+    den = (
+        sum((a - mx) ** 2 for a in rx) * sum((b - my) ** 2 for b in ry)
+    ) ** 0.5
+    return num / den if den else None
+
+
+def grade_agreement(grades_path: Path, human_path: Path, gate: float = 0.8) -> dict:
+    """Calibrate absolute grading against human grades of the same candidates.
+
+    Human file (yaml): grades: {label: number} — any consistent scale; only
+    rank order is compared (Spearman). Updates grades.json status in place so
+    the report's calibration gate can rely on it.
+    """
+    grades_path = Path(grades_path)
+    data = json.loads(grades_path.read_text())
+    human = (yaml.safe_load(Path(human_path).read_text()) or {}).get("grades", {})
+    common = sorted(
+        label for label, g in (data.get("grades") or {}).items()
+        if g is not None and label in human
+    )
+    if len(common) < 3:
+        return {"agreement": None, "graded_candidates": len(common),
+                "error": "need at least 3 human-graded candidates in common"}
+    rho = _spearman([human[label] for label in common],
+                    [data["grades"][label] for label in common])
+    result = {
+        "agreement": round(rho, 3) if rho is not None else None,
+        "method": "spearman",
+        "graded_candidates": len(common),
+        "candidates": common,
+    }
+    if rho is not None:
+        data["agreement"] = result["agreement"]
+        data["agreement_method"] = "spearman rank vs human grades"
+        data["graded_candidates"] = len(common)
+        data["status"] = (
+            "calibrated" if rho >= gate else "experimental (failed calibration)"
+        )
+        grades_path.write_text(json.dumps(data, indent=2))
+    return result
