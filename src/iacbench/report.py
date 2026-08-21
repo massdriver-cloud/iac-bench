@@ -208,17 +208,20 @@ def _load_grade_data(judge_dirs: list) -> dict:
     detail: dict = {}
     statuses: list = []
     principles: set = set()
+    weights: dict = {}
     for d in judge_dirs or []:
         path = Path(d) / "grades.json"
         if not path.is_file():
             continue
         data = json.loads(path.read_text())
         detail.update(data.get("detail") or {})
+        weights.update(data.get("section_weights") or {})
         statuses.append(str(data.get("status", "experimental")))
         if data.get("principles_sha256"):
             principles.add(data["principles_sha256"])
     return {
         "detail": detail,
+        "weights": weights,
         "calibrated": bool(statuses) and all(s.startswith("calibrated") for s in statuses),
         "status": "; ".join(sorted(set(statuses))) or "no grades",
         "principles": ", ".join(sorted(principles)) or "—",
@@ -371,12 +374,15 @@ def render_grade_sections(judge_dirs: list) -> str:
         "| doctrine section | " + " | ".join(labels) + " |",
         "|" + "---|" * (len(labels) + 1),
     ]
+    weights = grade_data.get("weights") or {}
     for section in sections:
         cells = []
         for label in labels:
             v = (detail[label].get("sections") or {}).get(section)
             cells.append("—" if v is None else f"{v:g}")
-        lines.append(f"| {section} | " + " | ".join(cells) + " |")
+        w = weights.get(section, 1)
+        name = section if w == 1 else f"{section} (w{w:g})"
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
     overall = [
         f"**{detail[label]['overall']:.0f}**" if detail[label].get("overall") is not None else "—"
         for label in labels

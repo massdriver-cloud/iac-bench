@@ -217,6 +217,23 @@ def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     return True
 
 
+def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: some declared variable (transitively through locals) feeds
+    the named attribute. `has_default: true` restricts to optional variables —
+    e.g. 'consumers can add tags without being forced to'."""
+    feeding = hclq.vars_feeding_attr(ctx.module_dir, spec["attr"])
+    declared = hclq.variables(ctx.module_dir)
+    want_default = spec.get("has_default")
+    for name in feeding:
+        meta = declared.get(name)
+        if meta is None:
+            continue
+        if want_default is not None and meta["has_default"] != want_default:
+            continue
+        return True
+    return False
+
+
 def _verb_no_single_purpose_required_var(ctx: CheckContext, spec: dict) -> bool:
     """Static lens: no default-less variable exists solely to feed the named
     attribute. Multi-purpose inputs and optional variables are fine."""
@@ -318,6 +335,7 @@ _VERBS = {
     "resource": _verb_resource,
     "hardcoded": _verb_hardcoded,
     "expr_matches": _verb_expr_matches,
+    "var_feeds_attr": _verb_var_feeds_attr,
     "no_single_purpose_required_var": _verb_no_single_purpose_required_var,
     "source_contains": _verb_source_contains,
     "output_named": _verb_output_named,

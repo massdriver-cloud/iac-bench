@@ -216,6 +216,26 @@ def outputs(module_dir: Path) -> dict:
     return out
 
 
+def module_sources(module_dir: Path) -> list:
+    """Source strings of every `module` block anywhere under the module dir
+    (excluding .terraform) — used to enforce the no-remote-modules contract."""
+    sources: list = []
+    for tf in sorted(Path(module_dir).rglob("*.tf")):
+        if ".terraform" in tf.parts:
+            continue
+        try:
+            with open(tf) as f:
+                doc = _clean(hcl2.load(f))
+        except Exception:
+            continue
+        for block in doc.get("module", []) or []:
+            for _name, attrs in block.items():
+                source = (attrs or {}).get("source")
+                if source is not None:
+                    sources.append(str(source))
+    return sources
+
+
 def unparsed_files(module_dir: Path) -> list:
     """*.tf files in the module root that python-hcl2 cannot parse. Static
     checks are blind to these — callers must surface them, never hide them."""

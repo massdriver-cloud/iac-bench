@@ -10,9 +10,6 @@ Guidance for entries: concrete over abstract, and discriminating — each princi
 something two competent modules actually differ on. Name anti-patterns explicitly. If a
 preference is conditional, say what it depends on.
 
-> The entries below are seeds distilled from prior design discussion — edit, reorder,
-> delete, and extend freely; this document is only useful as your actual opinions.
-
 ## Interface design
 
 - Variablize *concepts*, not resource attributes. An `environment` input that drives
@@ -49,11 +46,14 @@ preference is conditional, say what it depends on.
 
 ## Versions
 
-- OpenTofu and provider versions should be specified. Ideally they should be pinned to a
-  major version, and not a specific semver. Best is using `~>` to pin to a major or minor
-  version, or using the greater than/less than operators to specify a small window of
-  compatible versions. Next is a hard pin to a specific semver. Worst is anything that
-  allows a new major version with potentially a breaking change.
+- OpenTofu and provider version constraints are required, and the bar is simple: **the
+  constraint must not admit a new major version.** A `~>` bound, a bounded window
+  (`>= 6.0, < 7.0`), and a hard semver pin all pass; an unconstrained requirement or a
+  bare `>=` that allows a major-version jump fails.
+- The module's own constraints are the safety mechanism — never the lockfile. A lockfile
+  is a runtime artifact of whatever root executes the module; consumers may regenerate or
+  gitignore it. A module that is only safe when a particular lockfile happens to be
+  present is not safe.
 
 ## Inline Resource Configuration vs Separate Resources
 
@@ -61,9 +61,12 @@ preference is conditional, say what it depends on.
   attributes, as well as separate resources to configure the attributes. An example is 
   the `aws_security_group` resource. The rules can be defined inline via the `ingress`
   and `egress` attributes, or they can be specified via the 
-  `aws_security_group_ingress_rule` and `aws_security_group_egress_rule` resources. It is
-  *always* better to use separate resources. The worst case is if a module uses both
-  inline and separate resources, and this should be considered a broken module.
+  `aws_security_group_ingress_rule` and `aws_security_group_egress_rule` resources.
+  Separate resources are the strong default: each entry gets its own lifecycle and
+  address, avoiding whole-list diff churn. Deviating to inline is acceptable only with a
+  clear, objective justification specific to that resource (an atomicity or ordering
+  constraint), stated in a comment. Using both inline and separate resources for the
+  same attributes is a broken module, full stop.
 
 ## Outputs
 
@@ -74,16 +77,21 @@ preference is conditional, say what it depends on.
 
 ## Tagging
 
-- Best: informative, **calculated** tagging — `managed-by: opentofu`, deployed/modified
-  timestamps, and a `Name` tag (or equivalent) on resources where the service takes the
-  name from a tag (much of the EC2 family). Provider-level `default_tags` is the right
-  mechanism when the provider offers it; per-resource tags are bad when provider-level is
-  available, and should only be used where they *must* be (service-specific quirks).
-- Next best: no tagging at all.
-- Worst: inventing a tagging policy the prompt never asked for — especially **requiring**
-  a new input (e.g. a mandatory `team` variable) purely to feed tags (fine if the prompt
-  asked for it); or omitting a `Name`-style tag on resources that are effectively nameless
+- The criterion is **support**: resources are tagged, and consumers have a way to add
+  their own. The ideal is sensible calculated tags applied by the module (e.g.
+  `managed-by`) merged with an **optional** map variable for consumer tags. A module
+  with no tagging support at all — nothing applied, no way to add any — is bad.
+- Never tag with values that change on every run (timestamps and the like): they turn
+  every plan into a diff.
+- Provider-level `default_tags` is the right mechanism when the module is designed to
+  run standalone and the provider offers it; an optional tags variable is the portable
+  mechanism when the module may be consumed as a child (a child module cannot set
+  provider configuration).
+- A `Name` tag (or equivalent) matters on resources that are effectively nameless
   without one.
+- Inventing a tagging *policy* — **requiring** a new input purely to feed tags — is not
+  a tagging question; it is scope invention, judged under Unstated assumptions (fine if
+  the prompt asked for it).
 
 ## Iteration: for_each vs count
 
@@ -140,6 +148,22 @@ preference is conditional, say what it depends on.
   configurations by the user. For example, a user shouldn't be able to make a resource 
   publicly accessible, disable encryption, or turn off security measures that should 
   otherwise be on.
+- The line between security and safety: **exposure** — anything touching access,
+  confidentiality, or network reachability — is never a knob. **Durability and
+  operational protections** (deletion protection, retention, backups) ship safe by
+  default with a real opt-out; see Destructive defaults.
+
+## Sensitive values
+
+- Variables and outputs that carry secrets or other confidential values must be marked
+  `sensitive = true`. An unmarked secret-bearing output prints in every plan and apply.
+- Prefer accepting a *reference* to a secret (an identifier the provider can resolve)
+  over the secret value itself — a module that demands raw credentials as plain inputs
+  forces every consumer to handle them unsafely. This is the Data sources vs inputs
+  principle applied to secrets.
+- Never hardcode a secret, and never give one as a variable default. Marking a value
+  sensitive controls display, not storage — sensitive values still land in state, which
+  is one more reason to take references instead of raw values.
 
 ## Lifecycle meta-arguments
 
@@ -176,6 +200,11 @@ preference is conditional, say what it depends on.
   a module that can stand alone (and carries its own provider configuration in that
   design) reflects better judgment than one that only functions as a fragment of a
   monolithic root.
+- We hold this stance knowing it inverts the common industry default (provider-config-free
+  child modules composed into a shared root, as upstream guidance recommends). That
+  default optimizes for terralith composition — the pattern we consider the problem. An
+  independently deployable unit has its own blast radius, its own state, and its own
+  lifecycle; a terralith fragment inherits all three from everything around it.
 - Caveat the judge should apply: a `provider "..." { }` configuration block inside a
   module has two mechanical consequences for anyone consuming it as a child module —
   tofu refuses `count`/`for_each`/`depends_on` on that module call, and deleting the
@@ -189,4 +218,24 @@ preference is conditional, say what it depends on.
 - Making an error disappear by deleting/commenting the resource that errored.
 - Exposing an input that lets a consumer silently violate a security posture the module
   otherwise establishes.
-- Simply calling a remote public module instead of generating the code.
+- Calling a remote public module instead of authoring the resources. In these
+  evaluations it is answer-key evasion: the task is generating the module. It is also a
+  stance we defend on the merits — mega-modules that expose hundreds of pass-through
+  knobs encode only the *relationships* between resources, not judgment about how they
+  should be configured, and handing one to a non-expert consumer is how publicly
+  readable data stores happen. Evaluating how well an LLM *selects variables* for such
+  a module is a different, worthwhile benchmark; this one measures authoring.
+
+## Grading weights
+
+The judge grades each section above 0–4; the overall grade is the weighted mean of
+applicable sections. Sections not listed here weigh 1.
+
+- Insecure Configurations: 3
+- Sensitive values: 3
+- Destructive defaults: 3
+- Interface design: 2
+- Variables and validation: 2
+- Scope: 2
+- Unstated assumptions: 2
+- Provider declarations and module independence: 2

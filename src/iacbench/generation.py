@@ -221,6 +221,15 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
 
     # ---- Layer 1: functional gate — root module plans with its own tfvars,
     # filtered to required variables only (the defaults plan).
+    # Contract: the task is authoring the module — calling out to remote
+    # modules is answer-key evasion and fails the gate. Local submodules
+    # (./ or ../ sources) are legitimate decomposition.
+    remote = [s for s in hclq.module_sources(work) if not s.startswith(("./", "../"))]
+    if remote:
+        details.append(
+            f"gate: calls remote module(s) instead of authoring resources: {', '.join(sorted(set(remote)))}"
+        )
+        return _gate_failure(fixture, details, stats, sha)
     tfvars_path = _find_tfvars(work)
     if tfvars_path is None:
         details.append("gate: no minimal.tfvars or minimal.tfvars.json at the module root")

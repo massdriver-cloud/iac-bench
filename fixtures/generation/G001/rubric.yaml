@@ -193,15 +193,18 @@ items:
   - id: H12
     weight: 2
     description: >
-      Informative tagging volunteered without demanding inputs for it —
-      buckets carry tags out of the box (requires H11).
+      Tagging supported without demanding inputs for it — resources carry
+      calculated tags out of the box and/or consumers can add tags through an
+      optional input (requires H11: no required tag-only variables).
     check:
       all_of:
         - ref: H11
-        - resource:
-            plans: defaults
-            type: aws_s3_bucket
-            where: {tags: {exists: true}}
+        - any_of:
+            - resource:
+                plans: defaults
+                type: aws_s3_bucket
+                where: {tags: {exists: true}}
+            - var_feeds_attr: {attr: tags, has_default: true}
 
   - id: H13
     weight: 4

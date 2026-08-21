@@ -225,6 +225,21 @@ _SECTION_RE = re.compile(r"^## (.+)$", re.MULTILINE)
 _GRADE_LINE_RE = re.compile(
     r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*(NA|[0-4])", re.IGNORECASE
 )
+# The doctrine's own weighting section — parsed for the weighted mean, never
+# graded itself. Lines: "- <Section name>: <weight>". Unlisted sections weigh 1.
+WEIGHTS_SECTION = "Grading weights"
+_WEIGHT_LINE_RE = re.compile(r"^-\s*(.+?):\s*(\d+(?:\.\d+)?)\s*$", re.MULTILINE)
+
+
+def _section_weights(doc: str) -> dict:
+    marker = f"## {WEIGHTS_SECTION}"
+    if marker not in doc:
+        return {}
+    body = doc.split(marker, 1)[1]
+    next_section = _SECTION_RE.search(body)
+    if next_section:
+        body = body[: next_section.start()]
+    return {name.strip(): float(w) for name, w in _WEIGHT_LINE_RE.findall(body)}
 
 
 def _median(values: list) -> float:
@@ -274,7 +289,8 @@ async def run_grade(
     doc = DEFAULT_PRINCIPLES.read_text()
     doc_sha = hashlib.sha256(doc.encode()).hexdigest()[:16]
     system_prompt = (PROMPTS_DIR / "judge-grade.md").read_text()
-    sections = _SECTION_RE.findall(doc)
+    sections = [s for s in _SECTION_RE.findall(doc) if s != WEIGHTS_SECTION]
+    weights = _section_weights(doc)
     model = get_model(judge_model)
 
     results: dict = {}
@@ -292,8 +308,12 @@ async def run_grade(
                 if isinstance(s, dict) and s.get(section) is not None
             ]
             per_section[section] = _median(votes) if votes else None
-        applicable = [v for v in per_section.values() if v is not None]
-        overall = round(sum(applicable) / len(applicable) / 4 * 100, 1) if applicable else None
+        applicable = {s: v for s, v in per_section.items() if v is not None}
+        total_w = sum(weights.get(s, 1.0) for s in applicable)
+        overall = (
+            round(sum(v * weights.get(s, 1.0) for s, v in applicable.items()) / total_w / 4 * 100, 1)
+            if applicable else None
+        )
         results[label] = {
             "overall": overall,
             "sections": per_section,
@@ -306,6 +326,7 @@ async def run_grade(
         "judge_model": judge_model,
         "principles_sha256": doc_sha,
         "samples_per_candidate": samples,
+        "section_weights": weights,
         "status": "experimental (not calibrated against human absolute grades)",
         "grades": {label: r["overall"] for label, r in sorted(results.items(), key=lambda kv: -(kv[1]["overall"] or 0))},
         "detail": results,
