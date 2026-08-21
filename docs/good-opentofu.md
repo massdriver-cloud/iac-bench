@@ -63,8 +63,8 @@ The human-facing rationale for these preferences lives in
 
 ## Tagging
 
-- Table stakes: consumers must have a way to add their own tags — an **optional** map
-  input merged onto every taggable resource. A module with no way to add tags is bad.
+- Consumers must have a way to add their own tags — an **optional** map input merged onto
+  every taggable resource. A module with no way to add tags is bad.
 - Calculated tags applied by the module (e.g. `managed-by`) are a plus. Never tag with
   values that change on every run (timestamps): they turn every plan into a diff.
 - Provider-level `default_tags` is the right mechanism when the module is designed to run
