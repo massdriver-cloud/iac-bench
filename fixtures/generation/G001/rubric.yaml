@@ -27,7 +27,7 @@ mandatory: [H1, H3]
 
 items:
   - id: H1
-    weight: 18  # straight sum of former H1 (10) + H2 (8)
+    weight: 18
     posture: hardcoded
     description: >
       Privacy is a property, not a knob — a public access block exists with all
@@ -54,7 +54,7 @@ items:
               restrict_public_buckets: true
 
   - id: H3
-    weight: 14  # straight sum of former H3 (8) + H4 (6)
+    weight: 14
     posture: hardcoded
     description: >
       Encryption at rest is a property, not a knob — configured unconditionally
@@ -205,10 +205,8 @@ items:
     weight: 4
     description: >
       Access logging actually works: the log destination grants the logging
-      service permission to deliver. Checked in source — ARN-interpolating
-      policies are unknown at plan time. Promoted from expertise item E3
-      (2026-08-19); no frontier model volunteered this in the first
-      cross-vendor run.
+      service permission to deliver. Checked in source, not plan JSON —
+      ARN-interpolating policies are unknown at plan time.
     check:
       source_contains: "logging.s3.amazonaws.com"
 
@@ -242,8 +240,6 @@ expertise:
         quantifier: any
         type: aws_s3_bucket_lifecycle_configuration
         where: {rule: {abort_incomplete_multipart_upload: {exists: true}}}
-  # E3_log_delivery_policy promoted to core item H13 on 2026-08-19 — the
-  # discovery-to-rubric migration path in action.
   - id: E4_tls_enforcement
     description: Bucket policy denies non-TLS (aws:SecureTransport) access.
     discovered_via: judge rationale, 2026-08-18

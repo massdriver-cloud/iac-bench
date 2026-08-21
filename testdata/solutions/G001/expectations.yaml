@@ -1,10 +1,7 @@
-# Generation reference matrix under the declarative check engine
-# (docs/generation-check-engine.md). No score caps: mandatory failures are
-# findings, not score ceilings — the bad references are asserted by WHICH
-# items fail, with score bounds as sanity checks on true, uncapped values.
-#
-# Ids after the posture merges: H1 = privacy (former H1+H2), H3 = encryption
-# (former H3+H4). H2/H4 no longer exist.
+# Generation reference matrix (docs/generation-check-engine.md). No score
+# caps: mandatory failures are findings, not score ceilings — the bad
+# references are asserted by WHICH items fail, with score bounds as sanity
+# checks on true, uncapped values.
 ref_lean:
   gate: true
   min_score: 0.95
@@ -15,8 +12,9 @@ ref_flexible:
   must_pass: [H1, H3, H5, H11, H12, H13]
 bad_passthrough:
   gate: true
-  # Variablized PAB and count-gated encryption fail the hardcoded posture
-  # outright; versioning now passes as reachable (enable_versioning flips it).
+  # Variablized public-access-block attributes and count-gated encryption fail
+  # the hardcoded posture; versioning passes as reachable (enable_versioning
+  # surfaces it in the sweep).
   max_score: 0.35
   must_fail: [H1, H3, H7, H9, H10, H11]
 bad_minimal:
@@ -26,8 +24,8 @@ bad_minimal:
 bad_unsafe:
   gate: true
   # True score stays high — its ONE critical defect (public_read feeds the
-  # public access block, so privacy is a knob) fails merged H1, which now
-  # carries the full former H1+H2 weight. Uncapped-score philosophy in
-  # miniature: the finding fails the verdict, the number stays true.
+  # public access block, so privacy is a knob) fails H1. Uncapped-score
+  # philosophy in miniature: the finding fails the verdict, the number stays
+  # true.
   max_score: 0.75
   must_fail: [H1, H13]
