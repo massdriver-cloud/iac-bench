@@ -63,6 +63,7 @@ def variables(module_dir: Path) -> dict:
                 out[name] = {
                     "typed": "type" in spec,
                     "has_default": "default" in spec,
+                    "has_description": "description" in spec,
                     "has_validation": bool(validations),
                     "default": spec.get("default"),
                     "type": str(spec.get("type", "")),
@@ -199,6 +200,21 @@ def value_text_closure(module_dir: Path, value) -> str:
 
     add(value)
     return " ".join(parts)
+
+
+def required_providers(module_dir: Path) -> dict:
+    """provider name -> version constraint string (or None) from
+    terraform.required_providers blocks in the module root."""
+    out: dict = {}
+    for doc in parse_dir(module_dir):
+        for block in doc.get("terraform", []) or []:
+            rp = (block or {}).get("required_providers")
+            if not rp:
+                continue
+            for entry in rp if isinstance(rp, list) else [rp]:
+                for name, spec in (entry or {}).items():
+                    out[name] = spec.get("version") if isinstance(spec, dict) else spec
+    return out
 
 
 def value_text(value) -> str:

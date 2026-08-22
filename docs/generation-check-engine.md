@@ -141,10 +141,11 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 | `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, `{exists: true}`, literal equality); `match: any\|every` over instances; `plans: [defaults, sweep]` with `quantifier: any\|all` over plans |
 | `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence) |
 | `expr_matches` | static | every resource's `attr` expression, resolved through locals, matches `pattern` — or the resource has `or_attr_present` instead |
-| `no_single_purpose_required_var` | static | no default-less variable feeds only the named attribute |
+| `var_feeds_attr` | static | some declared variable feeds the named attribute, transitively through locals; `has_default: true` restricts to optional variables |
+| `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |
 | `output_named` | static | an output exists whose name/value matches |
-| `interface` | static | structural constraints (variable count budget) |
+| `interface` | static | structural constraints: variable count budget, descriptions required on every variable and output |
 | `all_of` / `any_of` / `not` / `ref` | — | combinators; `ref` reuses another item's result |
 
 Note: the plan-target field is spelled `plans:`, not `on:` — an unquoted `on`

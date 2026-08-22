@@ -234,18 +234,28 @@ def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
     return False
 
 
-def _verb_no_single_purpose_required_var(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: no default-less variable exists solely to feed the named
-    attribute. Multi-purpose inputs and optional variables are fine."""
-    attr = spec["attr"]
-    feeding = hclq.vars_feeding_attr(ctx.module_dir, attr)
-    other = hclq.vars_feeding_attrs_except(ctx.module_dir, attr)
-    declared = hclq.variables(ctx.module_dir)
-    offenders = [
-        v for v in feeding
-        if v not in other and not declared.get(v, {}).get("has_default", True)
-    ]
-    return not offenders
+def _constraint_bounded(constraint) -> bool:
+    """True when a version constraint cannot admit a new major version:
+    a ~> bound, an upper bound (< / <=), an = pin, or a bare exact version.
+    A lone >= / > (or no constraint at all) fails."""
+    if not constraint or not isinstance(constraint, str) or "${" in constraint:
+        return False
+    for part in constraint.split(","):
+        part = part.strip()
+        if part.startswith(("~>", "<", "=")):
+            return True
+        if re.fullmatch(r"v?\d+(\.\d+)*", part):
+            return True
+    return False
+
+
+def _verb_provider_constraints(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: required_providers is declared with at least one provider,
+    and every declared constraint excludes the next major version."""
+    providers = hclq.required_providers(ctx.module_dir)
+    if not providers:
+        return False
+    return all(_constraint_bounded(v) for v in providers.values())
 
 
 def strip_comments(text: str) -> str:
@@ -311,6 +321,12 @@ def _verb_interface(ctx: CheckContext, spec: dict) -> bool:
     declared = hclq.variables(ctx.module_dir)
     if "max_variables" in spec and len(declared) > spec["max_variables"]:
         return False
+    if spec.get("require_descriptions"):
+        if any(not m.get("has_description") for m in declared.values()):
+            return False
+        outputs = hclq.outputs(ctx.module_dir)
+        if any("description" not in s for s in outputs.values()):
+            return False
     return True
 
 
@@ -336,7 +352,7 @@ _VERBS = {
     "hardcoded": _verb_hardcoded,
     "expr_matches": _verb_expr_matches,
     "var_feeds_attr": _verb_var_feeds_attr,
-    "no_single_purpose_required_var": _verb_no_single_purpose_required_var,
+    "provider_constraints": _verb_provider_constraints,
     "source_contains": _verb_source_contains,
     "output_named": _verb_output_named,
     "interface": _verb_interface,

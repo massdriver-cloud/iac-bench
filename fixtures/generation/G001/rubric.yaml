@@ -165,26 +165,14 @@ items:
     check:
       interface: {max_variables: 8}
 
-  - id: H11
-    weight: 3
-    description: >
-      No required input exists solely to feed tags (per the tagging ordering in
-      good-opentofu.md — a mandatory tag-only variable the prompt never asked
-      for is worse than no tags; optional tag maps and multi-purpose inputs are
-      fine).
-    check:
-      no_single_purpose_required_var: {attr: tags}
-
   - id: H12
     weight: 2
     description: >
       Tagging support is table stakes — consumers can add their own tags
-      through an optional input, without being forced to (requires H11: no
-      required tag-only variables).
+      through an optional input. (Demanding a required input for tags is
+      scope invention, judged under Unstated assumptions.)
     check:
-      all_of:
-        - ref: H11
-        - var_feeds_attr: {attr: tags, has_default: true}
+      var_feeds_attr: {attr: tags, has_default: true}
 
   - id: H13
     weight: 4
@@ -204,6 +192,23 @@ items:
       consumer no way out.
     check:
       var_feeds_attr: {attr: force_destroy}
+
+  - id: H15
+    weight: 5
+    description: >
+      required_providers declared with constraints that cannot admit a new
+      major version (~>, an upper bound, or a pin) — universal for any module;
+      an unconstrained provider is broken, not a style choice.
+    check:
+      provider_constraints: {}
+
+  - id: H16
+    weight: 2
+    description: >
+      Every variable and output carries a description — universal for any
+      module.
+    check:
+      interface: {require_descriptions: true}
 
 # Input guarding (are the *right* variables validated) is deliberately NOT a
 # mechanical item — with no stated org policies there is no ground truth for
