@@ -193,22 +193,6 @@ items:
     check:
       var_feeds_attr: {attr: force_destroy}
 
-  - id: H15
-    weight: 5
-    description: >
-      required_providers declared with constraints that cannot admit a new
-      major version (~>, an upper bound, or a pin) — universal for any module;
-      an unconstrained provider is broken, not a style choice.
-    check:
-      provider_constraints: {}
-
-  - id: H16
-    weight: 2
-    description: >
-      Every variable and output carries a description — universal for any
-      module.
-    check:
-      interface: {require_descriptions: true}
 
 # Input guarding (are the *right* variables validated) is deliberately NOT a
 # mechanical item — with no stated org policies there is no ground truth for

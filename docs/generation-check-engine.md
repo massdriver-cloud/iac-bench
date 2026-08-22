@@ -151,6 +151,13 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 Note: the plan-target field is spelled `plans:`, not `on:` — an unquoted `on`
 key parses as boolean True under YAML 1.1.
 
+**Baseline items** (`fixtures/generation/baseline.yaml`) are universal checks
+— true of any OpenTofu module regardless of service or brief — merged into
+every fixture's items by the engine, with no per-fixture opt-out. Entries must
+be fixture-independent and static-lens only; they carry `B`-prefixed ids so
+reports keep rubric (`H*`), baseline (`B*`), and expertise (`E*`) provenance
+legible, and they pool into the mechanical score at their declared weights.
+
 Rules that keep this from rotting:
 
 - **Verbs must be service-agnostic.** The same rule that governs

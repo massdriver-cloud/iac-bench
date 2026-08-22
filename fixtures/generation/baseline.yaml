@@ -1,0 +1,26 @@
+# Baseline items — universal checks merged into EVERY generation fixture's
+# rubric by the engine. There is no per-fixture opt-out.
+#
+# Rules for entries: fixture-independent (true of any OpenTofu module,
+# regardless of service or brief) and static-lens only (they run against
+# modules whose fixture context varies). Service knowledge never goes here —
+# it belongs in the fixture's rubric or expertise checklist. Items pool into
+# the mechanical score at their declared weights, alongside rubric and
+# expertise items.
+
+items:
+  - id: B1_provider_constraints
+    weight: 5
+    description: >
+      required_providers declared with constraints that cannot admit a new
+      major version (~>, an upper bound, or a pin) — an unconstrained provider
+      is broken, not a style choice.
+    check:
+      provider_constraints: {}
+
+  - id: B2_descriptions
+    weight: 2
+    description: >
+      Every variable and output carries a description.
+    check:
+      interface: {require_descriptions: true}

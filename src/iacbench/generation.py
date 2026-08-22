@@ -50,6 +50,15 @@ class GenerationFixture:
     def load(cls, fixture_dir: Path) -> GenerationFixture:
         fixture_dir = Path(fixture_dir)
         data = yaml.safe_load((fixture_dir / "rubric.yaml").read_text())
+        # Baseline items are universal, engine-merged into every fixture —
+        # there is no per-fixture opt-out (fixtures/generation/baseline.yaml).
+        baseline_path = fixture_dir.parent / "baseline.yaml"
+        baseline_items = []
+        if baseline_path.is_file():
+            baseline_items = (yaml.safe_load(baseline_path.read_text()) or {}).get("items", [])
+            collisions = {i["id"] for i in baseline_items} & {i["id"] for i in data["items"]}
+            if collisions:
+                raise ValueError(f"fixture {data['id']} redeclares baseline item(s): {collisions}")
         return cls(
             id=data["id"],
             domain=data["domain"],
@@ -57,7 +66,7 @@ class GenerationFixture:
             tier=data.get("tier", 2),
             scoring_policy=data.get("scoring_policy", "v1"),
             mandatory=data.get("mandatory", []),
-            items=data["items"],
+            items=data["items"] + baseline_items,
             expertise=data.get("expertise", []),
             perturb=data.get("perturb", {}) or {},
             path=fixture_dir,

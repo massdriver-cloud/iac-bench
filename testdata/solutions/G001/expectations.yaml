@@ -5,23 +5,23 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H3, H12, H13, H14, H15, H16]
+  must_pass: [H1, H3, H12, H13, H14, B1_provider_constraints, B2_descriptions]
 ref_flexible:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H3, H12, H13, H14, H15, H16]
+  must_pass: [H1, H3, H12, H13, H14, B1_provider_constraints, B2_descriptions]
 bad_passthrough:
   gate: true
   # Variablized public-access-block attributes and count-gated encryption fail
   # the hardcoded posture; versioning passes as reachable (enable_versioning
-  # surfaces it in the sweep); its unbounded random provider fails H15 and
-  # its undescribed variables fail H16.
+  # surfaces it in the sweep); its unbounded random provider fails B1 and
+  # its undescribed variables fail B2.
   max_score: 0.25
-  must_fail: [H1, H3, H7, H9, H10, H15, H16]
+  must_fail: [H1, H3, H7, H9, H10, B1_provider_constraints, B2_descriptions]
 bad_minimal:
   gate: true
   max_score: 0.20
-  must_fail: [H1, H3, H6, H13, H14, H16]
+  must_fail: [H1, H3, H6, H13, H14, B2_descriptions]
 bad_unsafe:
   gate: true
   # True score stays high — its ONE critical defect (public_read feeds the
