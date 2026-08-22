@@ -63,6 +63,8 @@ The human-facing rationale for these preferences lives in
 
 ## Tagging
 
+- "Tags" here means the platform's metadata mechanism, whatever it is called — tags,
+  labels, annotations. Where the platform offers no such mechanism, this section is NA.
 - Consumers must have a way to add their own tags — an **optional** map input merged onto
   every taggable resource. A module with no way to add tags is bad.
 - Calculated tags applied by the module (e.g. `managed-by`) are a plus. Never tag with
