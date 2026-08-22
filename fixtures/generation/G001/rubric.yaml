@@ -195,6 +195,16 @@ items:
     check:
       source_contains: "logging.s3.amazonaws.com"
 
+  - id: H14
+    weight: 3
+    description: >
+      force_destroy is accessible (per Destructive defaults) — some documented
+      input influences it, directly or inferred from a concept such as
+      environment. Hardcoded either way, or absent entirely, leaves the
+      consumer no way out.
+    check:
+      var_feeds_attr: {attr: force_destroy}
+
 # Input guarding (are the *right* variables validated) is deliberately NOT a
 # mechanical item — with no stated org policies there is no ground truth for
 # correct bounds. It is judged in layer 3.

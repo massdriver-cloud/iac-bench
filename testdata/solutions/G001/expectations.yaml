@@ -5,11 +5,11 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H3, H11, H12, H13]
+  must_pass: [H1, H3, H11, H12, H13, H14]
 ref_flexible:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H3, H11, H12, H13]
+  must_pass: [H1, H3, H11, H12, H13, H14]
 bad_passthrough:
   gate: true
   # Variablized public-access-block attributes and count-gated encryption fail
@@ -20,7 +20,7 @@ bad_passthrough:
 bad_minimal:
   gate: true
   max_score: 0.15
-  must_fail: [H1, H3, H6, H13]
+  must_fail: [H1, H3, H6, H13, H14]
 bad_unsafe:
   gate: true
   # True score stays high — its ONE critical defect (public_read feeds the
