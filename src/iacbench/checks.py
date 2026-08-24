@@ -77,6 +77,16 @@ def _match_value(value, spec) -> bool:
     return value == spec  # literal equality (bool/number/string/list)
 
 
+def _where_keys(where: dict) -> set:
+    """All key names appearing anywhere in a where spec (nested included)."""
+    keys: set = set()
+    for k, v in where.items():
+        keys.add(k)
+        if isinstance(v, dict) and not _is_leaf_predicate(v):
+            keys |= _where_keys(v)
+    return keys
+
+
 def _match_where(values: dict, where: dict) -> bool:
     for key, spec in where.items():
         value = values.get(key, _MISSING)
@@ -160,20 +170,31 @@ def _is_literal(value, expected) -> bool:
 
 
 def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: at least one resource of `type` exists whose existence is
-    unconditional and whose `attrs` are literals equal to the required values
-    (`attrs_exist` only requires presence). Extra conditional instances of the
-    same type (e.g. a prod-only sibling) do not fail this; the plan-lens
-    cross-check in the same item covers what actually gets planned."""
+    """Static lens: the secure configuration is a property of the source, not
+    a knob. When `attrs` are given, EVERY instance of `type` must carry them
+    as literals equal to the required values — a single conditional instance
+    with weaker or variable-fed values is a hidden knob and fails, even if a
+    clean instance also exists. Additionally at least one instance must be
+    existence-unconditional (no variable taint on count/for_each), so the
+    protection cannot be gated off entirely. Conditional *secure* siblings
+    (e.g. a prod-only log-bucket guard with the same literal values) pass.
+    `attrs_exist` only requires attribute presence."""
     loc = hclq.locals_map(ctx.module_dir)
     attrs = spec.get("attrs") or {}
     attrs_exist = spec.get("attrs_exist") or []
-    for inst in hclq.resource_attrs(ctx.module_dir, spec["type"]):
+    instances = hclq.resource_attrs(ctx.module_dir, spec["type"])
+    if attrs and any(
+        not _is_literal(inst.get(name, _MISSING), expected)
+        for inst in instances
+        for name, expected in attrs.items()
+    ):
+        return False
+    for inst in instances:
         if not _instance_unconditional(inst, loc):
             continue
-        if any(not _is_literal(inst.get(name, _MISSING), expected) for name, expected in attrs.items()):
-            continue
         if any(name not in inst for name in attrs_exist):
+            continue
+        if attrs and any(name not in inst for name in attrs):
             continue
         return True
     return False
@@ -196,18 +217,77 @@ def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     return True
 
 
-def _verb_no_single_purpose_required_var(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: no default-less variable exists solely to feed the named
-    attribute. Multi-purpose inputs and optional variables are fine."""
-    attr = spec["attr"]
-    feeding = hclq.vars_feeding_attr(ctx.module_dir, attr)
-    other = hclq.vars_feeding_attrs_except(ctx.module_dir, attr)
+def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: some declared variable (transitively through locals) feeds
+    the named attribute. `has_default: true` restricts to optional variables —
+    e.g. 'consumers can add tags without being forced to'."""
+    feeding = hclq.vars_feeding_attr(ctx.module_dir, spec["attr"])
     declared = hclq.variables(ctx.module_dir)
-    offenders = [
-        v for v in feeding
-        if v not in other and not declared.get(v, {}).get("has_default", True)
-    ]
-    return not offenders
+    want_default = spec.get("has_default")
+    for name in feeding:
+        meta = declared.get(name)
+        if meta is None:
+            continue
+        if want_default is not None and meta["has_default"] != want_default:
+            continue
+        return True
+    return False
+
+
+def _constraint_bounded(constraint) -> bool:
+    """True when a version constraint cannot admit a new major version:
+    a ~> bound, an upper bound (< / <=), an = pin, or a bare exact version.
+    A lone >= / > (or no constraint at all) fails."""
+    if not constraint or not isinstance(constraint, str) or "${" in constraint:
+        return False
+    for part in constraint.split(","):
+        part = part.strip()
+        if part.startswith(("~>", "<", "=")):
+            return True
+        if re.fullmatch(r"v?\d+(\.\d+)*", part):
+            return True
+    return False
+
+
+def _verb_provider_constraints(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: required_providers is declared with at least one provider,
+    and every declared constraint excludes the next major version."""
+    providers = hclq.required_providers(ctx.module_dir)
+    if not providers:
+        return False
+    return all(_constraint_bounded(v) for v in providers.values())
+
+
+def strip_comments(text: str) -> str:
+    """Remove #, //, and /* */ comments (outside quoted strings), so a
+    substring check cannot be satisfied by a comment mentioning the needle."""
+    out: list = []
+    i, n = 0, len(text)
+    in_string = False
+    while i < n:
+        ch = text[i]
+        if in_string:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 1
+            elif ch == '"':
+                in_string = False
+        elif ch == '"':
+            in_string = True
+            out.append(ch)
+        elif ch == "#" or text[i:i + 2] == "//":
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        elif text[i:i + 2] == "/*":
+            end = text.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+            continue
+        else:
+            out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def _verb_source_contains(ctx: CheckContext, spec) -> bool:
@@ -215,7 +295,7 @@ def _verb_source_contains(ctx: CheckContext, spec) -> bool:
     for tf in Path(ctx.module_dir).rglob("*.tf"):
         if ".terraform" in tf.parts:
             continue
-        if needle in tf.read_text(errors="replace"):
+        if needle in strip_comments(tf.read_text(errors="replace")):
             return True
     return False
 
@@ -227,7 +307,12 @@ def _verb_output_named(ctx: CheckContext, spec: dict) -> bool:
         if not any(pattern.search(name) for name in outputs):
             return False
     if "value_contains" in spec:
-        if not any(spec["value_contains"] in text for text in outputs.values()):
+        # Only the output's value expression counts — a description mentioning
+        # the needle is documentation, not the output.
+        values = [
+            hclq.value_text(s.get("value", "")) for s in outputs.values()
+        ]
+        if not any(spec["value_contains"] in text for text in values):
             return False
     return bool(spec) and bool(outputs)
 
@@ -236,6 +321,12 @@ def _verb_interface(ctx: CheckContext, spec: dict) -> bool:
     declared = hclq.variables(ctx.module_dir)
     if "max_variables" in spec and len(declared) > spec["max_variables"]:
         return False
+    if spec.get("require_descriptions"):
+        if any(not m.get("has_description") for m in declared.values()):
+            return False
+        outputs = hclq.outputs(ctx.module_dir)
+        if any("description" not in s for s in outputs.values()):
+            return False
     return True
 
 
@@ -260,7 +351,8 @@ _VERBS = {
     "resource": _verb_resource,
     "hardcoded": _verb_hardcoded,
     "expr_matches": _verb_expr_matches,
-    "no_single_purpose_required_var": _verb_no_single_purpose_required_var,
+    "var_feeds_attr": _verb_var_feeds_attr,
+    "provider_constraints": _verb_provider_constraints,
     "source_contains": _verb_source_contains,
     "output_named": _verb_output_named,
     "interface": _verb_interface,
@@ -296,11 +388,15 @@ def grade_default_on(ctx: CheckContext, spec: dict, partial: float = 0.5) -> flo
     at_defaults = _verb_resource(ctx, {**behavior, "plans": "defaults"})
     if at_defaults:
         loc = hclq.locals_map(ctx.module_dir)
+        # An opt-out exists when a variable gates the resource's existence, or
+        # feeds one of the attributes the behavior is defined by (`where`
+        # keys) — unrelated var-fed attributes (tags = var.tags) prove nothing.
+        behavior_attrs = _where_keys(spec.get("where") or {})
         for inst in hclq.resource_attrs(ctx.module_dir, spec["type"]):
             if not _instance_unconditional(inst, loc):
                 return 1.0
-            for value in inst.values():
-                if hclq._var_closure(loc, value):
+            for name, value in inst.items():
+                if name in behavior_attrs and hclq._var_closure(loc, value):
                     return 1.0
         return 0.0  # hardcoded-on: inflexible, breaks legitimate opt-out
     if _verb_resource(ctx, {**behavior, "plans": "sweep", "quantifier": "any"}):

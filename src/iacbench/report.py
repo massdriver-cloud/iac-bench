@@ -51,7 +51,9 @@ class Attempt:
     expertise: dict | None = None
     expertise_score: float | None = None
     semantic_score: float | None = None
+    mechanical_score: float | None = None
     mandatory_failures: list | None = None
+    module_sha: str | None = None
     kind: str = "fix"  # "fix" (binary invariants) or "generation" (fractional rubric)
 
 
@@ -113,7 +115,9 @@ def collect_attempts(log_dir: Path) -> list:
                     expertise=meta.get("expertise"),
                     expertise_score=meta.get("expertise_score"),
                     semantic_score=meta.get("semantic_score", score.value if score else None),
+                    mechanical_score=meta.get("mechanical_score"),
                     mandatory_failures=meta.get("mandatory_failures"),
+                    module_sha=meta.get("module_sha"),
                     kind=kind,
                 )
             )
@@ -194,69 +198,148 @@ def _load_policy() -> dict | None:
     return yaml.safe_load(path.read_text()) if path.is_file() else None
 
 
-def _load_grades(judge_dirs: list) -> dict:
-    """candidate-label -> absolute grade, from grades.json in judge dirs."""
+def _load_grade_data(judge_dirs: list) -> dict:
+    """Merged absolute-grade data from grades.json files.
+
+    Returns {detail: {label: {overall, sections, module_sha}}, calibrated: bool,
+    status: str, principles: str}. Grades count as calibrated only when EVERY
+    loaded file says so — the report never folds an uncalibrated grade into
+    the composite, matching the benchmark's stated gate."""
     import json
 
-    grades: dict = {}
+    detail: dict = {}
+    statuses: list = []
+    principles: set = set()
+    weights: dict = {}
     for d in judge_dirs or []:
         path = Path(d) / "grades.json"
-        if path.is_file():
-            grades.update(json.loads(path.read_text()).get("grades", {}))
-    return grades
+        if not path.is_file():
+            continue
+        data = json.loads(path.read_text())
+        detail.update(data.get("detail") or {})
+        weights.update(data.get("section_weights") or {})
+        statuses.append(str(data.get("status", "experimental")))
+        if data.get("principles_sha256"):
+            principles.add(data["principles_sha256"])
+    return {
+        "detail": detail,
+        "weights": weights,
+        "calibrated": bool(statuses) and all(s.startswith("calibrated") for s in statuses),
+        "status": "; ".join(sorted(set(statuses))) or "no grades",
+        "principles": ", ".join(sorted(principles)) or "—",
+    }
 
 
-def _grade_for_model(model: str, grades: dict) -> float | None:
-    for label, grade in grades.items():
-        if label in model and grade is not None:
-            return grade
+def _grade_for_model(model: str, detail: dict) -> dict | None:
+    """Exact-normalized label match: the candidate label must equal the model
+    id, its provider-stripped tail, or the tail minus a 'claude-' prefix.
+    Substring matching is banned — a label like '5' must never match a row."""
+    tail = model.split("/")[-1]
+    acceptable = {model, tail, tail.removeprefix("claude-")}
+    for label, entry in detail.items():
+        if label in acceptable and entry.get("overall") is not None:
+            return entry
     return None
 
 
 def render_leaderboard(attempts: list, judge_dirs: list) -> str:
-    """Composite 0-100 grades per composite-scoring-policy.yaml. Scores are TRUE values —
-    mandatory (security) failures are flagged, listed as findings, and fail the
-    verdict, but never cap or distort the numbers."""
+    """Composite 0-100 grades per composite-scoring-policy.yaml, aggregated
+    over EVERY attempt (median + range, never a single draw). Scores are TRUE
+    values — mandatory (security) failures are flagged, listed as findings,
+    and fail the verdict, but never cap or distort the numbers. The judge
+    grade joins the composite only when its stored status is calibrated AND
+    it was computed over the same artifact (module_sha match)."""
     policy = _load_policy()
     gen = [a for a in attempts if a.kind == "generation"]
     if not policy or not gen:
         return ""
-    grades = _load_grades(judge_dirs)
+    grade_data = _load_grade_data(judge_dirs)
     w = policy["weights"]
-    latest = _latest_per_model(gen)
+    groups: dict = {}
+    for a in gen:
+        if a.semantic_score is not None and a.mechanical_score is not None and a.expertise:
+            groups.setdefault((a.model, a.fixture), []).append(a)
 
+    notes: list = []
+    rows = []
+    for (model, fixture), group in groups.items():
+        rubrics = [a.semantic_score for a in group]
+        mechs = [a.mechanical_score for a in group]
+        exps = [sum(a.expertise.values()) / len(a.expertise) for a in group]
+        entry = _grade_for_model(model, grade_data["detail"])
+        grade = entry.get("overall") if entry else None
+        grade_cell = "—"
+        use_grade = grade is not None and grade_data["calibrated"]
+        if grade is not None:
+            attempt_shas = {a.module_sha for a in group if a.module_sha}
+            graded_sha = entry.get("module_sha")
+            if graded_sha and attempt_shas and graded_sha not in attempt_shas:
+                use_grade = False
+                grade_cell = f"{grade:.0f} (stale artifact)"
+                notes.append(
+                    f"{model}: judge grade computed over a different module snapshot — excluded"
+                )
+            else:
+                grade_cell = f"{grade:.0f}" if use_grade else f"{grade:.0f} (experimental)"
+        if not use_grade and grade is not None and not grade_data["calibrated"]:
+            notes.append(
+                f"judge grades excluded from composite: status is {grade_data['status']!r}"
+            )
+
+        def composite(mech: float, grade=grade, use_grade=use_grade) -> float:
+            if use_grade:
+                return 100 * (w["mechanical"] * mech + w["grade"] * grade / 100)
+            return 100 * mech  # mechanical-only: the composite IS the pooled score
+
+        composites = sorted(composite(m) for m in mechs)
+        findings: dict = {}
+        for a in group:
+            for item in a.mandatory_failures or []:
+                findings[item] = findings.get(item, 0) + 1
+        flag = (
+            " ".join(f"⚠{item}({c}/{len(group)})" for item, c in sorted(findings.items()))
+            if findings else "—"
+        )
+        rows.append((
+            statistics.median(composites), model, fixture, len(group),
+            statistics.median(rubrics), statistics.median(exps),
+            statistics.median(mechs), grade_cell,
+            f"{composites[0]:.0f}–{composites[-1]:.0f}" if len(group) > 1 else "—",
+            flag, findings,
+        ))
+
+    mode = (
+        "0.70·mechanical + 0.30·calibrated judge grade"
+        if grade_data["calibrated"] and grade_data["detail"]
+        else "mechanical only (pooled rubric + expertise); judge grade shown but not folded in"
+    )
     lines = [
         "",
-        f"## Composite grades (scoring policy {policy.get('policy_version', '?')})",
+        f"## Composite grades (scoring policy {policy.get('policy_version', '?')} — {mode})",
         "",
-        "| model | fixture | rubric | expertise | judge grade | **composite** | findings |",
-        "|-------|---------|--------|-----------|-------------|---------------|----------|",
+        "| model | fixture | n | rubric (med) | expertise (med) | mechanical (med) | judge grade | **composite (med)** | range | findings |",
+        "|-------|---------|---|--------------|-----------------|------------------|-------------|---------------------|-------|----------|",
     ]
-    rows = []
-    for (model, fixture), a in latest.items():
-        rubric = a.semantic_score
-        exp_frac = (
-            sum(a.expertise.values()) / len(a.expertise) if a.expertise else None
-        )
-        grade = _grade_for_model(model, grades)
-        if rubric is None or exp_frac is None or grade is None:
-            continue
-        composite = 100 * (
-            w["rubric"] * rubric + w["expertise"] * exp_frac + w["grade"] * grade / 100
-        )
-        flag = f"⚠ {len(a.mandatory_failures)}" if a.mandatory_failures else "—"
-        rows.append((composite, model, fixture, rubric, exp_frac, grade, flag))
-    for composite, model, fixture, rubric, exp_frac, grade, flag in sorted(rows, reverse=True):
+    for med, model, fixture, n, rubric, exp, mech, grade_cell, rng, flag, _ in sorted(rows, reverse=True):
         lines.append(
-            f"| {model} | {fixture} | {rubric:.3f} | {exp_frac:.2f} | {grade:.1f} "
-            f"| **{composite:.0f}** | {flag} |"
+            f"| {model} | {fixture} | {n} | {rubric:.3f} | {exp:.2f} | {mech:.3f} | {grade_cell} "
+            f"| **{med:.0f}** | {rng} | {flag} |"
         )
+    lines.append("")
+    lines.append(
+        "Composites aggregate every attempt (median; range = min–max). Ranking claims "
+        "are only supported where ranges do not overlap. Rows with n=1 are single "
+        "draws, not measurements."
+    )
+    for note in sorted(set(notes)):
+        lines.append(f"- {note}")
 
-    # security findings: every failed mandatory item, spelled out
     findings_lines = []
-    for (model, fixture), a in sorted(latest.items()):
-        for item in a.mandatory_failures or []:
-            findings_lines.append(f"- **{model}** ({fixture}): failed mandatory item `{item}`")
+    for _, model, fixture, n, *_rest, findings in sorted(rows):
+        for item, c in sorted(findings.items()):
+            findings_lines.append(
+                f"- **{model}** ({fixture}): failed mandatory item `{item}` in {c}/{n} attempt(s)"
+            )
     if findings_lines:
         lines += ["", "### Security findings", ""]
         lines += findings_lines
@@ -268,46 +351,105 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
     return "\n".join(lines)
 
 
+def render_grade_sections(judge_dirs: list) -> str:
+    """Judged grades broken out per doctrine section (docs/good-opentofu.md),
+    one column per candidate — readers who reject a specific preference can
+    discount exactly that row and keep the rest."""
+    grade_data = _load_grade_data(judge_dirs)
+    detail = grade_data["detail"]
+    if not detail:
+        return ""
+    labels = sorted(detail)
+    sections: list = []
+    for entry in detail.values():
+        for s in entry.get("sections") or {}:
+            if s not in sections:
+                sections.append(s)
+    lines = [
+        "",
+        f"## Judged grades by doctrine section ({grade_data['status']}; "
+        f"doctrine edition {grade_data['principles']})",
+        "",
+        "| doctrine section | " + " | ".join(labels) + " |",
+        "|" + "---|" * (len(labels) + 1),
+    ]
+    weights = grade_data.get("weights") or {}
+    for section in sections:
+        cells = []
+        for label in labels:
+            v = (detail[label].get("sections") or {}).get(section)
+            cells.append("—" if v is None else f"{v:g}")
+        w = weights.get(section, 1)
+        name = section if w == 1 else f"{section} (w{w:g})"
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    overall = [
+        f"**{detail[label]['overall']:.0f}**" if detail[label].get("overall") is not None else "—"
+        for label in labels
+    ]
+    lines.append("| **overall (0–100)** | " + " | ".join(overall) + " |")
+    lines.append("")
+    lines.append(
+        "Each row is scored 0–4 against one section of the published doctrine "
+        "(median of independent samples). The sections are our documented "
+        "preferences — disagree with one, ignore its row; the mechanical rubric "
+        "above is judge-free."
+    )
+    return "\n".join(lines)
+
+
 def render_generation_sections(attempts: list) -> str:
     """Generation fixture sections: rubric scores + expertise differential."""
     gen = [a for a in attempts if a.kind == "generation"]
     if not gen:
         return ""
     lines = ["", "## Generation fixtures (rubric-scored)"]
-    latest = _latest_per_model(gen)
+    groups: dict = {}
+    for a in gen:
+        groups.setdefault((a.model, a.fixture), []).append(a)
 
     lines += [
         "",
-        "| model | fixture | semantic score | expertise | pass |",
-        "|-------|---------|----------------|-----------|------|",
+        "| model | fixture | n | semantic score (med) | expertise | pass |",
+        "|-------|---------|---|----------------------|-----------|------|",
     ]
-    for (model, fixture), a in sorted(latest.items()):
+    for (model, fixture), group in sorted(groups.items()):
+        scores = [a.semantic_score for a in group if a.semantic_score is not None]
+        med = f"{statistics.median(scores):.3f}" if scores else "—"
+        with_exp = [a for a in group if a.expertise]
         exp = (
-            f"{sum(a.expertise.values())}/{len(a.expertise)}"
-            if a.expertise else "—"
+            f"{statistics.median(sum(a.expertise.values()) for a in with_exp):g}"
+            f"/{len(with_exp[0].expertise)}"
+            if with_exp else "—"
         )
+        passed = sum(1 for a in group if a.passed)
         lines.append(
-            f"| {model} | {fixture} | {a.semantic_score if a.semantic_score is not None else '—'} "
-            f"| {exp} | {'✓' if a.passed else '✗'} |"
+            f"| {model} | {fixture} | {len(group)} | {med} | {exp} | {passed}/{len(group)} |"
         )
 
-    # expertise differential: one table per fixture, rows = items, cols = models
+    # expertise differential: one table per fixture, rows = items, cols = models;
+    # cells show how many attempts exhibited the touch
     by_fixture: dict = {}
-    for (model, fixture), a in latest.items():
-        if a.expertise:
-            by_fixture.setdefault(fixture, {})[model] = a.expertise
+    for (model, fixture), group in groups.items():
+        per_attempt = [a.expertise for a in group if a.expertise]
+        if per_attempt:
+            by_fixture.setdefault(fixture, {})[model] = per_attempt
     for fixture, per_model in sorted(by_fixture.items()):
         models = sorted(per_model)
-        all_items = sorted({item for exp in per_model.values() for item in exp})
+        all_items = sorted({item for runs in per_model.values() for exp in runs for item in exp})
         labels = _expertise_labels(fixture)
         lines += ["", f"### Expertise differential — {fixture}", ""]
         lines.append("| expertise item | " + " | ".join(models) + " |")
         lines.append("|" + "---|" * (len(models) + 1))
         for item in all_items:
-            cells = " | ".join(
-                "✓" if per_model[m].get(item) else "—" for m in models
-            )
-            lines.append(f"| {labels.get(item, item)} | {cells} |")
+            cells = []
+            for m in models:
+                runs = per_model[m]
+                hits = sum(1 for exp in runs if exp.get(item))
+                if len(runs) == 1:
+                    cells.append("✓" if hits else "—")
+                else:
+                    cells.append(f"{hits}/{len(runs)}")
+            lines.append(f"| {labels.get(item, item)} | " + " | ".join(cells) + " |")
     lines.append("")
     lines.append(
         "Expertise items are discovered (mostly from judge rationales), mechanically "
@@ -342,8 +484,14 @@ def render_stats_section(attempts: list) -> str:
     ]
     for (model, fixture), a in sorted(latest.items()):
         duration = f"{a.duration_s:.0f}s" if a.duration_s else "—"
+        # Cache reads carry most of the prompt volume for cache-heavy
+        # providers — raw in/out alone badly misstates traffic.
+        cache = (
+            f" (+{a.cache_read_tokens:,}cr/{a.cache_write_tokens or 0:,}cw)"
+            if a.cache_read_tokens else ""
+        )
         tokens = (
-            f"{a.input_tokens:,}/{a.output_tokens:,}"
+            f"{a.input_tokens:,}/{a.output_tokens:,}{cache}"
             if a.input_tokens and a.output_tokens else "—"
         )
         cost = estimate_cost(a, prices) if prices else None
@@ -373,6 +521,8 @@ def render_report(attempts: list) -> str:
     lines = [
         "# iacbench report",
         "",
+        "## Fix fixtures",
+        "",
         "| model | fixture | pass | Wilson 95% | med turns | med out tokens | med diff lines | terminal states |",
         "|-------|---------|------|------------|-----------|----------------|----------------|-----------------|",
     ]
@@ -381,15 +531,13 @@ def render_report(attempts: list) -> str:
         groups.setdefault((a.model, a.fixture), []).append(a)
     for key in sorted(groups):
         lines.append(_row(key, groups[key]))
-
-    lines += ["", "## Roll-up per model", "",
-              "| model | fixture | pass | Wilson 95% | med turns | med out tokens | med diff lines | terminal states |",
-              "|-------|---------|------|------------|-----------|----------------|----------------|-----------------|"]
-    by_model: dict = {}
-    for a in fix_attempts:
-        by_model.setdefault(a.model, []).append(a)
-    for model in sorted(by_model):
-        lines.append(_row((model, "(all)"), by_model[model]))
+    if groups and all(all(a.passed for a in g) for g in groups.values()):
+        lines += [
+            "",
+            "All fix fixtures are saturated (every model passes every attempt): they "
+            "verify the harness and anti-cheat invariants but do not discriminate "
+            "between models. Do not rank on this table.",
+        ]
 
     tofu_versions = sorted({a.tofu_version for a in attempts if a.tofu_version})
     dates = sorted(a.created for a in attempts if a.created)
@@ -456,6 +604,9 @@ def run_report(log_dir: Path, out: Path | None, judge_dirs: list | None = None) 
     gen_section = render_generation_sections(attempts)
     if gen_section:
         text += gen_section + "\n"
+    grade_sections = render_grade_sections(judge_dirs or [])
+    if grade_sections:
+        text += grade_sections + "\n"
     stats_section = render_stats_section(attempts)
     if stats_section:
         text += stats_section + "\n"

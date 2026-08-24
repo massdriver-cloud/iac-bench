@@ -22,10 +22,14 @@ from pathlib import Path
 import yaml
 
 from . import checks, hclq
+from .artifacts import module_sha
 from .paths import PROVIDER_CACHE
 from .tofu import Tofu
 
-_MAX_CANDIDATES_PER_VAR = 3
+# Harvested allowed-value lists (and fixture perturb hints) keep up to this
+# many candidates so distant values like a "prod" tier stay reachable;
+# type-derived perturbation stays at one candidate per variable.
+_MAX_SWEEP_VALUES = 5
 _TFVARS_NAMES = ("minimal.tfvars.json", "minimal.tfvars")
 
 
@@ -46,6 +50,15 @@ class GenerationFixture:
     def load(cls, fixture_dir: Path) -> GenerationFixture:
         fixture_dir = Path(fixture_dir)
         data = yaml.safe_load((fixture_dir / "rubric.yaml").read_text())
+        # Baseline items are universal, engine-merged into every fixture —
+        # there is no per-fixture opt-out (fixtures/generation/baseline.yaml).
+        baseline_path = fixture_dir.parent / "baseline.yaml"
+        baseline_items = []
+        if baseline_path.is_file():
+            baseline_items = (yaml.safe_load(baseline_path.read_text()) or {}).get("items", [])
+            collisions = {i["id"] for i in baseline_items} & {i["id"] for i in data["items"]}
+            if collisions:
+                raise ValueError(f"fixture {data['id']} redeclares baseline item(s): {collisions}")
         return cls(
             id=data["id"],
             domain=data["domain"],
@@ -53,7 +66,7 @@ class GenerationFixture:
             tier=data.get("tier", 2),
             scoring_policy=data.get("scoring_policy", "v1"),
             mandatory=data.get("mandatory", []),
-            items=data["items"],
+            items=data["items"] + baseline_items,
             expertise=data.get("expertise", []),
             perturb=data.get("perturb", {}) or {},
             path=fixture_dir,
@@ -73,10 +86,17 @@ class GenerationResult:
     stats: dict
     scoring_policy: str
     probe_plans: int = 0
+    # Content hash of the scored module — lets the report refuse to join this
+    # score with a judge grade computed over a different artifact.
+    module_sha: str | None = None
     # Expertise checklist: discovered service-specific touches, present/absent.
-    # A separate subscore — never folded into semantic_score.
+    # Reported as its own subscore; pooled with the rubric (at weight 1 per
+    # item) into mechanical_score.
     expertise: dict = field(default_factory=dict)
     expertise_score: float | None = None
+    # Rubric + expertise pooled into one weighted fraction — the mechanical
+    # component of the composite. semantic_score stays rubric-only.
+    mechanical_score: float | None = None
     # Mandatory (security) items that failed. Scores stay true — these are
     # reported as findings and fail the verdict instead of capping the number.
     mandatory_failures: list = field(default_factory=list)
@@ -155,7 +175,7 @@ def _allowed_values(meta: dict) -> list:
 def _candidates(meta: dict, current) -> list:
     allowed = _allowed_values(meta)
     if allowed:
-        return [v for v in allowed if v != current][:_MAX_CANDIDATES_PER_VAR]
+        return [v for v in allowed if v != current][:_MAX_SWEEP_VALUES]
     if isinstance(current, bool):
         return [not current]
     if isinstance(current, (int, float)):
@@ -183,14 +203,18 @@ def _find_tfvars(module_dir: Path) -> Path | None:
     return None
 
 
-def _gate_failure(fixture: GenerationFixture, details: list, stats: dict) -> GenerationResult:
+def _gate_failure(
+    fixture: GenerationFixture, details: list, stats: dict, sha: str | None = None
+) -> GenerationResult:
     return GenerationResult(
         gate=False,
         items={i["id"]: False for i in fixture.items},
         semantic_score=0.0,
+        mechanical_score=0.0,
         details=details,
         stats=stats,
         scoring_policy=fixture.scoring_policy,
+        module_sha=sha,
     )
 
 
@@ -200,6 +224,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     work_root.mkdir(parents=True, exist_ok=True)
     details: list = []
     stats = hclq.stats(module_dir)
+    sha = module_sha(module_dir)
 
     # Score against a copy: root-module planning writes .terraform/lockfile
     # into the module dir, and the candidate's directory stays pristine.
@@ -210,22 +235,31 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
 
     # ---- Layer 1: functional gate — root module plans with its own tfvars,
     # filtered to required variables only (the defaults plan).
+    # Contract: the task is authoring the module — calling out to remote
+    # modules is answer-key evasion and fails the gate. Local submodules
+    # (./ or ../ sources) are legitimate decomposition.
+    remote = [s for s in hclq.module_sources(work) if not s.startswith(("./", "../"))]
+    if remote:
+        details.append(
+            f"gate: calls remote module(s) instead of authoring resources: {', '.join(sorted(set(remote)))}"
+        )
+        return _gate_failure(fixture, details, stats, sha)
     tfvars_path = _find_tfvars(work)
     if tfvars_path is None:
         details.append("gate: no minimal.tfvars or minimal.tfvars.json at the module root")
-        return _gate_failure(fixture, details, stats)
+        return _gate_failure(fixture, details, stats, sha)
     try:
         tfvars = hclq.parse_tfvars(tfvars_path)
     except Exception as exc:
         details.append(f"gate: could not parse {tfvars_path.name}: {exc}")
-        return _gate_failure(fixture, details, stats)
+        return _gate_failure(fixture, details, stats, sha)
 
     varmeta = hclq.variables(work)
     required = {name for name, m in varmeta.items() if not m["has_default"]}
     missing = sorted(required - set(tfvars))
     if missing:
         details.append(f"gate: {tfvars_path.name} missing required variable(s): {', '.join(missing)}")
-        return _gate_failure(fixture, details, stats)
+        return _gate_failure(fixture, details, stats, sha)
     # Optional values in the tfvars never reach the defaults plan — that would
     # smuggle the model's choices back into out-of-the-box posture.
     defaults_inputs = {name: tfvars[name] for name in sorted(required)}
@@ -237,11 +271,11 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     init_res = harness.init()
     if init_res.exit_code != 0:
         details.append(f"gate: tofu init failed: {init_res.stderr.strip()[-300:]}")
-        return _gate_failure(fixture, details, stats)
+        return _gate_failure(fixture, details, stats, sha)
     ok, defaults_plan, stderr = harness.plan_with(defaults_inputs)
     if not ok or defaults_plan is None:
         details.append(f"gate: defaults plan (required-only inputs) failed: {stderr.strip()[-300:]}")
-        return _gate_failure(fixture, details, stats)
+        return _gate_failure(fixture, details, stats, sha)
 
     # ---- perturbation sweep: interface-driven — every declared variable,
     # perturbed from its default (or its tfvars value for required ones).
@@ -250,10 +284,14 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     # validation rejecting a candidate is good design, not a penalty.
     sweep_plans: list = []
     rejected = 0
+    unswept: list = []
     for name, meta in sorted(varmeta.items()):
         base = defaults_inputs.get(name, meta["default"])
         candidates = fixture.perturb.get(name) or _candidates(meta, base)
-        for candidate in candidates[:_MAX_CANDIDATES_PER_VAR]:
+        if not candidates:
+            unswept.append(name)
+            continue
+        for candidate in candidates[:_MAX_SWEEP_VALUES]:
             ok, plan_json, _ = harness.plan_with({**defaults_inputs, name: candidate})
             if ok and plan_json:
                 sweep_plans.append(plan_json)
@@ -261,6 +299,20 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
                 rejected += 1
     if rejected:
         details.append(f"sweep: {rejected} perturbation(s) rejected at plan time (excluded from evidence)")
+    if unswept:
+        # A capability offered only through these variables is invisible to
+        # reachable-posture checks — surface the blind spot, never hide it.
+        details.append(
+            "sweep: no candidates for variable(s) (collection-typed or "
+            f"unperturbable): {', '.join(unswept)} — reachable checks may under-report"
+        )
+    unparsed = hclq.unparsed_files(work)
+    if unparsed:
+        details.append(
+            f"static lens: could not parse {', '.join(unparsed)} — static checks are blind to these files"
+        )
+    stats["unswept_variables"] = unswept
+    stats["unparsed_tf_files"] = unparsed
 
     # ---- rubric items via the declarative engine
     ctx = checks.CheckContext(
@@ -301,9 +353,20 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         round(sum(expertise.values()) / len(expertise), 3) if expertise else None
     )
 
+    # Pooled mechanical score: rubric items at their rubric weights, expertise
+    # items at weight 1 (unless overridden) — the rubric dominates by
+    # construction, and growing the checklist cannot swamp it.
+    exp_total = sum(e.get("weight", 1) for e in fixture.expertise)
+    exp_passed = sum(e.get("weight", 1) for e in fixture.expertise if expertise.get(e["id"]))
+    mech_denominator = total_weight + exp_total
+    mechanical_score = (
+        round((passed_weight + exp_passed) / mech_denominator, 3) if mech_denominator else 0.0
+    )
+
     return GenerationResult(
         expertise=expertise,
         expertise_score=expertise_score,
+        mechanical_score=mechanical_score,
         mandatory_failures=mandatory_failures,
         gate=True,
         items=items,
@@ -312,6 +375,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         stats=stats,
         scoring_policy=fixture.scoring_policy,
         probe_plans=harness.plans_run,
+        module_sha=sha,
     )
 
 

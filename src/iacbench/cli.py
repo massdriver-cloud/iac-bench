@@ -41,9 +41,23 @@ def main(argv=None) -> int:
     p_judge.add_argument("--model", default="anthropic/claude-opus-5", help="judge model")
     p_judge.add_argument("--rounds", type=int, default=1, help="judgments per pair per presentation order")
     p_judge.add_argument("--out", default=None, help="output dir (default: runs/judge/<fixture>)")
-    p_judge.add_argument("--human", default=None, help="human calibration yaml; computes judge-vs-human agreement")
+    p_judge.add_argument(
+        "--human", default=None,
+        help="human calibration yaml: pairs (pairwise mode) or grades (with --grade); "
+             "computes judge-vs-human agreement and updates the stored status",
+    )
     p_judge.add_argument("--grade", action="store_true", help="absolute grading mode: score each candidate 0-100 against good-opentofu.md, no comparisons")
     p_judge.add_argument("--samples", type=int, default=3, help="grading samples per candidate (grade mode)")
+
+    p_cal = sub.add_parser(
+        "calibrate",
+        help="evidence-assisted judge calibration: packets -> human verdicts -> adjudicate -> finalize",
+    )
+    p_cal.add_argument("stage", choices=["packets", "adjudicate", "finalize"])
+    p_cal.add_argument("--fixture", default="G001")
+    p_cal.add_argument("--candidates", help="directory of candidate module dirs (packets stage)")
+    p_cal.add_argument("--judge-dir", required=True, help="dir with judgments.jsonl + scores.json")
+    p_cal.add_argument("--out", required=True, help="calibration working directory")
 
     args = parser.parse_args(argv)
 
@@ -71,6 +85,51 @@ def main(argv=None) -> int:
 
         return run_sweep(args.region or os.environ.get("AWS_REGION", "us-east-1"), args.delete)
 
+    if args.command == "calibrate":
+        import json
+        import shutil
+        import tempfile
+
+        from . import calibrate
+        from .generation import GenerationFixture, score_generation
+
+        out_dir = Path(args.out)
+        judge_dir = Path(args.judge_dir)
+        if args.stage == "packets":
+            if not args.candidates:
+                print("packets stage requires --candidates")
+                return 1
+            fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
+            candidates = {
+                d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
+            }
+            scores = json.loads((judge_dir / "scores.json").read_text())
+            pairs = calibrate.select_pairs(scores["bt_scores"])
+            findings: dict = {}
+            with tempfile.TemporaryDirectory(prefix="iacbench-calib-") as tmp:
+                for label, d in candidates.items():
+                    module_copy = Path(tmp) / label / "module"
+                    shutil.copytree(d, module_copy)
+                    print(f"scoring {label} for mechanical findings...", flush=True)
+                    findings[label] = score_generation(fixture, module_copy, Path(tmp) / label / "work")
+            verdicts = calibrate.write_packets(fixture, candidates, findings, pairs, out_dir)
+            print(f"wrote {len(pairs)} packets under {out_dir / 'pairs'}")
+            print(f"fill in {verdicts} (winner per pair), then run the adjudicate stage")
+            return 0
+        if args.stage == "adjudicate":
+            summary = calibrate.adjudicate(out_dir / "verdicts.yaml", judge_dir, out_dir)
+            print(json.dumps(summary, indent=2))
+            if summary["disagree"]:
+                print(f"\nresolve uphold/reason in {summary['adjudication']}, then run finalize")
+            return 0
+        if args.stage == "finalize":
+            result = calibrate.finalize(out_dir / "verdicts.yaml", out_dir / "adjudication.yaml", judge_dir)
+            print(json.dumps(result, indent=2))
+            if result.get("unresolved_disagreements"):
+                print("\nunresolved disagreements remain — fill uphold/reason and re-run")
+                return 1
+            return 0
+
     if args.command == "judge":
         import asyncio
         import json
@@ -80,19 +139,27 @@ def main(argv=None) -> int:
 
         out_dir = Path(args.out) if args.out else RUNS_DIR / "judge" / args.fixture
         if args.grade:
-            from .judge import run_grade
+            from .judge import grade_agreement, run_grade
 
-            if not args.candidates:
-                print("--grade requires --candidates")
+            if not args.candidates and not args.human:
+                print("--grade requires --candidates (to grade) and/or --human (to calibrate)")
                 return 1
-            fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
-            candidates = {
-                d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
-            }
-            summary = asyncio.run(
-                run_grade(fixture.id, fixture.brief, candidates, args.model, out_dir, args.samples)
-            )
-            print(json.dumps(summary["grades"], indent=2))
+            if args.candidates:
+                fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
+                candidates = {
+                    d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
+                }
+                summary = asyncio.run(
+                    run_grade(fixture.id, fixture.brief, candidates, args.model, out_dir, args.samples)
+                )
+                print(json.dumps(summary["grades"], indent=2))
+            if args.human:
+                result = grade_agreement(out_dir / "grades.json", Path(args.human))
+                print(json.dumps(result, indent=2))
+                if result["agreement"] is not None and result["agreement"] < 0.8:
+                    print("\nabsolute grading is NOT calibrated (spearman < 0.8) — "
+                          "the report will keep grades out of the composite")
+                    return 1
             return 0
         if args.candidates:
             fixture = GenerationFixture.load(find_fixture_dir(args.fixture))

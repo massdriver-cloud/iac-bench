@@ -19,9 +19,13 @@ index") are SLOC-like proxies — they describe the population, not the instance
 | 3 | LLM judge, validated against human ranking: absolute 0–100 grading against `good-opentofu.md`, with blind pairwise comparison as a discovery/audit tool | LLM-judge, gated | yes — separate column, never silently merged |
 | 4 | Generic stats (var counts, validation %, locals depth, SLOC, cost) | mechanical, scalar | no — descriptive columns only |
 
-The composite grade combines layers 2 and 3 with the expertise subscore per
-`composite-scoring-policy.yaml`, a versioned artifact recorded into every report.
-Re-scoring stored outputs under a changed policy costs nothing.
+The composite grade is 70% mechanical / 30% judged, per
+`composite-scoring-policy.yaml` (a versioned artifact recorded into every report).
+The mechanical component pools the rubric and expertise checklists into one
+weighted fraction — rubric items carry their rubric weights, expertise items
+weigh 1 each — so the rubric dominates by construction and the per-item worth
+of an expertise entry does not swing with list sizes. Re-scoring stored
+outputs under a changed policy costs nothing.
 
 ## Brief philosophy: measure what the model volunteers
 
@@ -58,9 +62,10 @@ policies) are the strongest tiebreaker between candidates that pass the whole co
 but the space is open-ended and any authored list is capped by its author's knowledge. So:
 
 - Each fixture's rubric carries an `expertise:` section — mechanically verifiable touches,
-  each recording `discovered_via` provenance. Scored as a **separate subscore/column**
-  ("expertise: k/n known touches"), never folded into the semantic score: the core rubric
-  answers "did it meet the bar," expertise answers "how deep does its knowledge go."
+  each recording `discovered_via` provenance. Reported as its own subscore/column
+  ("expertise: k/n known touches") and pooled into the mechanical composite at weight 1
+  per item: the core rubric answers "did it meet the bar," expertise answers "how deep
+  does its knowledge go," and the pooling keeps the rubric dominant by construction.
 - **The list grows by discovery, not authorship.** Judge rationales explicitly name the
   differentiators they weighed; after judged batches, mine those citations, approve the
   real ones, and they become permanent checklist items. The judge discovers once; the
@@ -115,6 +120,11 @@ Two modes, implemented in `src/iacbench/judge.py`:
 - **Absolute grading** (`iacbench judge --grade`): each candidate scored 0–4 per
   good-opentofu.md section independently (multiple samples, medians, evidence required),
   normalized to 0–100. Roster-independent, so it is the judged component of the composite.
+  Section scores are reported as their own table — one row per doctrine section, one
+  column per candidate — so a reader who disagrees with a specific documented preference
+  can discount exactly that row. Calibration (`--grade --human`) compares the judge's
+  grades to human grades of the same candidates by rank (Spearman ≥ 0.8); the report
+  folds grades into the composite only once that gate is cleared.
 - **Blind pairwise** ("which module would you rather inherit?"), each pair judged in both
   presentation orders, aggregated Bradley–Terry. Used for discovery and audit — its
   rationales feed the expertise checklist — not for the composite.

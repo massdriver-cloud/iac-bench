@@ -2,10 +2,10 @@ locals {
   is_prod     = var.environment == "prod"
   bucket_name = "assets-${var.purpose}-${random_id.suffix.hex}"
 
-  tags = {
+  tags = merge(var.extra_tags, {
     managed-by  = "opentofu"
     environment = var.environment
-  }
+  })
 }
 
 resource "random_id" "suffix" {

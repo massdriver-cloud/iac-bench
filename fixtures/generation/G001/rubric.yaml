@@ -81,19 +81,6 @@ items:
                 where:
                   server_side_encryption_configuration: {exists: true}
 
-  - id: H5
-    weight: 8
-    description: >
-      Bucket names include a uniqueness mechanism (random suffix, account id)
-      seen through locals, or delegate to bucket_prefix — the model knows the
-      S3 namespace is global.
-    check:
-      expr_matches:
-        type: aws_s3_bucket
-        attr: bucket
-        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity|bucket_prefix'
-        or_attr_present: bucket_prefix
-
   - id: H6
     weight: 6
     posture: reachable
@@ -178,28 +165,14 @@ items:
     check:
       interface: {max_variables: 8}
 
-  - id: H11
-    weight: 3
-    description: >
-      No required input exists solely to feed tags (per the tagging ordering in
-      good-opentofu.md — a mandatory tag-only variable the prompt never asked
-      for is worse than no tags; optional tag maps and multi-purpose inputs are
-      fine).
-    check:
-      no_single_purpose_required_var: {attr: tags}
-
   - id: H12
     weight: 2
     description: >
-      Informative tagging volunteered without demanding inputs for it —
-      buckets carry tags out of the box (requires H11).
+      Tagging support is table stakes — consumers can add their own tags
+      through an optional input. (Demanding a required input for tags is
+      scope invention, judged under Unstated assumptions.)
     check:
-      all_of:
-        - ref: H11
-        - resource:
-            plans: defaults
-            type: aws_s3_bucket
-            where: {tags: {exists: true}}
+      var_feeds_attr: {attr: tags, has_default: true}
 
   - id: H13
     weight: 4
@@ -210,6 +183,17 @@ items:
     check:
       source_contains: "logging.s3.amazonaws.com"
 
+  - id: H14
+    weight: 3
+    description: >
+      force_destroy is accessible (per Destructive defaults) — some documented
+      input influences it, directly or inferred from a concept such as
+      environment. Hardcoded either way, or absent entirely, leaves the
+      consumer no way out.
+    check:
+      var_feeds_attr: {attr: force_destroy}
+
+
 # Input guarding (are the *right* variables validated) is deliberately NOT a
 # mechanical item — with no stated org policies there is no ground truth for
 # correct bounds. It is judged in layer 3.
@@ -217,9 +201,11 @@ items:
 # resource count, SLOC, comment ratio.
 
 # Expertise checklist — discovered service-specific touches, mechanically
-# verified, reported as a SEPARATE unweighted subscore (never folded into the
-# semantic score). Grows by discovery: judge rationales cite differentiators,
-# approved ones become permanent items. Qualification rule: an item must not
+# verified. Each item carries weight 1 (unless overridden) in the pooled
+# mechanical score, so rubric items dominate by construction and growing the
+# checklist cannot swamp the core rubric. Also reported as its own differential
+# table. Grows by discovery: judge rationales cite differentiators, approved
+# ones become permanent items. Qualification rule: an item must not
 # invent an uncommunicated use-case or demand new inputs.
 expertise:
   - id: E1_ownership_controls
@@ -264,3 +250,23 @@ expertise:
             quantifier: any
             type: aws_s3_bucket_lifecycle_configuration
             where: {rule: {transition: {storage_class: "INTELLIGENT_TIERING"}}}
+  - id: E7_name_uniqueness
+    description: >
+      Bucket names include a uniqueness mechanism (random suffix, account id)
+      seen through locals, or delegate to bucket_prefix — S3's namespace is
+      global. Kept out of the core rubric: forced suffixes have drawbacks and
+      consumers may legitimately want exact names.
+    discovered_via: owner review, 2026-08-21
+    check:
+      expr_matches:
+        type: aws_s3_bucket
+        attr: bucket
+        pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity\.'
+        or_attr_present: bucket_prefix
+  - id: E8_custom_kms_key
+    description: >
+      Consumers can supply their own KMS key for encryption — as an optional
+      reference, never a raw secret.
+    discovered_via: owner review, 2026-08-21
+    check:
+      var_feeds_attr: {attr: kms_master_key_id, has_default: true}

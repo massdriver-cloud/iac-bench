@@ -1,17 +1,9 @@
 # What we consider good OpenTofu
 
-**Owner: Chris. Living document — amend as views sharpen.** This is the authoritative
-definition of module quality for the judge layer: it is injected into the judge's system
-prompt and its hash is recorded in every judgment, so a verdict is always attributable to a
-specific edition of this document. It is NEVER shown to candidate models (same rule as the
-rubric — we measure what they volunteer).
-
-Guidance for entries: concrete over abstract, and discriminating — each principle should be
-something two competent modules actually differ on. Name anti-patterns explicitly. If a
-preference is conditional, say what it depends on.
-
-> The entries below are seeds distilled from prior design discussion — edit, reorder,
-> delete, and extend freely; this document is only useful as your actual opinions.
+**Owner: Chris.** The authoritative definition of module quality for the judge:
+each section below is graded 0–4. Grade what the module does, not what it says.
+The human-facing rationale for these preferences lives in
+`good-opentofu-rationale.md` and is not part of this definition.
 
 ## Interface design
 
@@ -19,12 +11,9 @@ preference is conditional, say what it depends on.
   versioning, logging, and retention beats three boolean toggles. The module should encode
   expertise: expose the handful of inputs consumers legitimately need to vary, and have
   opinions about everything else.
-- There should ideally be ~5-10 variables, however this isn't a concrete requirement.
-  Some modules will be extremely simple and only require 2-4 variables, and some cloud
-  services are quite complex and may require more than 10 variables. If a module exposes
-  more than 10 it should be considered whether a module is overly configurable and lacks
-  expertise, and similarly if it is less than 5 the module may be overly prescriptive and
-  lack necessary configurability.
+- ~5–10 variables is the healthy range, not a hard rule: very simple modules may need
+  2–4, and complex services may justify more than 10. Above 10, suspect
+  overconfigurability and missing expertise; below 5, suspect overprescription.
 - Anti-pattern: the pass-through module — one variable per resource attribute, defaults
   mirroring provider defaults, no judgment encoded anywhere.
 
@@ -38,8 +27,8 @@ preference is conditional, say what it depends on.
 
 - Use locals to compute inferred values from concept inputs rather than demanding more
   inputs. Deep chains of clever expressions are their own anti-pattern; locals should make
-  the module *more* readable, not show off. Situations where two (or more) variables
-  can be set which conflict with each other should be avoided unless necessary.
+  the module *more* readable, not show off. Avoid pairs of variables that can be set to
+  conflict with each other unless necessary.
 
 ## Scope
 
@@ -49,21 +38,21 @@ preference is conditional, say what it depends on.
 
 ## Versions
 
-- OpenTofu and provider versions should be specified. Ideally they should be pinned to a
-  major version, and not a specific semver. Best is using `~>` to pin to a major or minor
-  version, or using the greater than/less than operators to specify a small window of
-  compatible versions. Next is a hard pin to a specific semver. Worst is anything that
-  allows a new major version with potentially a breaking change.
+- OpenTofu and provider version constraints are required, and the bar is: **the
+  constraint must not admit a new major version.** `~>` bounds, bounded windows
+  (`>= 6.0, < 7.0`), and hard semver pins all pass; unconstrained requirements or a bare
+  `>=` fail.
+- A lockfile never substitutes for constraints — it is a runtime artifact the consumer
+  may regenerate or ignore.
 
 ## Inline Resource Configuration vs Separate Resources
 
-- In some situations, a provider will support *both* inline configuration of certain
-  attributes, as well as separate resources to configure the attributes. An example is 
-  the `aws_security_group` resource. The rules can be defined inline via the `ingress`
-  and `egress` attributes, or they can be specified via the 
-  `aws_security_group_ingress_rule` and `aws_security_group_egress_rule` resources. It is
-  *always* better to use separate resources. The worst case is if a module uses both
-  inline and separate resources, and this should be considered a broken module.
+- Where a provider supports *both* inline configuration and separate resources for the
+  same attributes (e.g. `aws_security_group` rules inline vs
+  `aws_security_group_ingress_rule`/`aws_security_group_egress_rule`), separate resources
+  are the strong default: independent lifecycle per entry, no whole-list diff churn.
+  Inline is acceptable only with a clear, objective, resource-specific justification
+  stated in a comment. Using both styles for the same attributes is a broken module.
 
 ## Outputs
 
@@ -74,16 +63,19 @@ preference is conditional, say what it depends on.
 
 ## Tagging
 
-- Best: informative, **calculated** tagging — `managed-by: opentofu`, deployed/modified
-  timestamps, and a `Name` tag (or equivalent) on resources where the service takes the
-  name from a tag (much of the EC2 family). Provider-level `default_tags` is the right
-  mechanism when the provider offers it; per-resource tags are bad when provider-level is
-  available, and should only be used where they *must* be (service-specific quirks).
-- Next best: no tagging at all.
-- Worst: inventing a tagging policy the prompt never asked for — especially **requiring**
-  a new input (e.g. a mandatory `team` variable) purely to feed tags (fine if the prompt
-  asked for it); or omitting a `Name`-style tag on resources that are effectively nameless
+- "Tags" here means the platform's metadata mechanism, whatever it is called — tags,
+  labels, annotations. Where the platform offers no such mechanism, this section is NA.
+- Consumers must have a way to add their own tags — an **optional** map input merged onto
+  every taggable resource. A module with no way to add tags is bad.
+- Calculated tags applied by the module (e.g. `managed-by`) are a plus. Never tag with
+  values that change on every run (timestamps): they turn every plan into a diff.
+- Provider-level `default_tags` is the right mechanism when the module is designed to run
+  standalone and the provider offers it; the optional tags variable is the portable
+  mechanism when the module may be consumed as a child.
+- A `Name` tag (or equivalent) matters on resources that are effectively nameless
   without one.
+- **Requiring** a new input purely to feed tags is scope invention — judge it under
+  Unstated assumptions (fine if the prompt asked for it).
 
 ## Iteration: for_each vs count
 
@@ -140,6 +132,19 @@ preference is conditional, say what it depends on.
   configurations by the user. For example, a user shouldn't be able to make a resource 
   publicly accessible, disable encryption, or turn off security measures that should 
   otherwise be on.
+- The line between security and safety: **exposure** — anything touching access,
+  confidentiality, or network reachability — is never a knob. **Durability and
+  operational protections** (deletion protection, retention, backups) ship safe by
+  default with a real opt-out; see Destructive defaults.
+
+## Sensitive values
+
+- Variables and outputs that carry secrets or other confidential values must be marked
+  `sensitive = true`.
+- Prefer accepting a *reference* to a secret (an identifier the provider can resolve)
+  over the secret value itself; demanding raw credentials as plain inputs is a negative.
+- Never hardcode a secret, and never give one as a variable default. `sensitive`
+  controls display, not state.
 
 ## Lifecycle meta-arguments
 
@@ -189,4 +194,19 @@ preference is conditional, say what it depends on.
 - Making an error disappear by deleting/commenting the resource that errored.
 - Exposing an input that lets a consumer silently violate a security posture the module
   otherwise establishes.
-- Simply calling a remote public module instead of generating the code.
+- Calling a remote module instead of authoring the resources — the task is authoring
+  the module.
+
+## Grading weights
+
+The judge grades each section above 0–4; the overall grade is the weighted mean of
+applicable sections. Sections not listed here weigh 1.
+
+- Insecure Configurations: 3
+- Sensitive values: 3
+- Destructive defaults: 3
+- Interface design: 2
+- Variables and validation: 2
+- Scope: 2
+- Unstated assumptions: 2
+- Provider declarations and module independence: 2

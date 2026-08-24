@@ -4,9 +4,14 @@ A benchmark that scores LLMs on OpenTofu infrastructure-as-code tasks. Built on
 [Inspect AI](https://inspect.aisi.org.uk/) for the agent scaffold, model adapters, and
 transcript logging; the fixtures and mechanical checkers are this repo's own.
 
-**Design principle:** scoring is mechanical. Every verdict comes from running `tofu` and
-inspecting its output (exit codes, plan JSON, file diffs) — never from comparing against a
-stored correct answer and never from LLM-as-judge.
+**Design principle:** the majority of every score is mechanical. Pass/fail verdicts and
+the rubric come from running `tofu` and inspecting its output (exit codes, plan JSON,
+parsed HCL) — never from comparing against a stored correct answer. A separate, smaller
+judged component grades candidates against our published definition of module quality
+(`docs/good-opentofu.md`) — our documented preferences, human-gated (it enters the
+composite only after clearing calibration against human rankings) and reported per
+doctrine section, so a reader who rejects any preference can discount exactly that row —
+or ignore the judged layer entirely and use the mechanical columns alone.
 
 ## Current scope
 
@@ -149,10 +154,13 @@ No adapter code needed — Inspect AI provides the providers. Pass `--model
   held-out variants whose scores validate the public set. Rising public-fixture
   scores that held-out variants don't corroborate indicate contamination, not
   capability.
-- **Judged scores are disclosed, gated, and separate.** The judge model, its
-  prompt, and the quality-doctrine document are hashed into every judgment;
-  judged columns are marked experimental until they clear calibration against
-  human rankings; and judged scores are never folded into mechanical ones.
+- **Judged scores are disclosed, gated, and separable.** The judge model, its
+  prompt, and the quality-doctrine document are hashed into every judgment.
+  The report folds a judge grade into the composite only when its stored
+  calibration status says it cleared the human-agreement gate — otherwise the
+  composite is computed from the mechanical components alone and the grade is
+  shown flagged experimental. Grades are also reported per doctrine section,
+  and mechanical columns never depend on the judge.
 - **Scores are true values.** Security failures never cap scores — they are
   reported as findings, flagged on scored rows, and fail the pass/fail verdict.
 - **Cost claims are versioned.** Estimated costs derive from `prices.yaml`, a
@@ -169,8 +177,9 @@ rules, and `SECURITY.md` for private vulnerability reporting.
 The model gets exactly these tools: `list_files`, `read_file`, `write_file` (whole-file,
 confined to the scratch dir, forbidden paths rejected and recorded), `tofu_validate`,
 `tofu_plan` (accepts an optional `var_file`), `tofu_fmt`, `submit`. No arbitrary shell.
-`tofu init` is run by the harness. Limits: 600s wall clock per attempt, 120s per tofu
-invocation, tool output truncated at 8 KB. Changing any of this invalidates comparisons
+`tofu init` is run by the harness. Limits: wall clock per attempt is task-specific
+(600s plan-fix, 900s apply-fix, 1800s generation), 120s per tofu invocation, tool
+output truncated at 8 KB. Changing any of this invalidates comparisons
 with earlier runs — versioned as `SCAFFOLD_CONTRACT_VERSION` in `src/iacbench/__init__.py`,
 pinned at "1" until the benchmark is published (pre-launch changes simply invalidate old
 runs; see the versioning stance in `docs/generation-check-engine.md`).

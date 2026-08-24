@@ -63,6 +63,7 @@ def variables(module_dir: Path) -> dict:
                 out[name] = {
                     "typed": "type" in spec,
                     "has_default": "default" in spec,
+                    "has_description": "description" in spec,
                     "has_validation": bool(validations),
                     "default": spec.get("default"),
                     "type": str(spec.get("type", "")),
@@ -201,14 +202,67 @@ def value_text_closure(module_dir: Path, value) -> str:
     return " ".join(parts)
 
 
+def required_providers(module_dir: Path) -> dict:
+    """provider name -> version constraint string (or None) from
+    terraform.required_providers blocks in the module root."""
+    out: dict = {}
+    for doc in parse_dir(module_dir):
+        for block in doc.get("terraform", []) or []:
+            rp = (block or {}).get("required_providers")
+            if not rp:
+                continue
+            for entry in rp if isinstance(rp, list) else [rp]:
+                for name, spec in (entry or {}).items():
+                    out[name] = spec.get("version") if isinstance(spec, dict) else spec
+    return out
+
+
+def value_text(value) -> str:
+    """Textual form of a parsed HCL value (no locals resolution)."""
+    return json.dumps(value, default=str)
+
+
 def outputs(module_dir: Path) -> dict:
-    """name -> raw value text of output blocks in the module root."""
+    """name -> parsed output spec dict ({value, description, ...})."""
     out: dict = {}
     for doc in parse_dir(module_dir):
         for block in doc.get("output", []) or []:
             for name, spec in block.items():
-                out[name] = json.dumps(spec, default=str)
+                out[name] = spec or {}
     return out
+
+
+def module_sources(module_dir: Path) -> list:
+    """Source strings of every `module` block anywhere under the module dir
+    (excluding .terraform) — used to enforce the no-remote-modules contract."""
+    sources: list = []
+    for tf in sorted(Path(module_dir).rglob("*.tf")):
+        if ".terraform" in tf.parts:
+            continue
+        try:
+            with open(tf) as f:
+                doc = _clean(hcl2.load(f))
+        except Exception:
+            continue
+        for block in doc.get("module", []) or []:
+            for _name, attrs in block.items():
+                source = (attrs or {}).get("source")
+                if source is not None:
+                    sources.append(str(source))
+    return sources
+
+
+def unparsed_files(module_dir: Path) -> list:
+    """*.tf files in the module root that python-hcl2 cannot parse. Static
+    checks are blind to these — callers must surface them, never hide them."""
+    failed = []
+    for tf in sorted(Path(module_dir).glob("*.tf")):
+        try:
+            with open(tf) as f:
+                hcl2.load(f)
+        except Exception:
+            failed.append(tf.name)
+    return failed
 
 
 def _line_counts(module_dir: Path) -> tuple:
