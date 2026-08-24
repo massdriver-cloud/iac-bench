@@ -13,9 +13,11 @@ Plan-only: nothing is ever applied.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import shutil
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -45,6 +47,7 @@ class GenerationFixture:
     expertise: list  # [{id, description, discovered_via, check}] — unweighted
     perturb: dict  # optional per-variable candidate hints for the sweep
     path: Path
+    rubric_sha: str = ""  # hash of rubric.yaml + baseline.yaml — the scoring edition
 
     @classmethod
     def load(cls, fixture_dir: Path) -> GenerationFixture:
@@ -54,7 +57,9 @@ class GenerationFixture:
         # there is no per-fixture opt-out (fixtures/generation/baseline.yaml).
         baseline_path = fixture_dir.parent / "baseline.yaml"
         baseline_items = []
+        rubric_bytes = (fixture_dir / "rubric.yaml").read_bytes()
         if baseline_path.is_file():
+            rubric_bytes += baseline_path.read_bytes()
             baseline_items = (yaml.safe_load(baseline_path.read_text()) or {}).get("items", [])
             collisions = {i["id"] for i in baseline_items} & {i["id"] for i in data["items"]}
             if collisions:
@@ -70,6 +75,7 @@ class GenerationFixture:
             expertise=data.get("expertise", []),
             perturb=data.get("perturb", {}) or {},
             path=fixture_dir,
+            rubric_sha=hashlib.sha256(rubric_bytes).hexdigest()[:16],
         )
 
     @property
@@ -195,6 +201,30 @@ def _candidates(meta: dict, current) -> list:
 
 # ---------------------------------------------------------------- scoring
 
+def _checkov_failed(module_dir: Path) -> int | None:
+    """Failed checks reported by checkov, when installed. Descriptive only —
+    never scored; a third-party scanner's opinions are a column, not a rubric."""
+    if shutil.which("checkov") is None:
+        return None
+    try:
+        proc = subprocess.run(
+            ["checkov", "-d", str(module_dir), "-o", "json", "--quiet", "--compact"],
+            capture_output=True, text=True, timeout=180,
+        )
+        data = json.loads(proc.stdout)
+    except Exception:
+        return None
+
+    def count(report) -> int:
+        return int(((report or {}).get("summary") or {}).get("failed") or 0)
+
+    if isinstance(data, list):
+        return sum(count(r) for r in data)
+    if isinstance(data, dict):
+        return count(data)
+    return None
+
+
 def _find_tfvars(module_dir: Path) -> Path | None:
     for name in _TFVARS_NAMES:
         p = module_dir / name
@@ -313,6 +343,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         )
     stats["unswept_variables"] = unswept
     stats["unparsed_tf_files"] = unparsed
+    stats["checkov_failed"] = _checkov_failed(work)
 
     # ---- rubric items via the declarative engine
     ctx = checks.CheckContext(
@@ -354,10 +385,10 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     )
 
     # Pooled mechanical score: rubric items at their rubric weights, expertise
-    # items at weight 1 (unless overridden) — the rubric dominates by
-    # construction, and growing the checklist cannot swamp it.
-    exp_total = sum(e.get("weight", 1) for e in fixture.expertise)
-    exp_passed = sum(e.get("weight", 1) for e in fixture.expertise if expertise.get(e["id"]))
+    # items at exactly weight 1 — never overridable, so the rubric dominates
+    # by construction and no silent knob can swamp it.
+    exp_total = len(fixture.expertise)
+    exp_passed = sum(1 for e in fixture.expertise if expertise.get(e["id"]))
     mech_denominator = total_weight + exp_total
     mechanical_score = (
         round((passed_weight + exp_passed) / mech_denominator, 3) if mech_denominator else 0.0

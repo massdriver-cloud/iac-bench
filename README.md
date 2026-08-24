@@ -146,6 +146,10 @@ No adapter code needed — Inspect AI provides the providers. Pass `--model
 
 ## Benchmark integrity
 
+Operating rules — no retractions, no private variants, identical treatment,
+pinned model identifiers, scoring provenance, and what this benchmark does
+not measure — are published in `docs/governance.md`.
+
 - **Contamination stance (v0.1):** all current fixtures, briefs, and reference
   solutions are public in this repository, which means future models may train
   on them. Scores on public fixtures should be read accordingly. The record

@@ -8,15 +8,27 @@ memory exercise. Three stages:
                the brief, both modules, and each module's MECHANICAL findings
                (deterministic facts, not the thing being calibrated), plus a
                verdicts.yaml for the human to fill. Judge verdicts are never
-               shown at this stage.
+               shown at this stage. The packet run pins the doctrine edition
+               and per-candidate module hashes into verdicts.yaml so verdicts
+               can never silently drift from the artifacts they were made on.
   adjudicate — compare filled verdicts to the judge's majority per pair; for
                disagreements only, write adjudication.yaml with the judge's
                rationales. The human upholds (true disagreement) or revises
-               ("I missed it" — counts as agreement, usually a doctrine edit).
-  finalize   — compute raw and adjudicated agreement (overall, and excluding
-               pairs that contain the owner's own reference modules), stamp
-               scores.json. Human ties are excluded from the statistic and
-               reported.
+               ("I missed it" — counts toward the adjudicated number).
+  finalize   — compute agreement and stamp scores.json AND grades.json.
+
+Gate rules (the parts a hostile reader checks):
+  - The only exclusions are HUMAN-declared ties ("too close to call"). The
+    judge's own grades never remove a pair from the statistic — grade gaps are
+    computed and DISCLOSED, nothing more.
+  - The gate is RAW agreement; the adjudicated number is disclosed beside it.
+    An upheld disagreement always counts against the judge.
+  - A calibrated stamp requires at least MIN_DECISIVE_PAIRS counted pairs and
+    refuses while any filled-out verdict set has unfilled entries.
+  - The absolute grades (the composite's judged component) are gated in the
+    same pass: for every counted pair, does the grade ordering agree with the
+    human verdict? That rank-consistency, over the same floor, sets
+    grades.json's status — the instrument that counts is the one certified.
 """
 
 from __future__ import annotations
@@ -27,21 +39,25 @@ from pathlib import Path
 import yaml
 
 _RATIONALE_CHARS = 1200
+MIN_DECISIVE_PAIRS = 8
+GATE = 0.8
+NEAR_TIE_DISCLOSURE_GAP = 10.0  # disclosure only; never excludes
 
 
 # ------------------------------------------------------------- pair selection
 
 def select_pairs(bt_scores: dict, extra_anchors: int = 2) -> list:
     """Adjacent pairs in the judge's own ranking (where discrimination is
-    hardest and calibration is most informative) plus far-apart anchor pairs
-    as sanity checks. Which is which is not disclosed in the packets."""
+    hardest) plus far-apart anchor pairs. Which is which is not disclosed in
+    the packets. Selection bias toward hard pairs is deliberate and DISCLOSED
+    in the stamped result — agreement here is a stricter claim than agreement
+    on random pairs."""
     ranked = list(bt_scores)  # bt_scores is already sorted best-first
     pairs = [(ranked[i], ranked[i + 1]) for i in range(len(ranked) - 1)]
     anchors = [(ranked[0], ranked[-1]), (ranked[1], ranked[-2])]
     for a, b in anchors[:extra_anchors]:
         if a != b and (a, b) not in pairs and (b, a) not in pairs:
             pairs.append((a, b))
-    # deterministic, ranking-agnostic presentation order
     return sorted(tuple(sorted(p)) for p in pairs)
 
 
@@ -84,6 +100,9 @@ def _module_block(label: str, module_dir: Path) -> str:
 
 
 def write_packets(fixture, candidates: dict, findings: dict, pairs: list, out_dir: Path) -> Path:
+    from .artifacts import module_sha
+    from .judge import DEFAULT_PRINCIPLES, principles_sha
+
     out_dir = Path(out_dir)
     pair_dir = out_dir / "pairs"
     pair_dir.mkdir(parents=True, exist_ok=True)
@@ -95,7 +114,10 @@ def write_packets(fixture, candidates: dict, findings: dict, pairs: list, out_di
             "",
             "Question: **given the brief and the mechanical findings, which module",
             "would you rather inherit** — per docs/good-opentofu.md? Record your",
-            f"verdict in verdicts.yaml under `{pair_id}` (a label, or `tie`).",
+            f"verdict in verdicts.yaml under `{pair_id}`: a candidate label, or",
+            "`tie` if the two are genuinely too close to call (ties are excluded",
+            "from the statistic and disclosed — never guess to avoid a tie, and",
+            "never tie to avoid a hard call).",
             "",
             "## Brief",
             "",
@@ -120,8 +142,17 @@ def write_packets(fixture, candidates: dict, findings: dict, pairs: list, out_di
         "# Evidence-assisted calibration verdicts. For each pair, read the\n"
         "# packet in pairs/ and set winner to a candidate label, or 'tie'.\n"
         "# Fill this BEFORE any adjudication file exists; do not consult judge\n"
-        "# outputs. Notes are optional but make adjudication faster.\n"
-        + yaml.safe_dump({"fixture": fixture.id, "pairs": entries}, sort_keys=False)
+        "# outputs. Judge verdicts from memory of any module version other\n"
+        "# than the packet sources are protocol violations — read the packet.\n"
+        + yaml.safe_dump(
+            {
+                "fixture": fixture.id,
+                "principles_sha256": principles_sha(DEFAULT_PRINCIPLES),
+                "candidates": {label: module_sha(d) for label, d in sorted(candidates.items())},
+                "pairs": entries,
+            },
+            sort_keys=False,
+        )
     )
     return verdicts_path
 
@@ -144,39 +175,76 @@ def _judge_majority(judgments: list, a: str, b: str) -> tuple:
     return (leaders[0] if len(leaders) == 1 else None), votes, rationales
 
 
+def _load_scores(judge_dir: Path) -> dict:
+    return json.loads((Path(judge_dir) / "scores.json").read_text())
+
+
 def _load_judgments(judge_dir: Path) -> list:
-    scores = json.loads((Path(judge_dir) / "scores.json").read_text())
+    """Judgments matching the current scores.json edition: same fixture,
+    judge, prompt, doctrine — and, when the judgment carries artifact hashes,
+    the same candidate snapshots."""
+    scores = _load_scores(judge_dir)
+    shas = scores.get("candidate_shas") or {}
     judgments = []
     for line in (Path(judge_dir) / "judgments.jsonl").read_text().splitlines():
         if not line.strip():
             continue
         j = json.loads(line)
         if (
-            j["prompt_sha256"] == scores["prompt_sha256"]
-            and j["principles_sha256"] == scores["principles_sha256"]
-            and j["judge_model"] == scores["judge_model"]
+            j.get("fixture") != scores.get("fixture")
+            or j["prompt_sha256"] != scores["prompt_sha256"]
+            or j["principles_sha256"] != scores["principles_sha256"]
+            or j["judge_model"] != scores["judge_model"]
         ):
+            continue
+        # Legacy judgments lack shas; new ones must match the scored snapshots.
+        for side, sha_key in (("a", "a_sha"), ("b", "b_sha")):
+            expected = shas.get(j.get(side))
+            if j.get(sha_key) is not None and expected is not None and j[sha_key] != expected:
+                break
+        else:
             judgments.append(j)
     return judgments
 
 
+def _check_binding(verdicts: dict, judge_dir: Path) -> list:
+    """Human verdicts and judge outputs must describe the same artifacts and
+    doctrine edition. Returns a list of mismatch descriptions (empty = ok)."""
+    problems = []
+    scores = _load_scores(judge_dir)
+    v_principles = verdicts.get("principles_sha256")
+    if v_principles and scores.get("principles_sha256") != v_principles:
+        problems.append(
+            f"doctrine edition mismatch: verdicts {v_principles} vs judge {scores.get('principles_sha256')}"
+        )
+    v_shas = verdicts.get("candidates") or {}
+    j_shas = scores.get("candidate_shas") or {}
+    for label, sha in v_shas.items():
+        if label in j_shas and j_shas[label] != sha:
+            problems.append(f"candidate {label} snapshot mismatch: verdicts {sha} vs judge {j_shas[label]}")
+    return problems
+
+
 def adjudicate(verdicts_path: Path, judge_dir: Path, out_dir: Path) -> dict:
     verdicts = yaml.safe_load(Path(verdicts_path).read_text())
+    binding = _check_binding(verdicts, judge_dir)
+    if binding:
+        return {"error": "artifact/edition binding mismatch", "problems": binding}
     judgments = _load_judgments(judge_dir)
     disagreements = []
-    summary = {"agree": 0, "disagree": 0, "human_tie": 0, "judge_tie": 0, "unfilled": 0}
+    # Disjoint categories: a pair lands in exactly one bucket. A judge
+    # order-split against a human verdict is a disagreement (reported with
+    # its tie detail); human ties are exclusions.
+    summary = {"agree": 0, "disagree": 0, "human_tie": 0, "unfilled": 0}
     for pair in verdicts["pairs"]:
         human = pair.get("winner")
         if not human:
             summary["unfilled"] += 1
             continue
-        judge_winner, votes, rationales = _judge_majority(judgments, pair["a"], pair["b"])
         if str(human).lower() == "tie":
             summary["human_tie"] += 1
             continue
-        if judge_winner is None:
-            # judge order-split against a human verdict: disagreement by rule
-            summary["judge_tie"] += 1
+        judge_winner, votes, rationales = _judge_majority(judgments, pair["a"], pair["b"])
         if judge_winner == human:
             summary["agree"] += 1
             continue
@@ -190,18 +258,22 @@ def adjudicate(verdicts_path: Path, judge_dir: Path, out_dir: Path) -> dict:
             "judge": judge_winner or f"TIE {votes}",
             "judge_rationales": rationales,
             # uphold: true  -> real disagreement, counts against the judge
-            # uphold: false -> "I missed it" — counts as agreement; say why
+            # uphold: false -> the judge caught something real and
+            #                  doctrine-grounded; cite the doctrine section
             "uphold": None,
             "reason": "",
+            "doctrine_section": "",
         })
     out_path = Path(out_dir) / "adjudication.yaml"
     out_path.write_text(
         "# Disagreements only. For each: read the judge's rationales, then set\n"
         "# uphold: true (your verdict stands — real disagreement) or\n"
-        "# uphold: false (the judge caught something real and doctrine-grounded\n"
-        "# that you missed — counts as agreement). 'reason' is required either\n"
-        "# way; a rationale that is vibes rather than evidence must be upheld\n"
-        "# against.\n"
+        "# uphold: false (the judge caught something real that you missed).\n"
+        "# A reversal (uphold: false) MUST name the doctrine_section that\n"
+        "# grounds it; a rationale that is vibes rather than evidence must be\n"
+        "# upheld against. NOTE: the gate is computed on RAW agreement — a\n"
+        "# reversal improves only the disclosed adjudicated number, so there\n"
+        "# is nothing to gain by reversing.\n"
         + yaml.safe_dump({"fixture": verdicts["fixture"], "disagreements": disagreements}, sort_keys=False)
     )
     return {**summary, "adjudication": str(out_path)}
@@ -217,77 +289,111 @@ def finalize(
     verdicts_path: Path,
     adjudication_path: Path,
     judge_dir: Path,
-    near_tie_gap: float = 10.0,
 ) -> dict:
     verdicts = yaml.safe_load(Path(verdicts_path).read_text())
+    binding = _check_binding(verdicts, judge_dir)
+    if binding:
+        return {"error": "artifact/edition binding mismatch", "problems": binding}
     adjudication = yaml.safe_load(Path(adjudication_path).read_text())
     judgments = _load_judgments(judge_dir)
     resolved = {d["id"]: d for d in adjudication.get("disagreements", [])}
 
-    # Near-tie exclusion: pairs whose absolute grades sit within near_tie_gap
-    # of each other are preference territory — which way they fall says nothing
-    # about the judge's fitness, so they are excluded from the gate statistic
-    # and disclosed. Applies only when grades exist for both candidates.
     grades: dict = {}
     grades_path = Path(judge_dir) / "grades.json"
     if grades_path.is_file():
         data = json.loads(grades_path.read_text())
         grades = {k: v for k, v in (data.get("grades") or {}).items() if v is not None}
 
-    def decisive(pair: dict) -> bool:
-        ga, gb = grades.get(pair["a"]), grades.get(pair["b"])
-        if ga is None or gb is None:
-            return True
-        return abs(ga - gb) >= near_tie_gap
-
-    near_ties = [p["id"] for p in verdicts["pairs"] if p.get("winner") and not decisive(p)]
+    unfilled = [p["id"] for p in verdicts["pairs"] if not p.get("winner")]
+    unresolved = [d["id"] for d in adjudication.get("disagreements", []) if d.get("uphold") is None]
 
     def tally(pairs: list) -> dict:
-        graded = agree_raw = agree_adj = 0
+        graded = agree_raw = agree_adj = grade_consistent = grade_pairs = 0
+        near_ties: list = []
         for pair in pairs:
             human = pair.get("winner")
-            if not human or str(human).lower() == "tie" or not decisive(pair):
+            if not human or str(human).lower() == "tie":
                 continue
             judge_winner, _, _ = _judge_majority(judgments, pair["a"], pair["b"])
             graded += 1
+            ga, gb = grades.get(pair["a"]), grades.get(pair["b"])
+            if ga is not None and gb is not None:
+                grade_pairs += 1
+                if abs(ga - gb) < NEAR_TIE_DISCLOSURE_GAP:
+                    near_ties.append(pair["id"])  # disclosure only — still counted
+                grade_winner = pair["a"] if ga > gb else pair["b"]
+                grade_consistent += grade_winner == human
             if judge_winner == human:
                 agree_raw += 1
                 agree_adj += 1
                 continue
             d = resolved.get(pair["id"])
             if d is not None and d.get("uphold") is False:
-                agree_adj += 1  # revised on reflection: the judge was right
+                agree_adj += 1  # revised on reflection — disclosed, never gated on
         return {
             "graded_pairs": graded,
             "raw_agreement": round(agree_raw / graded, 3) if graded else None,
             "adjudicated_agreement": round(agree_adj / graded, 3) if graded else None,
+            "grade_rank_consistency": round(grade_consistent / grade_pairs, 3) if grade_pairs else None,
+            "grade_pairs": grade_pairs,
+            "near_tie_pairs_disclosed": near_ties,
         }
 
     all_pairs = verdicts["pairs"]
+    overall = tally(all_pairs)
     result = {
         "fixture": verdicts["fixture"],
-        "method": "evidence-assisted verdicts with adjudication; "
-                  f"near-tie pairs (grade gap < {near_tie_gap:g}) excluded",
-        "overall": tally(all_pairs),
+        "method": (
+            "evidence-assisted verdicts; hard-pair-biased selection (adjacent by judge "
+            "ranking); exclusions are human ties only; gate = raw agreement"
+        ),
+        "overall": overall,
         "models_only": tally([p for p in all_pairs if not _is_ref_pair(p)]),
-        "near_tie_excluded": near_ties,
-        "unresolved_disagreements": [
-            d["id"] for d in adjudication.get("disagreements", []) if d.get("uphold") is None
-        ],
+        "human_ties": [p["id"] for p in all_pairs if str(p.get("winner")).lower() == "tie"],
+        "unfilled": unfilled,
+        "unresolved_disagreements": unresolved,
     }
-    if result["unresolved_disagreements"]:
+    if unfilled or unresolved:
+        result["error"] = "refusing to stamp: unfilled verdicts or unresolved adjudications remain"
         return result
 
-    scores_path = Path(judge_dir) / "scores.json"
-    scores = json.loads(scores_path.read_text())
-    adj = result["overall"]["adjudicated_agreement"]
-    scores["calibration"] = result
-    scores["agreement"] = adj
-    scores["graded_pairs"] = result["overall"]["graded_pairs"]
-    scores["status"] = (
-        "calibrated (adjudicated)" if adj is not None and adj >= 0.8
-        else "experimental (failed calibration)"
+    raw = overall["raw_agreement"]
+    enough = overall["graded_pairs"] >= MIN_DECISIVE_PAIRS
+    pairwise_status = (
+        "calibrated (raw agreement, hard-pair sample)"
+        if enough and raw is not None and raw >= GATE
+        else (
+            f"experimental (needs >= {MIN_DECISIVE_PAIRS} counted pairs)"
+            if not enough else "experimental (failed calibration)"
+        )
     )
+    scores_path = Path(judge_dir) / "scores.json"
+    scores = _load_scores(judge_dir)
+    scores["calibration"] = result
+    scores["agreement"] = raw
+    scores["graded_pairs"] = overall["graded_pairs"]
+    scores["status"] = pairwise_status
     scores_path.write_text(json.dumps(scores, indent=2))
-    result["status"] = scores["status"]
+    result["pairwise_status"] = pairwise_status
+
+    # The composite's judged component is the ABSOLUTE grade — certify it
+    # against the same human verdicts (rank consistency), same floor.
+    if grades_path.is_file():
+        consistency = overall["grade_rank_consistency"]
+        enough_g = overall["grade_pairs"] >= MIN_DECISIVE_PAIRS
+        grade_status = (
+            "calibrated (rank-consistent with human verdicts)"
+            if enough_g and consistency is not None and consistency >= GATE
+            else (
+                f"experimental (needs >= {MIN_DECISIVE_PAIRS} graded pairs)"
+                if not enough_g else "experimental (failed calibration)"
+            )
+        )
+        data = json.loads(grades_path.read_text())
+        data["agreement"] = consistency
+        data["agreement_method"] = "rank consistency vs human pairwise verdicts"
+        data["graded_pairs"] = overall["grade_pairs"]
+        data["status"] = grade_status
+        grades_path.write_text(json.dumps(data, indent=2))
+        result["grades_status"] = grade_status
     return result

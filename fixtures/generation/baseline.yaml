@@ -5,8 +5,8 @@
 # regardless of service or brief) and static-lens only (they run against
 # modules whose fixture context varies). Service knowledge never goes here —
 # it belongs in the fixture's rubric or expertise checklist. Items pool into
-# the mechanical score at their declared weights, alongside rubric and
-# expertise items.
+# the mechanical score at their declared weights, alongside rubric items
+# and expertise items (which always weigh exactly 1).
 
 items:
   - id: B1_provider_constraints

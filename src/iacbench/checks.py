@@ -201,13 +201,21 @@ def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
 
 
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: every resource of `type` has `attr` whose expression,
-    resolved through locals, matches `pattern` — or has `or_attr_present`."""
+    """Static lens over attribute expressions resolved through locals.
+    match: every (default) — every resource of `type` has `attr` matching
+    `pattern` or has `or_attr_present`; match: any — at least one resource's
+    `attr` matches."""
     pattern = re.compile(spec["pattern"])
     insts = hclq.resource_attrs(ctx.module_dir, spec["type"])
     if not insts:
         return False
     fallback = spec.get("or_attr_present")
+    if spec.get("match", "every") == "any":
+        return any(
+            spec["attr"] in inst
+            and pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]]))
+            for inst in insts
+        )
     for inst in insts:
         if spec["attr"] in inst:
             if not pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]])):
@@ -234,28 +242,62 @@ def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
     return False
 
 
+_VER_RE = re.compile(r"v?(\d+)(?:\.\d+)*")
+
+
+def _major(version: str) -> int | None:
+    m = _VER_RE.fullmatch(version.strip())
+    return int(m.group(1)) if m else None
+
+
 def _constraint_bounded(constraint) -> bool:
-    """True when a version constraint cannot admit a new major version:
-    a ~> bound, an upper bound (< / <=), an = pin, or a bare exact version.
-    A lone >= / > (or no constraint at all) fails."""
+    """True when a version constraint cannot admit an untested major jump:
+    ~> bounds, = pins, and bare exact versions pass; a >=/> lower bound needs
+    an upper bound within the NEXT major (>= 5.0, < 7.0 spans two majors and
+    fails). A lone upper bound with no lower bound is accepted (rare, and
+    there is no lower major to measure the window from)."""
     if not constraint or not isinstance(constraint, str) or "${" in constraint:
         return False
+    lower = upper = None
     for part in constraint.split(","):
         part = part.strip()
-        if part.startswith(("~>", "<", "=")):
+        if part.startswith("~>") or part.startswith("="):
             return True
         if re.fullmatch(r"v?\d+(\.\d+)*", part):
             return True
-    return False
+        if part.startswith(">="):
+            lower = _major(part[2:])
+        elif part.startswith(">"):
+            lower = _major(part[1:])
+        elif part.startswith("<="):
+            upper = _major(part[2:])
+        elif part.startswith("<"):
+            upper = _major(part[1:])
+    if upper is None:
+        return False
+    if lower is None:
+        return True
+    # "< X.0" admits majors up to X-1; the window is tight iff upper <= lower+1
+    return upper <= lower + 1
 
 
 def _verb_provider_constraints(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: required_providers is declared with at least one provider,
-    and every declared constraint excludes the next major version."""
+    """Hybrid lens: required_providers is declared, every declared constraint
+    excludes an untested major jump — and every provider the defaults plan
+    actually uses appears in the declarations, so omitting a provider from
+    required_providers is a failure, never an escape."""
     providers = hclq.required_providers(ctx.module_dir)
     if not providers:
         return False
-    return all(_constraint_bounded(v) for v in providers.values())
+    if not all(_constraint_bounded(v) for v in providers.values()):
+        return False
+    if ctx.defaults_plan:
+        declared = set(providers)
+        for res in planned(ctx.defaults_plan):
+            name = str(res.get("provider_name") or "").rsplit("/", 1)[-1]
+            if name and name not in declared:
+                return False
+    return True
 
 
 def strip_comments(text: str) -> str:
@@ -290,6 +332,12 @@ def strip_comments(text: str) -> str:
     return "".join(out)
 
 
+def _verb_provider_config_attr(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: some provider configuration block declares `attr`
+    (e.g. default_tags on a standalone module's aws provider)."""
+    return any(spec["attr"] in attrs for _name, attrs in hclq.provider_blocks(ctx.module_dir))
+
+
 def _verb_source_contains(ctx: CheckContext, spec) -> bool:
     needle = spec if isinstance(spec, str) else spec["needle"]
     for tf in Path(ctx.module_dir).rglob("*.tf"):
@@ -322,10 +370,14 @@ def _verb_interface(ctx: CheckContext, spec: dict) -> bool:
     if "max_variables" in spec and len(declared) > spec["max_variables"]:
         return False
     if spec.get("require_descriptions"):
+        # Fail-safe: a file the static lens cannot parse could hide
+        # undescribed variables — an unparseable module never passes.
+        if hclq.unparsed_files(ctx.module_dir):
+            return False
         if any(not m.get("has_description") for m in declared.values()):
             return False
         outputs = hclq.outputs(ctx.module_dir)
-        if any("description" not in s for s in outputs.values()):
+        if any(not str(s.get("description") or "").strip() for s in outputs.values()):
             return False
     return True
 
@@ -353,6 +405,7 @@ _VERBS = {
     "expr_matches": _verb_expr_matches,
     "var_feeds_attr": _verb_var_feeds_attr,
     "provider_constraints": _verb_provider_constraints,
+    "provider_config_attr": _verb_provider_config_attr,
     "source_contains": _verb_source_contains,
     "output_named": _verb_output_named,
     "interface": _verb_interface,
