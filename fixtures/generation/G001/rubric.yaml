@@ -114,8 +114,9 @@ items:
     weight: 4
     posture: reachable
     description: >
-      Storage hygiene beyond the obvious — noncurrent-version handling or
-      incomplete-multipart-upload cleanup.
+      Noncurrent-version handling — expiration or transition for old object
+      versions. (Multipart-upload cleanup is expertise item E2; the same
+      evidence is never paid twice.)
     check:
       any_of:
         - resource:
@@ -128,11 +129,6 @@ items:
             quantifier: any
             type: aws_s3_bucket_lifecycle_configuration
             where: {rule: {noncurrent_version_transition: {exists: true}}}
-        - resource:
-            plans: [defaults, sweep]
-            quantifier: any
-            type: aws_s3_bucket_lifecycle_configuration
-            where: {rule: {abort_incomplete_multipart_upload: {exists: true}}}
 
   - id: H8
     weight: 5
@@ -169,19 +165,28 @@ items:
     weight: 2
     description: >
       Tagging support is table stakes — consumers can add their own tags
-      through an optional input. (Demanding a required input for tags is
-      scope invention, judged under Unstated assumptions.)
+      through an optional input, or the module applies provider default_tags
+      (the doctrine-endorsed mechanism for standalone modules). Influence is
+      detected syntactically (taint through locals). Demanding a required
+      input for tags is scope invention, judged under Unstated assumptions.
     check:
-      var_feeds_attr: {attr: tags, has_default: true}
+      any_of:
+        - var_feeds_attr: {attr: tags, has_default: true}
+        - provider_config_attr: {attr: default_tags}
 
   - id: H13
     weight: 4
     description: >
-      Access logging actually works: the log destination grants the logging
-      service permission to deliver. Checked in source, not plan JSON —
-      ARN-interpolating policies are unknown at plan time.
+      Access logging actually works: some bucket policy's document grants the
+      logging service permission to deliver. Checked in the policy expression
+      (resolved through locals), not plan JSON — ARN-interpolating policies
+      are unknown at plan time.
     check:
-      source_contains: "logging.s3.amazonaws.com"
+      expr_matches:
+        type: aws_s3_bucket_policy
+        attr: policy
+        pattern: 'logging\.s3\.amazonaws\.com'
+        match: any
 
   - id: H14
     weight: 3
@@ -189,7 +194,8 @@ items:
       force_destroy is accessible (per Destructive defaults) — some documented
       input influences it, directly or inferred from a concept such as
       environment. Hardcoded either way, or absent entirely, leaves the
-      consumer no way out.
+      consumer no way out. Influence is detected syntactically (taint through
+      locals) — a strong signal, not a semantics proof.
     check:
       var_feeds_attr: {attr: force_destroy}
 
@@ -201,7 +207,7 @@ items:
 # resource count, SLOC, comment ratio.
 
 # Expertise checklist — discovered service-specific touches, mechanically
-# verified. Each item carries weight 1 (unless overridden) in the pooled
+# verified. Each item carries exactly weight 1 in the pooled
 # mechanical score, so rubric items dominate by construction and growing the
 # checklist cannot swamp the core rubric. Also reported as its own differential
 # table. Grows by discovery: judge rationales cite differentiators, approved
@@ -230,7 +236,11 @@ expertise:
     description: Bucket policy denies non-TLS (aws:SecureTransport) access.
     discovered_via: judge rationale, 2026-08-18
     check:
-      source_contains: "aws:SecureTransport"
+      expr_matches:
+        type: aws_s3_bucket_policy
+        attr: policy
+        pattern: 'aws:SecureTransport'
+        match: any
   - id: E5_regional_domain_output
     description: Outputs bucket_regional_domain_name for downstream wiring.
     discovered_via: judge rationale, 2026-08-18

@@ -63,7 +63,7 @@ def variables(module_dir: Path) -> dict:
                 out[name] = {
                     "typed": "type" in spec,
                     "has_default": "default" in spec,
-                    "has_description": "description" in spec,
+                    "has_description": bool(str(spec.get("description") or "").strip()),
                     "has_validation": bool(validations),
                     "default": spec.get("default"),
                     "type": str(spec.get("type", "")),
@@ -204,9 +204,11 @@ def value_text_closure(module_dir: Path, value) -> str:
 
 def required_providers(module_dir: Path) -> dict:
     """provider name -> version constraint string (or None) from
-    terraform.required_providers blocks in the module root."""
+    terraform.required_providers blocks anywhere under the module
+    (local submodules included — an unbounded provider is no less
+    unbounded for living in a subdirectory)."""
     out: dict = {}
-    for doc in parse_dir(module_dir):
+    for doc in _parse_all(module_dir):
         for block in doc.get("terraform", []) or []:
             rp = (block or {}).get("required_providers")
             if not rp:
@@ -214,6 +216,31 @@ def required_providers(module_dir: Path) -> dict:
             for entry in rp if isinstance(rp, list) else [rp]:
                 for name, spec in (entry or {}).items():
                     out[name] = spec.get("version") if isinstance(spec, dict) else spec
+    return out
+
+
+def _parse_all(module_dir: Path) -> list:
+    """Parse every *.tf under the module dir (excluding .terraform),
+    best-effort like parse_dir."""
+    docs = []
+    for tf in sorted(Path(module_dir).rglob("*.tf")):
+        if ".terraform" in tf.parts:
+            continue
+        try:
+            with open(tf) as f:
+                docs.append(_clean(hcl2.load(f)))
+        except Exception:
+            continue
+    return docs
+
+
+def provider_blocks(module_dir: Path) -> list:
+    """(provider_name, attrs) for every provider configuration block."""
+    out: list = []
+    for doc in parse_dir(module_dir):
+        for block in doc.get("provider", []) or []:
+            for name, attrs in block.items():
+                out.append((name, attrs or {}))
     return out
 
 

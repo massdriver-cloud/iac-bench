@@ -309,6 +309,7 @@ def generation_scorer():
                 "semantic_score": result.semantic_score,
                 "mechanical_score": result.mechanical_score,
                 "scoring_policy": result.scoring_policy,
+                "rubric_sha": fixture.rubric_sha,
                 "stats": result.stats,
                 "expertise": result.expertise,
                 "expertise_score": result.expertise_score,
