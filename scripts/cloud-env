@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Print short-lived, plan-scoped cloud credentials as KEY=VALUE lines on
+# stdout, for piping into the dev container so secrets never touch argv,
+# disk inside the container, or a mount:
+#
+#   scripts/cloud-env | docker exec -i -u vscode -w /workspace iacbench-dev \
+#     bash -c 'set -a; source /dev/stdin; set +a; uv run iacbench selftest --fixture G002'
+#
+# Runs on the HOST (needs the aws, gcloud, and az logins there). Reads its
+# settings from ${IACBENCH_CLOUD_CONFIG:-~/.config/iacbench/clouds.env}; any
+# cloud whose settings are absent is skipped with a note on stderr.
+#
+#   AWS_PROFILE, AWS_REGION                  credentials exported from the profile
+#   GOOGLE_PROJECT, GOOGLE_REGION,
+#   GOOGLE_IMPERSONATE_SERVICE_ACCOUNT       one-hour access token minted by
+#                                            impersonating a read-only account
+#   AZURE_SP_FILE, ARM_SUBSCRIPTION_ID       service principal JSON written by
+#                                            `az ad sp create-for-rbac`
+set -euo pipefail
+
+config="${IACBENCH_CLOUD_CONFIG:-$HOME/.config/iacbench/clouds.env}"
+if [[ -f "$config" ]]; then
+  set -a; source "$config"; set +a
+else
+  echo "cloud-env: no config at $config" >&2
+fi
+
+# A cloud whose login has lapsed is skipped with a note; it never takes the
+# other clouds' credentials down with it.
+if [[ -n "${AWS_PROFILE:-}" ]]; then
+  if creds="$(aws configure export-credentials --profile "$AWS_PROFILE" --format env-no-export 2>/dev/null)"; then
+    echo "$creds"
+    echo "AWS_REGION=${AWS_REGION:-us-east-1}"
+  else
+    echo "cloud-env: AWS skipped (credential export failed; run 'aws sso login' or check the profile)" >&2
+  fi
+else
+  echo "cloud-env: AWS skipped (AWS_PROFILE unset)" >&2
+fi
+
+if [[ -n "${GOOGLE_PROJECT:-}" && -n "${GOOGLE_IMPERSONATE_SERVICE_ACCOUNT:-}" ]]; then
+  if token="$(gcloud auth print-access-token \
+    --impersonate-service-account="$GOOGLE_IMPERSONATE_SERVICE_ACCOUNT" 2>/dev/null)"; then
+    echo "GOOGLE_OAUTH_ACCESS_TOKEN=$token"
+    echo "GOOGLE_PROJECT=$GOOGLE_PROJECT"
+    echo "GOOGLE_REGION=${GOOGLE_REGION:-us-central1}"
+  else
+    echo "cloud-env: GCP skipped (token mint failed; run 'gcloud auth login')" >&2
+  fi
+else
+  echo "cloud-env: GCP skipped (GOOGLE_PROJECT or GOOGLE_IMPERSONATE_SERVICE_ACCOUNT unset)" >&2
+fi
+
+if [[ -n "${AZURE_SP_FILE:-}" && -n "${ARM_SUBSCRIPTION_ID:-}" ]]; then
+  python3 - "${AZURE_SP_FILE/#\~/$HOME}" <<'PY'
+import json, sys
+sp = json.load(open(sys.argv[1]))
+print(f"ARM_CLIENT_ID={sp['appId']}")
+print(f"ARM_CLIENT_SECRET={sp['password']}")
+print(f"ARM_TENANT_ID={sp['tenant']}")
+PY
+  echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
+else
+  echo "cloud-env: Azure skipped (AZURE_SP_FILE or ARM_SUBSCRIPTION_ID unset)" >&2
+fi

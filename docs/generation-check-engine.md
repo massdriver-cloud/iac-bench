@@ -40,8 +40,8 @@ Mechanics:
   with no default** before planning. Without this filter, optional values in
   the tfvars would smuggle the model's choices into what is supposed to be
   out-of-the-box posture. Extra keys are recorded as a detail, never trusted.
-- Provider configuration comes from the environment (`AWS_REGION`, ambient
-  credentials), not injected blocks. Whether the model writes its own provider
+- Provider configuration comes from the environment (region, project or
+  subscription, ambient credentials), not injected blocks. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
 - `examples/` may be shipped as documentation (the judge reads source), but it
   is not part of the mechanical evidence chain.
@@ -105,6 +105,9 @@ deletion protection, backups):
   attribute makes hardcoded-on benign, the fixture expresses that item with
   plain `resource` checks instead of this posture.
 
+Where a service offers more than one legitimate mechanism for the same
+protection, `behavior:` may list them; the best-graded alternative counts.
+
 This is the opt-out-sentinel doctrine from `good-opentofu.md` made
 mechanical: destructive or protective defaults ship safe, with a documented
 escape hatch.
@@ -139,9 +142,9 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 | Verb | Lens | Asserts |
 |---|---|---|
 | `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, `{exists: true}`, literal equality); `match: any\|every` over instances; `plans: [defaults, sweep]` with `quantifier: any\|all` over plans |
-| `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence) |
+| `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence). Attribute names may be dotted paths through nested blocks; a `dynamic` block on the path is a knob; `{in: [...]}` accepts any listed literal |
 | `expr_matches` | static | every resource's `attr` expression, resolved through locals, matches `pattern` — or the resource has `or_attr_present` instead |
-| `var_feeds_attr` | static | some declared variable feeds the named attribute, transitively through locals; `has_default: true` restricts to optional variables |
+| `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals; `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |
 | `output_named` | static | an output exists whose name/value matches |
@@ -155,8 +158,9 @@ key parses as boolean True under YAML 1.1.
 — true of any OpenTofu module regardless of service or brief — merged into
 every fixture's items by the engine, with no per-fixture opt-out. Entries must
 be fixture-independent and static-lens only; they carry `B`-prefixed ids so
-reports keep rubric (`H*`), baseline (`B*`), and expertise (`E*`) provenance
-legible, and they pool into the mechanical score at their declared weights.
+reports keep rubric (`H*`), audience-fit (`A*`), baseline (`B*`), and
+expertise (`E*`) provenance legible, and they pool into the mechanical score
+at their declared weights.
 
 Rules that keep this from rotting:
 

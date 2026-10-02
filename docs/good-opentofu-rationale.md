@@ -24,8 +24,20 @@ community's most battle-tested modules are exactly that shape, with hundreds
 of inputs, and they got battle-tested for a reason: experts need escape
 hatches.
 
-Our answer: those modules are built *for experts*, and most consumers of a
-platform module are not experts. A mega-module's hundreds of knobs encode only
+We agree experts need more controls, which is why interface size is never a
+universal number. Every brief states who will consume the module, and the
+right interface follows from that audience. An asset bucket for developers who
+don't know the storage service should not ask about encryption keys or CDN
+settings. A database module for a DBA team should expose backup windows,
+maintenance schedules, and engine flags, because owning those is the DBA's
+job. Each fixture's rubric encodes its audience's expectations as concrete,
+hidden checks: controls the audience should have, and settings it should not
+be asked about. A reader who disputes a fixture's audience reading can dispute
+those specific items, not a house preference for small interfaces.
+
+What does not change with the audience is the pass-through shape. Our answer
+to the mega-module argument: those modules are built for experts *in the
+module's internals*, and most consumers of a platform module are not that. A mega-module's hundreds of knobs encode only
 the *relationships* between resources — which arguments wire to which — not
 any opinion about how the service should be configured. Handing one to a
 novice is how publicly readable data stores happen. Companies should not hand

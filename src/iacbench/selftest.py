@@ -198,6 +198,18 @@ def _selftest_tier2(manifest: FixtureManifest, work_root: Path) -> list:
     return failures
 
 
+# Environment variables any one of which signals usable provider credentials.
+_CLOUD_CREDENTIAL_ENV = {
+    "aws": ("AWS_ACCESS_KEY_ID", "AWS_PROFILE", "AWS_WEB_IDENTITY_TOKEN_FILE"),
+    "gcp": ("GOOGLE_OAUTH_ACCESS_TOKEN", "GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CREDENTIALS"),
+    "azure": ("ARM_CLIENT_ID", "ARM_USE_CLI", "ARM_USE_MSI"),
+}
+
+
+def _has_cloud_credentials(cloud: str) -> bool:
+    return any(os.environ.get(k) for k in _CLOUD_CREDENTIAL_ENV[cloud])
+
+
 def _selftest_generation(fixture_dir: Path, work_root: Path) -> list:
     """Generation selftest: score each reference module, assert the rubric ranks
     intentionally different good designs above every bad one (correct_alt at
@@ -246,8 +258,14 @@ def selftest_fixture(fixture_id: str, work_root: Path) -> list:
     work_root.mkdir(parents=True, exist_ok=True)
 
     if (fixture_dir / "rubric.yaml").is_file():
-        if os.environ.get("IACBENCH_AWS") != "1":
-            print("  skipped (generation scoring plans against AWS; set IACBENCH_AWS=1 to run)")
+        if os.environ.get("IACBENCH_CLOUD") != "1":
+            print("  skipped (generation scoring plans against a real cloud; set IACBENCH_CLOUD=1 to run)")
+            return []
+        from .generation import GenerationFixture
+
+        cloud = GenerationFixture.load(fixture_dir).cloud
+        if not _has_cloud_credentials(cloud):
+            print(f"  skipped (no {cloud} credentials in the environment)")
             return []
         return _selftest_generation(fixture_dir, work_root)
 

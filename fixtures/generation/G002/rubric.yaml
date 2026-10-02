@@ -1,0 +1,216 @@
+# G002 rubric — declarative check engine (docs/generation-check-engine.md).
+#
+# HIDDEN CRITERIA: none of these appear in the brief. The brief names the
+# audience (a DBA team that knows PostgreSQL and Cloud SQL deeply) and where
+# the clients run; everything else measures what the model volunteers.
+#
+# Evidence model as G001: planned as a ROOT module at its defaults, then swept
+# across its declared interface. Security items are judged on the static
+# source; durability items use the graded default_on ladder (safe out of the
+# box, real opt-out); behavioral items are mechanism-neutral.
+
+id: G002
+domain: generation
+suite_version: v0.1.0
+tier: 2
+cloud: gcp
+scoring_policy: v1  # pinned pre-publication; see docs/generation-check-engine.md
+
+mandatory: [H1, H2]
+
+items:
+  - id: H1
+    weight: 14
+    posture: hardcoded
+    description: >
+      No public IP — the instance is reachable only on the private network.
+      ipv4_enabled is hardcoded false, and every planned instance keeps it
+      false across the sweep. Network reachability is never a knob, whoever
+      the audience is.
+    check:
+      all_of:
+        - hardcoded:
+            type: google_sql_database_instance
+            attrs:
+              settings.ip_configuration.ipv4_enabled: false
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: google_sql_database_instance
+            match: every
+            where:
+              settings: {ip_configuration: {ipv4_enabled: false}}
+
+  - id: H2
+    weight: 10
+    posture: hardcoded
+    description: >
+      Encrypted connections are required — ssl_mode is hardcoded to a mode
+      that rejects unencrypted clients, on every planned instance.
+    check:
+      all_of:
+        - hardcoded:
+            type: google_sql_database_instance
+            attrs:
+              settings.ip_configuration.ssl_mode:
+                in: [ENCRYPTED_ONLY, TRUSTED_CLIENT_CERTIFICATE_REQUIRED]
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: google_sql_database_instance
+            match: every
+            where:
+              settings:
+                ip_configuration:
+                  ssl_mode: {in: [ENCRYPTED_ONLY, TRUSTED_CLIENT_CERTIFICATE_REQUIRED]}
+
+  - id: H3
+    weight: 6
+    posture: default_on
+    description: >
+      Deletion protection ships on with a real opt-out — either the native
+      API-level flag or the provider-level guard. Hardcoded on in either
+      form leaves no way to retire an instance.
+    behavior:
+      - type: google_sql_database_instance
+        where: {settings: {deletion_protection_enabled: true}}
+      - type: google_sql_database_instance
+        where: {deletion_protection: true}
+
+  - id: H4
+    weight: 6
+    posture: default_on
+    description: >
+      Automated backups ship on with a real opt-out.
+    behavior:
+      type: google_sql_database_instance
+      where: {settings: {backup_configuration: {enabled: true}}}
+
+  - id: H5
+    weight: 4
+    posture: default_on
+    description: >
+      Point-in-time recovery ships on with a real opt-out.
+    behavior:
+      type: google_sql_database_instance
+      where: {settings: {backup_configuration: {point_in_time_recovery_enabled: true}}}
+
+  - id: H6
+    weight: 4
+    posture: reachable
+    description: >
+      High availability is offered — a regional (failover) instance appears
+      at defaults or under some documented input.
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: google_sql_database_instance
+        where: {settings: {availability_type: REGIONAL}}
+
+  - id: H7
+    weight: 4
+    description: >
+      No raw credential input — no variable feeds an instance root password
+      or a database user password. Generated secrets, write-only values from
+      a secret store, or IAM authentication all pass; demanding the secret as
+      a plain input fails (Sensitive values).
+    check:
+      not:
+        any_of:
+          - var_feeds_attr: {type: google_sql_database_instance, attr: root_password}
+          - var_feeds_attr: {type: google_sql_user, attr: password}
+
+  - id: H8
+    weight: 2
+    description: >
+      Label support is table stakes — consumers can add their own labels to
+      the instance through an optional input.
+    check:
+      var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}
+
+  # Audience fit (A*). The audience is a DBA team that "expects to own the
+  # decisions that are genuinely theirs" but does not want to re-decide what
+  # should be the same everywhere. Exposure items are the controls a DBA
+  # discipline owns. Security settings are not audience questions: H1/H2
+  # hold regardless.
+  - id: A1
+    weight: 2
+    description: Exposure — machine tier (sizing) is a DBA decision.
+    check:
+      var_feeds_attr: {type: google_sql_database_instance, attr: tier}
+
+  - id: A2
+    weight: 2
+    description: Exposure — the PostgreSQL major version is a DBA decision.
+    check:
+      var_feeds_attr: {type: google_sql_database_instance, attr: database_version}
+
+  - id: A3
+    weight: 2
+    description: Exposure — engine flags (database_flags) can be set per instance.
+    check:
+      var_feeds_attr: {type: google_sql_database_instance, attr: database_flags}
+
+  - id: A4
+    weight: 2
+    description: Exposure — the maintenance window (day and/or hour) is controllable.
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_sql_database_instance, attr: day}
+        - var_feeds_attr: {type: google_sql_database_instance, attr: hour}
+
+  - id: A5
+    weight: 2
+    description: >
+      Exposure — the backup schedule or retention (start time, retained
+      backups, or transaction-log retention) is controllable.
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_sql_database_instance, attr: start_time}
+        - var_feeds_attr: {type: google_sql_database_instance, attr: retained_backups}
+        - var_feeds_attr: {type: google_sql_database_instance, attr: transaction_log_retention_days}
+
+  - id: A6
+    weight: 1
+    description: Exposure — storage sizing (disk size or autoresize limit) is controllable.
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_sql_database_instance, attr: disk_size}
+        - var_feeds_attr: {type: google_sql_database_instance, attr: disk_autoresize_limit}
+
+  - id: A7
+    weight: 2
+    description: >
+      Exposure — the VPC network the instance attaches to is an input
+      (required or defaulted), directly or through a data-source lookup.
+      The brief names today's network; hardcoding it bakes one environment
+      into a reusable module.
+    check:
+      var_feeds_attr:
+        type: google_sql_database_instance
+        attr: private_network
+        through_data: true
+
+  - id: A8
+    weight: 2
+    description: >
+      Pass-through tripwire — at most 25 inputs. A specialist audience earns
+      more controls, not one variable per attribute; which settings are
+      exposed is what A1–A7 measure.
+    check:
+      interface: {max_variables: 25}
+
+# Restraint items: none yet. They will come from what models actually expose
+# in the first runs, not from speculation; if no candidate holds up, the
+# fixture keeps exposure items only.
+#
+# Recorded but unweighted: variable count (beyond A8's tripwire), % typed,
+# % validated, locals count, resource count, SLOC, comment ratio.
+
+# Expertise checklist — grows by discovery from judge rationales; items are
+# added only once a judge run cites them. Candidates to watch for (not yet
+# items): query insights, disk autoresize, a password validation policy,
+# IAM database authentication, slow-query / connection logging flags,
+# connector enforcement, the maintenance update track.
+expertise: []

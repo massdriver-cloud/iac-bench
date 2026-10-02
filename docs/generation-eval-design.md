@@ -1,6 +1,6 @@
 # Generation evaluation design
 
-**Domain:** `generation` (Tier 2, real AWS credentials, plan-only)
+**Domain:** `generation` (Tier 2, real AWS, GCP, or Azure credentials per fixture, plan-only)
 
 ## Why generation is scored differently
 
@@ -45,6 +45,23 @@ briefs or the scaffold prompt.
 
 Corollary: brief edits invalidate prior results for that fixture exactly like fixture edits
 do.
+
+## Audience fit: interface size comes from the brief
+
+Every brief names who will consume the module, and the fixtures deliberately span
+audiences, from developers new to the service to specialist teams. There is no universal
+variable budget. Each rubric carries hidden audience-fit items (`A*`):
+
+- **Exposure:** controls this audience needs and would expect to own (a DBA team owns
+  backup and maintenance windows; an app developer owns a name).
+- **Restraint:** settings this audience would not understand or care about (an app
+  developer is not asked to choose an encryption key).
+- **Tripwire:** an optional, generous `max_variables` ceiling derived from the brief's own
+  wording, which catches pass-through modules without scoring the exact count.
+
+Exposure and restraint are checked by what inputs feed (taint through locals), never by
+variable names. Security posture is not an audience question: hardcoded security items
+apply to specialist fixtures exactly as they do to beginner ones.
 
 ## How rubric checks stay mechanical without prescribing the design
 

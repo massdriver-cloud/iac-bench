@@ -1,0 +1,47 @@
+# Generation reference matrix (docs/generation-check-engine.md). No score
+# caps: mandatory failures are findings, not score ceilings — the bad
+# references are asserted by WHICH items fail, with score bounds as sanity
+# checks on true, uncapped values.
+#
+# Engine coverage: H1/H2 exercise dotted-path `hardcoded` (H2 with `in:`);
+# H3 exercises multi-behavior default_on (ref_lean earns it through the
+# native settings flag, ref_flexible through the provider-level guard only);
+# the A* items exercise nested, type-scoped var_feeds_attr; A7 exercises
+# through_data (ref_lean looks the network up by a variable-keyed data
+# source).
+ref_lean:
+  gate: true
+  min_score: 0.95
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7, A8,
+              B1_provider_constraints, B2_descriptions]
+ref_flexible:
+  gate: true
+  min_score: 0.95
+  # IAM-only authentication: no password exists, so H7 passes by construction.
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7, A8,
+              B1_provider_constraints, B2_descriptions]
+bad_passthrough:
+  gate: true
+  # Security posture is a set of knobs (ipv4_enabled, ssl_mode), the root
+  # password is a raw input, 28 inputs trip A8, and nothing is described.
+  # Backups and PITR default off but stay reachable, so they earn partial
+  # credit only. Exposure items pass — a pass-through exposes everything.
+  max_score: 0.55
+  must_fail: [H1, H2, H4, H5, H7, A8, B2_descriptions]
+bad_unsafe:
+  gate: true
+  # One critical defect: allow_public_access feeds ipv4_enabled, so network
+  # reachability is a knob (H1). Deletion protection is hardcoded on in both
+  # mechanisms — no way to retire an instance — so the default_on ladder
+  # grades H3 at 0.
+  max_score: 0.85
+  must_fail: [H1, H3]
+bad_minimal:
+  gate: true
+  # Bare instance: public IP by provider default, no TLS requirement, no
+  # backups, no labels, nothing exposed, unbounded provider, no descriptions.
+  # The provider-level deletion guard is on only by provider default with no
+  # opt-out, so H3 grades 0.
+  max_score: 0.20
+  must_fail: [H1, H2, H3, H4, H5, H8, A1, A2, A3, A4, A5, A6, A7,
+              B1_provider_constraints, B2_descriptions]

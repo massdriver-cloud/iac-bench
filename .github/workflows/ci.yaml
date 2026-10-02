@@ -25,7 +25,7 @@ jobs:
 
       - name: Selftest (hermetic tier)
         # Validates every checker against the known-answer solution matrices.
-        # Tier-2 (AWS) and generation fixtures are skipped without IACBENCH_AWS=1
+        # Tier-2 (IACBENCH_AWS=1) and generation (IACBENCH_CLOUD=1) fixtures are skipped
         # — CI runs only credential-free, deterministic scoring validation.
         env:
           TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.cache/providers

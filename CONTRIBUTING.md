@@ -17,8 +17,10 @@ uv run iacbench render --fixture F001 --seed 42 --out /tmp/f
 uv run inspect eval src/iacbench/task.py -T fixture=F001 --model mockllm/model
 ```
 
-Tier-2 fixtures (real AWS) and generation scoring require AWS credentials and
-`IACBENCH_AWS=1`; CI runs only the hermetic tier.
+Tier-2 fixtures (real AWS, creating resources) require AWS credentials and
+`IACBENCH_AWS=1`. Generation scoring (plan-only) requires `IACBENCH_CLOUD=1` plus
+credentials for the cloud each fixture's rubric declares; fixtures whose cloud has no
+credentials in the environment are skipped. CI runs only the hermetic tier.
 
 ## Contributing a fixture
 

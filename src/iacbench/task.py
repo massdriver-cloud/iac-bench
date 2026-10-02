@@ -316,6 +316,9 @@ def generation_scorer():
                 "mandatory_failures": result.mandatory_failures,
                 "probe_plans": result.probe_plans,
                 "module_sha": result.module_sha,
+                # Where the generated module lives, so judge and calibration
+                # can collect it as a candidate.
+                "candidate_dir": str(scratch),
                 "check_dsl_version": CHECK_DSL_VERSION,
                 "fixture": fixture.id,
                 "tofu_version": tofu_version(),
@@ -333,7 +336,8 @@ def generate_module(
 ):
     """Tier 2 generation: build a module from a brief; scored by the fixture rubric.
 
-    Plan-only — requires AWS credentials but creates no resources.
+    Plan-only — requires credentials for the cloud the fixture declares, but
+    creates no resources.
     """
     from iacbench.generation import GenerationFixture
 

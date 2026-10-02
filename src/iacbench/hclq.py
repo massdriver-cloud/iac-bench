@@ -15,6 +15,7 @@ import hcl2
 
 _VAR_REF = re.compile(r"\bvar\.([A-Za-z0-9_-]+)")
 _LOCAL_REF = re.compile(r"\blocal\.([A-Za-z0-9_-]+)")
+_DATA_REF = re.compile(r"\bdata\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)")
 
 
 def _unquote(value):
@@ -93,6 +94,17 @@ def locals_map(module_dir: Path) -> dict:
     return out
 
 
+def data_map(module_dir: Path) -> dict:
+    """(data source type, name) -> its argument block."""
+    out: dict = {}
+    for doc in parse_dir(module_dir):
+        for block in doc.get("data", []) or []:
+            for dtype, instances in (block or {}).items():
+                for name, attrs in (instances or {}).items():
+                    out[(dtype, name)] = attrs or {}
+    return out
+
+
 def _refs(value) -> tuple:
     text = json.dumps(value, default=str)
     return set(_VAR_REF.findall(text)), set(_LOCAL_REF.findall(text))
@@ -140,46 +152,60 @@ def attrs_var_tainted(module_dir: Path, resource_type: str, attr_names: list) ->
     return False
 
 
-def _var_closure(loc: dict, value) -> set:
-    """All variables reaching a value, transitively through locals."""
-    var_refs, local_refs = _refs(value)
+def _var_closure(loc: dict, value, data: dict | None = None) -> set:
+    """All variables reaching a value, transitively through locals. With a
+    `data` map (see data_map), also through the arguments of any data source
+    the value reads — a lookup keyed by a variable carries that variable."""
+    var_refs: set = set()
     seen: set = set()
-    stack = list(local_refs)
+    stack = [value]
     while stack:
-        name = stack.pop()
-        if name in seen or name not in loc:
-            continue
-        seen.add(name)
-        more_vars, more_locals = _refs(loc[name])
+        v = stack.pop()
+        more_vars, more_locals = _refs(v)
         var_refs |= more_vars
-        stack.extend(more_locals - seen)
+        for name in more_locals:
+            if ("local", name) not in seen and name in loc:
+                seen.add(("local", name))
+                stack.append(loc[name])
+        if data is not None:
+            for ref in _DATA_REF.findall(json.dumps(v, default=str)):
+                if ("data", ref) not in seen and ref in data:
+                    seen.add(("data", ref))
+                    stack.append(data[ref])
     return var_refs
 
 
-def vars_feeding_attr(module_dir: Path, attr_name: str) -> set:
-    """Variables that (transitively) feed any resource attribute with this name."""
+def _attr_values(node, attr_name: str):
+    """Every value assigned to `attr_name` at any depth: top-level attributes,
+    nested blocks (parsed as lists of dicts), and `dynamic` block content."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == attr_name:
+                yield value
+            yield from _attr_values(value, attr_name)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _attr_values(item, attr_name)
+
+
+def vars_feeding_attr(
+    module_dir: Path, attr_name: str, rtype: str | None = None, through_data: bool = False
+) -> set:
+    """Variables that (transitively) feed any resource attribute with this
+    name, including attributes inside nested and dynamic blocks. `rtype`
+    restricts the search to one resource type; `through_data` also follows
+    data-source lookups keyed by a variable."""
     loc = locals_map(module_dir)
+    data = data_map(module_dir) if through_data else None
     out: set = set()
     for doc in parse_dir(module_dir):
         for block in doc.get("resource", []) or []:
-            for _rtype, instances in block.items():
+            for found_type, instances in block.items():
+                if rtype is not None and found_type != rtype:
+                    continue
                 for _name, attrs in instances.items():
-                    if attr_name in (attrs or {}):
-                        out |= _var_closure(loc, attrs[attr_name])
-    return out
-
-
-def vars_feeding_attrs_except(module_dir: Path, excluded_attr: str) -> set:
-    """Variables that feed any resource attribute OTHER than the excluded one."""
-    loc = locals_map(module_dir)
-    out: set = set()
-    for doc in parse_dir(module_dir):
-        for block in doc.get("resource", []) or []:
-            for _rtype, instances in block.items():
-                for _name, attrs in instances.items():
-                    for attr, value in (attrs or {}).items():
-                        if attr != excluded_attr:
-                            out |= _var_closure(loc, value)
+                    for value in _attr_values(attrs or {}, attr_name):
+                        out |= _var_closure(loc, value, data)
     return out
 
 
