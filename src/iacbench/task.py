@@ -18,6 +18,7 @@ from pathlib import Path
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
+from inspect_ai.model import GenerateConfig
 from inspect_ai.scorer import Score, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState, basic_agent, solver, system_message
 from inspect_ai.tool import tool
@@ -328,6 +329,11 @@ def generation_scorer():
     return score
 
 
+# A model API that keeps failing (exhausted quota, outage) must end the sample
+# as an error, never run out the clock and get scored as a real 0.
+API_RETRY_CONFIG = GenerateConfig(max_retries=3)
+
+
 @task
 def generate_module(
     fixture: str = "G001",
@@ -364,6 +370,7 @@ def generate_module(
         scorer=generation_scorer(),
         message_limit=message_limit,
         time_limit=time_limit,
+        config=API_RETRY_CONFIG,
     )
 
 
@@ -486,6 +493,7 @@ def fix_apply_failure(
         scorer=invariants_apply(),
         message_limit=message_limit,
         time_limit=time_limit,
+        config=API_RETRY_CONFIG,
     )
 
 
@@ -529,4 +537,5 @@ def fix_plan_failure(
         scorer=invariants(),
         message_limit=message_limit,
         time_limit=time_limit,
+        config=API_RETRY_CONFIG,
     )
