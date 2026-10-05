@@ -81,7 +81,11 @@ items:
     weight: 6
     posture: default_on
     description: >
-      Automated backups ship on with a real opt-out.
+      Automated backups ship on with a real opt-out (full credit); always-on
+      with no opt-out earns partial credit — DBAs running throwaway
+      instances lose the choice, but nothing is blocked. Hardcoded off or
+      absent fails.
+    hardcoded_on: 0.75
     behavior:
       type: google_sql_database_instance
       where: {settings: {backup_configuration: {enabled: true}}}
@@ -90,7 +94,11 @@ items:
     weight: 4
     posture: default_on
     description: >
-      Point-in-time recovery ships on with a real opt-out.
+      Point-in-time recovery ships on with a real opt-out (full credit);
+      always-on earns partial credit — retained transaction logs bill as
+      backup storage, so test instances legitimately turn it off.
+      Hardcoded off or absent fails.
+    hardcoded_on: 0.75
     behavior:
       type: google_sql_database_instance
       where: {settings: {backup_configuration: {point_in_time_recovery_enabled: true}}}
@@ -192,20 +200,11 @@ items:
         attr: private_network
         through_data: true
 
-  - id: A8
-    weight: 2
-    description: >
-      Pass-through tripwire — at most 25 inputs. A specialist audience earns
-      more controls, not one variable per attribute; which settings are
-      exposed is what A1–A7 measure.
-    check:
-      interface: {max_variables: 25}
-
-# Restraint items: none yet. They will come from what models actually expose
-# in the first runs, not from speculation; if no candidate holds up, the
-# fixture keeps exposure items only.
+# Restraint items: none yet. They come from what models actually expose, not
+# from speculation; pass-through shapes are punished by fixture-specific
+# restraint items, never by a variable count.
 #
-# Recorded but unweighted: variable count (beyond A8's tripwire), % typed,
+# Recorded but unweighted: variable count, % typed,
 # % validated, locals count, resource count, SLOC, comment ratio.
 
 # Expertise checklist — grows by discovery from judge rationales; items are

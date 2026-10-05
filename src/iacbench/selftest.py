@@ -249,6 +249,10 @@ def _selftest_generation(fixture_dir: Path, work_root: Path) -> list:
         for item_id in expect.get("must_fail", []) or []:
             if float(result.items.get(item_id, 0.0)) >= 1.0:
                 failures.append(Failure(fixture.id, name, f"expected {item_id} to fail: {summary}"))
+        # Exact values pin graded (default_on) ladder rungs.
+        for item_id, want in (expect.get("items") or {}).items():
+            if abs(float(result.items.get(item_id, -1.0)) - float(want)) > 1e-9:
+                failures.append(Failure(fixture.id, name, f"expected {item_id}={want}: {summary}"))
     return failures
 
 

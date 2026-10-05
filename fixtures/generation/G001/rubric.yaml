@@ -157,7 +157,8 @@ items:
   # Audience fit (A*). The brief's audience is application developers who
   # don't know S3, fill in "a couple of obvious inputs," and trust the module
   # for everything else. Exposure items are controls that audience needs;
-  # restraint items are settings it would not understand or care about.
+  # restraint items are settings it would not understand or care about, and
+  # are how this fixture punishes pass-through shapes (never a variable count).
   # Taint is syntactic (through locals): a strong signal, not a semantics
   # proof.
   - id: A1
@@ -172,23 +173,18 @@ items:
         - var_feeds_attr: {attr: bucket_prefix}
 
   - id: A2
-    weight: 2
+    weight: 3
     description: >
-      Restraint — no input selects the encryption key. Key management is
-      outside this audience's knowledge; the module owns it.
+      Restraint — encryption is not consumer-configurable: no input selects
+      the key or the algorithm, directly or by deriving one from the other.
+      The module owns encryption for this audience.
     check:
       not:
-        var_feeds_attr: {attr: kms_master_key_id}
+        any_of:
+          - var_feeds_attr: {attr: kms_master_key_id}
+          - var_feeds_attr: {attr: sse_algorithm}
 
   - id: A3
-    weight: 2
-    description: >
-      Restraint — no input selects the encryption algorithm.
-    check:
-      not:
-        var_feeds_attr: {attr: sse_algorithm}
-
-  - id: A4
     weight: 1
     description: >
       Restraint — no input controls object ownership or ACLs.
@@ -198,11 +194,13 @@ items:
           - var_feeds_attr: {attr: object_ownership}
           - var_feeds_attr: {attr: acl}
 
-  - id: A5
+  - id: A4
     weight: 2
     description: >
-      Restraint — no CDN or static-website architecture at defaults or under
-      any documented input. Distribution was never part of the request.
+      Restraint — no CDN or static-website architecture: no distribution,
+      origin access control, or website configuration at defaults or under
+      any documented input, and no bucket policy granting the CloudFront
+      service. Distribution was never part of the request.
     check:
       not:
         any_of:
@@ -218,15 +216,11 @@ items:
               plans: [defaults, sweep]
               quantifier: any
               type: aws_s3_bucket_website_configuration
-
-  - id: A6
-    weight: 2
-    description: >
-      Pass-through tripwire — at most 8 inputs, derived from this brief's
-      "a couple of obvious inputs." The ceiling is generous on purpose; which
-      settings are exposed is what A1–A5 measure.
-    check:
-      interface: {max_variables: 8}
+          - expr_matches:
+              type: aws_s3_bucket_policy
+              attr: policy
+              pattern: 'cloudfront\.amazonaws\.com'
+              match: any
 
   - id: H12
     weight: 2
@@ -270,7 +264,7 @@ items:
 # Input guarding (are the *right* variables validated) is deliberately NOT a
 # mechanical item — with no stated org policies there is no ground truth for
 # correct bounds. It is judged in layer 3.
-# Recorded but unweighted: variable count (beyond A6's tripwire), % typed, % validated, locals count,
+# Recorded but unweighted: variable count, % typed, % validated, locals count,
 # resource count, SLOC, comment ratio.
 
 # Expertise checklist — discovered service-specific touches, mechanically

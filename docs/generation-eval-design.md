@@ -56,10 +56,11 @@ variable budget. Each rubric carries hidden audience-fit items (`A*`):
   backup and maintenance windows; an app developer owns a name).
 - **Restraint:** settings this audience would not understand or care about (an app
   developer is not asked to choose an encryption key).
-- **Tripwire:** an optional, generous `max_variables` ceiling derived from the brief's own
-  wording, which catches pass-through modules without scoring the exact count.
 
-Exposure and restraint are checked by what inputs feed (taint through locals), never by
+There is no variable-count ceiling anywhere: a specialist interface legitimately carries many
+more inputs than a beginner one. Pass-through shapes are punished per fixture, by restraint
+items naming the settings that audience should never be handed and by the hardcoded security
+items. Exposure and restraint are checked by what inputs feed (taint through locals), never by
 variable names. Security posture is not an audience question: hardcoded security items
 apply to specialist fixtures exactly as they do to beginner ones.
 

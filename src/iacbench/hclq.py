@@ -210,9 +210,11 @@ def vars_feeding_attr(
 
 
 def value_text_closure(module_dir: Path, value) -> str:
-    """The textual expansion of a value plus every local it (transitively)
-    references — lets checks see through `local.x` indirection."""
+    """The textual expansion of a value plus every local and data source it
+    (transitively) references — lets checks see through `local.x` and
+    `data.aws_iam_policy_document.x.json`-style indirection."""
     loc = locals_map(module_dir)
+    data = data_map(module_dir)
     seen: set = set()
     parts: list = []
 
@@ -220,9 +222,13 @@ def value_text_closure(module_dir: Path, value) -> str:
         text = json.dumps(v, default=str)
         parts.append(text)
         for name in _LOCAL_REF.findall(text):
-            if name not in seen and name in loc:
-                seen.add(name)
+            if ("local", name) not in seen and name in loc:
+                seen.add(("local", name))
                 add(loc[name])
+        for ref in _DATA_REF.findall(text):
+            if ("data", ref) not in seen and ref in data:
+                seen.add(("data", ref))
+                add(data[ref])
 
     add(value)
     return " ".join(parts)

@@ -200,15 +200,7 @@ items:
           - var_feeds_attr: {type: azurerm_linux_web_app, attr: load_balancing_mode}
           - var_feeds_attr: {type: azurerm_linux_web_app, attr: local_mysql_enabled}
 
-  - id: A7
-    weight: 2
-    description: >
-      Pass-through tripwire — at most 15 inputs. Which settings are exposed
-      is what A1–A6 measure.
-    check:
-      interface: {max_variables: 15}
-
-# Recorded but unweighted: variable count (beyond A7's tripwire), % typed,
+# Recorded but unweighted: variable count, % typed,
 # % validated, locals count, resource count, SLOC, comment ratio.
 #
 # Not an item: the deprecated azurerm_app_service / azurerm_app_service_plan

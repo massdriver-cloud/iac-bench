@@ -254,7 +254,8 @@ def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
 
 
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens over attribute expressions resolved through locals.
+    """Static lens over attribute expressions resolved through locals and
+    data sources.
     match: every (default) — every resource of `type` has `attr` matching
     `pattern` or has `or_attr_present`; match: any — at least one resource's
     `attr` matches."""
@@ -489,15 +490,21 @@ def evaluate(ctx: CheckContext, spec: dict) -> bool:
     return verb(ctx, body)
 
 
-def grade_default_on(ctx: CheckContext, spec: dict, partial: float = 0.5) -> float:
+def grade_default_on(
+    ctx: CheckContext, spec: dict, partial: float = 0.5, hardcoded_on: float = 0.0
+) -> float:
     """The graded `default_on` posture ladder (docs/generation-check-engine.md):
     1.0 = present at defaults with variable influence (an opt-out exists);
     partial = opt-in only (absent at defaults, reachable through the sweep);
     0.0 = absent everywhere, or hardcoded in either polarity.
+    `hardcoded_on` credits present-at-defaults with no opt-out, for
+    protections where always-on costs flexibility but blocks nothing.
     A list of behaviors is alternative mechanisms for the same protection;
     the best-graded one counts."""
     if isinstance(spec, list):
-        return max((grade_default_on(ctx, s, partial) for s in spec), default=0.0)
+        return max(
+            (grade_default_on(ctx, s, partial, hardcoded_on) for s in spec), default=0.0
+        )
     behavior = dict(spec)
     behavior.pop("plans", None)
     behavior.pop("quantifier", None)
@@ -515,7 +522,7 @@ def grade_default_on(ctx: CheckContext, spec: dict, partial: float = 0.5) -> flo
             for value in _where_leaf_values(inst, where):
                 if hclq._var_closure(loc, value):
                     return 1.0
-        return 0.0  # hardcoded-on: inflexible, breaks legitimate opt-out
+        return float(hardcoded_on)  # hardcoded-on: no opt-out
     if _verb_resource(ctx, {**behavior, "plans": "sweep", "quantifier": "any"}):
         return float(partial)
     return 0.0

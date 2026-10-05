@@ -101,9 +101,10 @@ deletion protection, backups):
 - **0.0** — absent everywhere; or hardcoded in either polarity. Hardcoded-off
   never protects; hardcoded-on breaks legitimate operations (a permanently
   deletion-protected database cannot be destroyed) — the very reason the
-  attribute isn't posture `hardcoded` in the first place. Where a specific
-  attribute makes hardcoded-on benign, the fixture expresses that item with
-  plain `resource` checks instead of this posture.
+  attribute isn't posture `hardcoded` in the first place. Where hardcoded-on
+  costs only flexibility and blocks nothing (backups: storage cost, no
+  obstacle to retiring the resource), the item sets `hardcoded_on: 0.75` —
+  safer than opt-in, short of a real opt-out.
 
 Where a service offers more than one legitimate mechanism for the same
 protection, `behavior:` may list them; the best-graded alternative counts.
@@ -143,7 +144,7 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 |---|---|---|
 | `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, `{exists: true}`, literal equality); `match: any\|every` over instances; `plans: [defaults, sweep]` with `quantifier: any\|all` over plans |
 | `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence). Attribute names may be dotted paths through nested blocks; a `dynamic` block on the path is a knob; `{in: [...]}` accepts any listed literal |
-| `expr_matches` | static | every resource's `attr` expression, resolved through locals, matches `pattern` — or the resource has `or_attr_present` instead |
+| `expr_matches` | static | every resource's `attr` expression, resolved through locals and data sources, matches `pattern` — or the resource has `or_attr_present` instead |
 | `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals; `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |

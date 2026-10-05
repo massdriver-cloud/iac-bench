@@ -55,8 +55,8 @@ resource "google_sql_database_instance" "this" {
     }
 
     backup_configuration {
-      enabled                        = var.backups_enabled
-      point_in_time_recovery_enabled = var.backups_enabled
+      enabled                        = true
+      point_in_time_recovery_enabled = true
       start_time                     = var.backup_start_time
       transaction_log_retention_days = 7
 

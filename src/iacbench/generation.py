@@ -360,7 +360,9 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     for item in fixture.items:
         try:
             if item.get("posture") == "default_on":
-                value = checks.grade_default_on(ctx, item["behavior"], item.get("partial", 0.5))
+                value = checks.grade_default_on(
+                    ctx, item["behavior"], item.get("partial", 0.5), item.get("hardcoded_on", 0.0)
+                )
             else:
                 value = evaluate_memo(ctx, item["id"], item["check"])
         except Exception as exc:

@@ -83,12 +83,6 @@ variable "disk_size_gb" {
   }
 }
 
-variable "backups_enabled" {
-  description = "Automated daily backups with point-in-time recovery. Disable only for disposable instances."
-  type        = bool
-  default     = true
-}
-
 variable "allow_public_access" {
   description = "Give the instance a public IP so developers can connect from their laptops through the listed networks."
   type        = bool
