@@ -7,8 +7,10 @@ memory exercise. Three stages:
                pairs + anchors), write one markdown packet per pair containing
                the brief, both modules, and each module's MECHANICAL findings
                (deterministic facts, not the thing being calibrated), plus a
-               verdicts.yaml for the human to fill. Judge verdicts are never
-               shown at this stage. The packet run pins the doctrine edition
+               verdicts.yaml for the human to fill. Candidates appear under
+               blind labels ("Module A"); the key is a separate file read
+               only by the later stages. Judge verdicts are never shown at
+               this stage. The packet run pins the doctrine edition
                and per-candidate module hashes into verdicts.yaml so verdicts
                can never silently drift from the artifacts they were made on.
   adjudicate — compare filled verdicts to the judge's majority per pair; for
@@ -34,11 +36,14 @@ Gate rules (the parts a hostile reader checks):
 from __future__ import annotations
 
 import json
+import random
+import string
 from pathlib import Path
 
 import yaml
 
 _RATIONALE_CHARS = 1200
+BLIND_KEY_FILE = "blind-key.yaml"
 MIN_DECISIVE_PAIRS = 8
 GATE = 0.8
 NEAR_TIE_DISCLOSURE_GAP = 10.0  # disclosure only; never excludes
@@ -99,16 +104,32 @@ def _module_block(label: str, module_dir: Path) -> str:
     return f"### Source — {label}\n\n{render_module(module_dir)}"
 
 
+def _blind_labels(fixture_id: str, shas: dict) -> dict:
+    """real label -> "Module X". The shuffle is seeded by the fixture and the
+    candidate snapshots, so it is reproducible but unrelated to model names."""
+    labels = sorted(shas)
+    rng = random.Random(f"{fixture_id}:" + ",".join(shas[k] for k in labels))
+    rng.shuffle(labels)
+    return {real: f"Module {string.ascii_uppercase[i]}" for i, real in enumerate(labels)}
+
+
 def write_packets(fixture, candidates: dict, findings: dict, pairs: list, out_dir: Path) -> Path:
+    """Packets and verdicts.yaml carry blind labels only ("Module A"); the
+    mapping to real candidates lives in blind-key.yaml, read solely by the
+    adjudicate and finalize stages. The human never sees which model wrote
+    which module before every verdict is in."""
     from .artifacts import module_sha
     from .judge import DEFAULT_PRINCIPLES, principles_sha
 
     out_dir = Path(out_dir)
     pair_dir = out_dir / "pairs"
     pair_dir.mkdir(parents=True, exist_ok=True)
+    shas = {label: module_sha(d) for label, d in candidates.items()}
+    blind = _blind_labels(fixture.id, shas)
     entries = []
-    for n, (a, b) in enumerate(pairs, 1):
+    for n, (real_a, real_b) in enumerate(pairs, 1):
         pair_id = f"pair-{n:02d}"
+        a, b = blind[real_a], blind[real_b]
         body = [
             f"# {pair_id}: {a} vs {b}",
             "",
@@ -125,17 +146,17 @@ def write_packets(fixture, candidates: dict, findings: dict, pairs: list, out_di
             "",
             f"## Candidate: {a}",
             "",
-            _findings_block(a, fixture, findings[a]),
+            _findings_block(a, fixture, findings[real_a]),
             "",
-            _module_block(a, candidates[a]),
+            _module_block(a, candidates[real_a]),
             "",
             f"## Candidate: {b}",
             "",
-            _findings_block(b, fixture, findings[b]),
+            _findings_block(b, fixture, findings[real_b]),
             "",
-            _module_block(b, candidates[b]),
+            _module_block(b, candidates[real_b]),
         ]
-        (pair_dir / f"{pair_id}-{a}-vs-{b}.md").write_text("\n".join(body))
+        (pair_dir / f"{pair_id}.md").write_text("\n".join(body))
         entries.append({"id": pair_id, "a": a, "b": b, "winner": None, "note": ""})
     verdicts_path = out_dir / "verdicts.yaml"
     verdicts_path.write_text(
@@ -148,13 +169,35 @@ def write_packets(fixture, candidates: dict, findings: dict, pairs: list, out_di
             {
                 "fixture": fixture.id,
                 "principles_sha256": principles_sha(DEFAULT_PRINCIPLES),
-                "candidates": {label: module_sha(d) for label, d in sorted(candidates.items())},
+                "candidates": {blind[label]: sha for label, sha in sorted(shas.items(), key=lambda x: blind[x[0]])},
                 "pairs": entries,
             },
             sort_keys=False,
         )
     )
+    (out_dir / BLIND_KEY_FILE).write_text(
+        "# Blind label -> real candidate. Do not open until every verdict is filled.\n"
+        + yaml.safe_dump({blind[real]: real for real in sorted(blind, key=blind.get)}, sort_keys=False)
+    )
     return verdicts_path
+
+
+def _load_verdicts(verdicts_path: Path) -> dict:
+    """verdicts.yaml with blind labels translated back to real candidates via
+    the sibling blind-key.yaml (absent for unblinded legacy verdict sets)."""
+    verdicts_path = Path(verdicts_path)
+    verdicts = yaml.safe_load(verdicts_path.read_text())
+    key_path = verdicts_path.parent / BLIND_KEY_FILE
+    if not key_path.is_file():
+        return verdicts
+    key = yaml.safe_load(key_path.read_text())
+    verdicts["candidates"] = {key.get(k, k): v for k, v in (verdicts.get("candidates") or {}).items()}
+    for pair in verdicts["pairs"]:
+        pair["a"] = key.get(pair["a"], pair["a"])
+        pair["b"] = key.get(pair["b"], pair["b"])
+        if pair.get("winner") and pair["winner"] != "tie":
+            pair["winner"] = key.get(pair["winner"], pair["winner"])
+    return verdicts
 
 
 # ------------------------------------------------------------- adjudication
@@ -226,7 +269,7 @@ def _check_binding(verdicts: dict, judge_dir: Path) -> list:
 
 
 def adjudicate(verdicts_path: Path, judge_dir: Path, out_dir: Path) -> dict:
-    verdicts = yaml.safe_load(Path(verdicts_path).read_text())
+    verdicts = _load_verdicts(verdicts_path)
     binding = _check_binding(verdicts, judge_dir)
     if binding:
         return {"error": "artifact/edition binding mismatch", "problems": binding}
@@ -290,7 +333,7 @@ def finalize(
     adjudication_path: Path,
     judge_dir: Path,
 ) -> dict:
-    verdicts = yaml.safe_load(Path(verdicts_path).read_text())
+    verdicts = _load_verdicts(verdicts_path)
     binding = _check_binding(verdicts, judge_dir)
     if binding:
         return {"error": "artifact/edition binding mismatch", "problems": binding}
