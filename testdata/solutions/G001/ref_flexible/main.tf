@@ -16,7 +16,6 @@ resource "random_id" "suffix" {
 resource "aws_s3_bucket" "assets" {
   bucket        = local.bucket_name
   force_destroy = local.force_destroy
-  tags          = local.tags
 }
 
 resource "aws_s3_bucket_ownership_controls" "assets" {
@@ -105,7 +104,6 @@ resource "aws_s3_bucket" "logs" {
   count         = local.is_prod ? 1 : 0
   bucket        = "assets-${var.purpose}-logs-${random_id.suffix.hex}"
   force_destroy = false
-  tags          = local.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "logs" {
@@ -132,7 +130,7 @@ resource "aws_s3_bucket_logging" "assets" {
   count         = local.is_prod ? 1 : 0
   bucket        = aws_s3_bucket.assets.id
   target_bucket = aws_s3_bucket.logs[0].id
-  target_prefix = var.log_prefix
+  target_prefix = "s3-access/"
 }
 
 data "aws_caller_identity" "current" {}

@@ -7,7 +7,7 @@ Deliverable, in the working directory:
 - The module itself at the root (`*.tf` files). It will be planned and applied directly as a root module — not wrapped as a submodule of something else.
 - A `minimal.tfvars` (or `minimal.tfvars.json`) file at the root, supplying a **literal** value for every variable you declare without a default. This is the smallest valid instantiation of your module, and it must plan cleanly.
 
-Provider credentials and region come from the environment — you do not need to hardcode a region, and whether you write a provider block is up to you.
+Cloud credentials come from the environment.
 
 You have these tools: `list_files`, `read_file`, `write_file`, `tofu_validate`, `tofu_plan`, `tofu_fmt`, and `submit`. The tofu tools accept a `path` argument, and `tofu_plan` also accepts `var_file` — plan your module with `tofu_plan(var_file="minimal.tfvars")`.
 

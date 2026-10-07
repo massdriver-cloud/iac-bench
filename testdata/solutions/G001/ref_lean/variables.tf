@@ -45,3 +45,9 @@ variable "extra_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "region" {
+  description = "AWS region the bucket lives in."
+  type        = string
+  default     = "us-east-1"
+}

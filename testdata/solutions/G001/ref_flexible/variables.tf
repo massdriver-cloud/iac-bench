@@ -64,8 +64,8 @@ variable "extra_tags" {
   default     = {}
 }
 
-variable "log_prefix" {
-  description = "Key prefix for server access logs (prod)."
+variable "region" {
+  description = "AWS region the bucket lives in."
   type        = string
-  default     = "s3-access/"
+  default     = "us-east-1"
 }

@@ -81,9 +81,11 @@ The human-facing rationale for these preferences lives in
   every taggable resource. A module with no way to add tags is bad.
 - Calculated tags applied by the module (e.g. `managed-by`) are a plus. Never tag with
   values that change on every run (timestamps): they turn every plan into a diff.
-- Provider-level `default_tags` is the right mechanism when the module is designed to run
-  standalone and the provider offers it; the optional tags variable is the portable
-  mechanism when the module may be consumed as a child.
+- When the module runs standalone and the provider offers provider-level default tags,
+  the consumer's tags input should feed them: one setting tags every resource, including
+  ones added later. Repeating tags on each resource works but is a maintenance burden.
+  The optional tags variable applied per resource is the portable mechanism when the
+  module may be consumed as a child.
 - A `Name` tag (or equivalent) matters on resources that are effectively nameless
   without one.
 - **Requiring** a new input purely to feed tags is scope invention — judge it under
@@ -189,6 +191,10 @@ The human-facing rationale for these preferences lives in
   Versions). A module with no provider requirements is at the mercy of whatever the root
   module happens to use, with no guarantee it was written for compatibility with that
   version — treat this as broken, not as a style choice.
+- A module built to run standalone declares its provider configuration explicitly
+  rather than relying on the implicit default configuration. Settings the deployment
+  should control, such as the region or location, are inputs (a sensible default is
+  fine), not whatever the executing environment happens to set.
 - Modules designed to be executed as independent deployable units are preferred over
   modules built purely to be composed into a terralith. Terraliths are an anti-pattern;
   a module that can stand alone (and carries its own provider configuration in that

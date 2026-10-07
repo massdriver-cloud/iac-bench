@@ -209,6 +209,20 @@ def vars_feeding_attr(
     return out
 
 
+def vars_feeding_provider_attr(module_dir: Path, attr_name: str, provider: str | None = None) -> set:
+    """Variables that (transitively) feed a provider configuration attribute
+    with this name, including attributes inside nested blocks such as
+    default_tags. `provider` restricts the search to one provider."""
+    loc = locals_map(module_dir)
+    out: set = set()
+    for name, attrs in provider_blocks(module_dir):
+        if provider is not None and name != provider:
+            continue
+        for value in _attr_values(attrs, attr_name):
+            out |= _var_closure(loc, value)
+    return out
+
+
 def value_text_closure(module_dir: Path, value) -> str:
     """The textual expansion of a value plus every local and data source it
     (transitively) references — lets checks see through `local.x` and

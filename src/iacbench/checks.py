@@ -290,9 +290,21 @@ def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
     feeding = hclq.vars_feeding_attr(
         ctx.module_dir, spec["attr"], spec.get("type"), bool(spec.get("through_data"))
     )
+    return _any_declared(ctx, feeding, spec.get("has_default"))
+
+
+def _verb_var_feeds_provider_attr(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: some declared variable (transitively through locals) feeds
+    the named attribute of a provider configuration block — e.g. a region
+    input, or a tags input feeding default_tags. `provider` restricts the
+    search to one provider; `has_default` as for var_feeds_attr."""
+    feeding = hclq.vars_feeding_provider_attr(ctx.module_dir, spec["attr"], spec.get("provider"))
+    return _any_declared(ctx, feeding, spec.get("has_default"))
+
+
+def _any_declared(ctx: CheckContext, names: set, want_default) -> bool:
     declared = hclq.variables(ctx.module_dir)
-    want_default = spec.get("has_default")
-    for name in feeding:
+    for name in names:
         meta = declared.get(name)
         if meta is None:
             continue
@@ -466,6 +478,7 @@ _VERBS = {
     "var_feeds_attr": _verb_var_feeds_attr,
     "provider_constraints": _verb_provider_constraints,
     "provider_config_attr": _verb_provider_config_attr,
+    "var_feeds_provider_attr": _verb_var_feeds_provider_attr,
     "source_contains": _verb_source_contains,
     "output_named": _verb_output_named,
     "interface": _verb_interface,
@@ -488,6 +501,12 @@ def evaluate(ctx: CheckContext, spec: dict) -> bool:
     if verb is None:
         raise ValueError(f"unknown check verb {name!r}")
     return verb(ctx, body)
+
+
+def grade_ladder(ctx, rungs: list) -> float:
+    """Graded alternatives: the score of the best rung whose check passes, 0
+    when none does. Rungs: [{score: 1.0, check: ...}, {score: 0.5, check: ...}]."""
+    return max((float(r["score"]) for r in rungs if evaluate(ctx, r["check"])), default=0.0)
 
 
 def grade_budget(ctx: CheckContext, spec: dict) -> float:

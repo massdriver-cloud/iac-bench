@@ -384,6 +384,8 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         try:
             if item.get("posture") == "budget":
                 value = checks.grade_budget(ctx, item["budget"])
+            elif item.get("posture") == "ladder":
+                value = checks.grade_ladder(ctx, item["ladder"])
             elif item.get("posture") == "default_on":
                 value = checks.grade_default_on(
                     ctx, item["behavior"], item.get("partial", 0.5), item.get("hardcoded_on", 0.0)

@@ -233,16 +233,29 @@ items:
 
   - id: H12
     weight: 2
+    posture: ladder
     description: >
-      Tagging support is table stakes — consumers can add their own tags
-      through an optional input, or the module applies provider default_tags
-      (the doctrine-endorsed mechanism for standalone modules). Influence is
+      Consumers can add their own tags through an optional input. Full credit
+      when that input feeds the provider's default_tags, so every resource is
+      tagged by one setting; half credit when it is applied resource by
+      resource, which every new resource must remember to repeat. Influence is
       detected syntactically (taint through locals). Demanding a required
       input for tags is scope invention, judged under Unstated assumptions.
+    ladder:
+      - score: 1.0
+        check: {var_feeds_provider_attr: {provider: aws, attr: tags, has_default: true}}
+      - score: 0.5
+        check: {var_feeds_attr: {attr: tags, has_default: true}}
+
+  - id: H15
+    weight: 4
+    description: >
+      Explicit provider configuration with a configurable region — the module
+      declares its aws provider block and an input feeds its region (a
+      default is fine). A standalone module that relies on the implicit
+      provider leaves the region to whatever environment runs it.
     check:
-      any_of:
-        - var_feeds_attr: {attr: tags, has_default: true}
-        - provider_config_attr: {attr: default_tags}
+      var_feeds_provider_attr: {provider: aws, attr: region}
 
   - id: H13
     weight: 4
