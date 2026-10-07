@@ -16,7 +16,7 @@ index") are SLOC-like proxies — they describe the population, not the instance
 |-------|------|--------|----------------------|
 | 1 | Functional gate: the module plans as a root module with its own `minimal.tfvars`, filtered to required variables | mechanical, boolean | prerequisite — quality layers only run if this passes |
 | 2 | Brief-specific semantic checks (the rubric), declared in each fixture's `rubric.yaml` and evaluated by the check engine — see `generation-check-engine.md` | mechanical, itemized, weighted | yes — the main mechanical score |
-| 3 | LLM judge, validated against human ranking: absolute 0–100 grading against `good-opentofu.md`, with blind pairwise comparison as a discovery/audit tool | LLM-judge, gated | yes — separate column, never silently merged |
+| 3 | LLM judge, validated against human verdicts: absolute 0–100 grading on the `good-opentofu.md` sections the rubric does not score, with blind pairwise comparison as a discovery tool | LLM-judge, gated | yes — separate column, never silently merged |
 | 4 | Generic stats (var counts, validation %, locals depth, SLOC, cost) | mechanical, scalar | no — descriptive columns only |
 
 The composite grade is 70% mechanical / 30% judged, per
@@ -130,31 +130,60 @@ that each bad reference fails the *specific* items it was built to fail (see the
 ## Judge layer
 
 The judge is anchored to `docs/good-opentofu.md` — the org's living definition of module
-quality, owned by a human. It is appended to the judge's system prompt and its sha256 is
+quality, owned by a human. It is appended to the judge's prompt and its sha256 is
 recorded in every judgment, so verdicts are attributable to a specific edition of taste.
 Like the rubric, it is never shown to candidate models. The iteration loop: recurring judge
 findings → new principles in the doc; principles that turn out mechanically checkable →
 migrate down into rubric items; editing the doc re-anchors the judge (re-judging stored
 candidates is cheap, re-generation is not needed).
 
+**The judge grades only what the rubric cannot.** The doctrine's *Scored by the rubric*
+section lists the sections the mechanical layer already scores (insecure configurations,
+destructive defaults, unstated assumptions, tagging, versions, provider declarations). The
+judge reads them as context but does not grade them, so a defect never costs a module in
+both components. The judged 30% is design and craft: interface shape, variables,
+structure, scope, outputs, documentation, and the like.
+
+**Blind to authorship.** The judge sees the brief, the doctrine, and the module files —
+never the model that wrote them.
+
 Two modes, implemented in `src/iacbench/judge.py`:
 
-- **Absolute grading** (`iacbench judge --grade`): each candidate scored 0–4 per
-  good-opentofu.md section independently (multiple samples, medians, evidence required),
-  normalized to 0–100. Roster-independent, so it is the judged component of the composite.
-  Section scores are reported as their own table — one row per doctrine section, one
-  column per candidate — so a reader who disagrees with a specific documented preference
-  can discount exactly that row. Calibration (`--grade --human`) compares the judge's
-  grades to human grades of the same candidates by rank (Spearman ≥ 0.8); the report
-  folds grades into the composite only once that gate is cleared.
+- **Absolute grading** (`iacbench judge --grade`): each candidate scored 0–4 per graded
+  doctrine section independently (multiple samples, medians, one sentence of evidence per
+  score), normalized to 0–100. Roster-independent, so it is the judged component of the
+  composite. Section scores are reported as their own table — one row per doctrine
+  section, one column per candidate — so a reader who disagrees with a specific documented
+  preference can discount exactly that row.
 - **Blind pairwise** ("which module would you rather inherit?"), each pair judged in both
-  presentation orders, aggregated Bradley–Terry. Used for discovery and audit — its
-  rationales feed the expertise checklist — not for the composite.
+  presentation orders, aggregated Bradley–Terry. A discovery tool: its rationales feed the
+  expertise checklist. It neither enters the composite nor takes part in calibration.
 
-Activation gate: a human ranks the same pairs (`iacbench judge --human <yaml>`); the judge
-earns a report column only at ≥0.8 agreement. Until then `scores.json` is stamped
-`experimental`. Known validity risks, mitigated by the gate rather than assumed away:
-self-preference when the judge model authored a candidate, and verbosity/style bias.
+Every judge model grades every candidate. The judged component of the composite is the
+median of the calibrated judges' grades; uncalibrated grades are shown, never folded in.
+
+## Calibration
+
+A grade joins the composite only after its judge is calibrated against the doctrine
+owner (`iacbench calibrate`, one fixture at a time):
+
+1. **Packets.** The human gets blind pairs ("Module A" vs "Module B"). Each packet states
+   the question — *which module would you rather maintain, judged only on the listed
+   doctrine sections?* — and shows the rubric's findings as settled context, not as
+   grounds for the pick. People are far more consistent choosing between two modules
+   than assigning numbers, so the human picks and the judge grades.
+2. **Agreement.** For each decided pair, the judge agrees when it grades the human's pick
+   strictly higher; equal grades are a miss. Only human-declared ties are excluded. A
+   judge is calibrated for the fixture at ≥ 0.8 raw agreement over at least 8 counted
+   pairs; each judge is gated on its own.
+3. **Adjudication (optional).** For each miss the human sees the judge's differing
+   section grades and evidence and may mark it revised ("the judge saw something I
+   missed"). Revisions produce a disclosed adjudicated number; the gate never uses it.
+
+Until a judge clears the gate, its grades are stamped `experimental` and stay out of the
+composite. Known validity risks, mitigated by the gate rather than assumed away:
+self-preference toward a judge's own vendor's models (which blinding does not remove when
+a judge recognizes its own style), and verbosity or style bias.
 
 **Why this layer exists:** the mechanical layers verify competence but saturate at the
 frontier — strong models routinely pass every consequence check. Judgment against the

@@ -1,7 +1,8 @@
 # What we consider good OpenTofu
 
 **Owner: Chris.** The authoritative definition of module quality for the judge:
-each section below is graded 0–4. Grade what the module does, not what it says.
+each section below is graded 0–4, except the sections listed under *Scored by the
+rubric*. Grade what the module does, not what it says.
 The human-facing rationale for these preferences lives in
 `good-opentofu-rationale.md` and is not part of this definition.
 
@@ -211,14 +212,23 @@ The human-facing rationale for these preferences lives in
 
 ## Grading weights
 
-The judge grades each section above 0–4; the overall grade is the weighted mean of
-applicable sections. Sections not listed here weigh 1.
+The judge grades each section above 0–4, except those scored by the rubric; the
+overall grade is the weighted mean of applicable graded sections. Sections not listed here weigh 1.
 
-- Insecure Configurations: 3
 - Sensitive values: 3
-- Destructive defaults: 3
 - Interface design: 2
 - Variables and validation: 2
 - Scope: 2
-- Unstated assumptions: 2
-- Provider declarations and module independence: 2
+
+## Scored by the rubric
+
+The benchmark's mechanical rubric scores these sections, so the judge does not grade
+them: a defect here must not cost a module twice. They remain part of the definition
+and are context for the sections the judge does grade.
+
+- Insecure Configurations
+- Destructive defaults
+- Unstated assumptions
+- Tagging
+- Versions
+- Provider declarations and module independence

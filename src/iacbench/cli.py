@@ -51,13 +51,20 @@ def main(argv=None) -> int:
 
     p_cal = sub.add_parser(
         "calibrate",
-        help="evidence-assisted judge calibration: packets -> human verdicts -> adjudicate -> finalize",
+        help="judge calibration: packets -> human pairwise verdicts -> adjudicate -> finalize (per judge)",
     )
     p_cal.add_argument("stage", choices=["packets", "adjudicate", "finalize"])
     p_cal.add_argument("--fixture", default="G001")
     p_cal.add_argument("--candidates", help="directory of candidate module dirs (packets stage)")
-    p_cal.add_argument("--judge-dir", required=True, help="dir with judgments.jsonl + scores.json")
+    p_cal.add_argument(
+        "--judge-dir", required=True,
+        help="dir with the judge's grades.json (packets: its grade order selects the pairs)",
+    )
     p_cal.add_argument("--out", required=True, help="calibration working directory")
+    p_cal.add_argument(
+        "--pairs-from", default=None,
+        help="packets stage: reuse the pairs of an earlier calibration dir instead of selecting new ones",
+    )
 
     args = parser.parse_args(argv)
 
@@ -103,8 +110,11 @@ def main(argv=None) -> int:
             candidates = {
                 d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
             }
-            scores = json.loads((judge_dir / "scores.json").read_text())
-            pairs = calibrate.select_pairs(scores["bt_scores"])
+            if args.pairs_from:
+                pairs = calibrate.pairs_from_verdicts(Path(args.pairs_from) / "verdicts.yaml")
+            else:
+                grades = json.loads((judge_dir / "grades.json").read_text())["grades"]
+                pairs = calibrate.select_pairs(grades)
             findings: dict = {}
             with tempfile.TemporaryDirectory(prefix="iacbench-calib-") as tmp:
                 for label, d in candidates.items():
@@ -119,16 +129,13 @@ def main(argv=None) -> int:
         if args.stage == "adjudicate":
             summary = calibrate.adjudicate(out_dir / "verdicts.yaml", judge_dir, out_dir)
             print(json.dumps(summary, indent=2))
-            if summary["disagree"]:
-                print(f"\nresolve uphold/reason in {summary['adjudication']}, then run finalize")
+            if summary.get("miss"):
+                print(f"\noptional: review {summary['adjudication']}, then run finalize")
             return 0
         if args.stage == "finalize":
-            result = calibrate.finalize(out_dir / "verdicts.yaml", out_dir / "adjudication.yaml", judge_dir)
+            result = calibrate.finalize(out_dir / "verdicts.yaml", judge_dir, out_dir)
             print(json.dumps(result, indent=2))
-            if result.get("unresolved_disagreements"):
-                print("\nunresolved disagreements remain — fill uphold/reason and re-run")
-                return 1
-            return 0
+            return 1 if result.get("error") else 0
 
     if args.command == "judge":
         import asyncio
