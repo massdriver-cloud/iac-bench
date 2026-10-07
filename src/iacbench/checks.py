@@ -490,6 +490,19 @@ def evaluate(ctx: CheckContext, spec: dict) -> bool:
     return verb(ctx, body)
 
 
+def grade_budget(ctx: CheckContext, spec: dict) -> float:
+    """The graded `budget` posture: full credit at or under `soft` declared
+    variables, falling linearly to zero at `hard` (soft 10 / hard 15 loses
+    20% per variable past 10)."""
+    soft, hard = spec["soft"], spec["hard"]
+    n = len(hclq.variables(ctx.module_dir))
+    if n <= soft:
+        return 1.0
+    if n >= hard:
+        return 0.0
+    return 1.0 - (n - soft) / (hard - soft)
+
+
 def grade_default_on(
     ctx: CheckContext, spec: dict, partial: float = 0.5, hardcoded_on: float = 0.0
 ) -> float:

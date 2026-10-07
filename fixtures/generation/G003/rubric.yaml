@@ -200,7 +200,17 @@ items:
           - var_feeds_attr: {type: azurerm_linux_web_app, attr: load_balancing_mode}
           - var_feeds_attr: {type: azurerm_linux_web_app, attr: local_mysql_enabled}
 
-# Recorded but unweighted: variable count, % typed,
+  - id: A7
+    weight: 8
+    posture: budget
+    description: >
+      Interface budget — full credit at 22 or fewer inputs, falling
+      linearly to zero at 35. An SRE team owns capacity, health, rollout, and observability controls. A race to expose every setting in
+      order to satisfy exposure checks is the failure this guards against:
+      pass-through modules encode less expertise than tuned ones.
+    budget: {soft: 22, hard: 35}
+
+# Recorded but unweighted beyond A7's budget: variable count, % typed,
 # % validated, locals count, resource count, SLOC, comment ratio.
 #
 # Not an item: the deprecated azurerm_app_service / azurerm_app_service_plan

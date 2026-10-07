@@ -57,10 +57,14 @@ variable budget. Each rubric carries hidden audience-fit items (`A*`):
 - **Restraint:** settings this audience would not understand or care about (an app
   developer is not asked to choose an encryption key).
 
-There is no variable-count ceiling anywhere: a specialist interface legitimately carries many
-more inputs than a beginner one. Pass-through shapes are punished per fixture, by restraint
-items naming the settings that audience should never be handed and by the hardcoded security
-items. Exposure and restraint are checked by what inputs feed (taint through locals), never by
+- **Budget:** a graded interface budget per fixture — full credit at or under a soft input
+  count, falling linearly to zero at a hard count — set from the brief's audience (narrow for
+  developers new to the service, wide for a specialist team).
+
+The budget is what keeps the benchmark from rewarding a race to expose every setting in order
+to satisfy exposure checks: pass-through modules encode less expertise than modules tuned to a
+use case. Restraint items naming settings the audience should never be handed, and the
+hardcoded security items, punish pass-through shapes alongside it. Exposure and restraint are checked by what inputs feed (taint through locals), never by
 variable names. Security posture is not an audience question: hardcoded security items
 apply to specialist fixtures exactly as they do to beginner ones.
 

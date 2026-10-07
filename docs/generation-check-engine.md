@@ -80,6 +80,7 @@ A rubric item may declare a posture naming the philosophy its check encodes:
 |---|---|---|
 | `hardcoded` | Security posture. A knob is the defect, even with a safe default. | Static lens: literal equals the secure value; no variable taint on the value **or on existence** (`count`/`for_each`/`dynamic`). The sweep corroborates (below). |
 | `default_on` | Safe out of the box, legitimately reversible. The off state is silently harmful and consumers won't know to opt in; hardcoding is wrong because turning it off is sometimes legitimate. | Graded ladder (below). |
+| `budget` | Interface size fits the audience. Graded, never a cliff. | `budget: {soft, hard}` — full credit at or under `soft` declared variables, linear to zero at `hard`. |
 | `reachable` | Must be *offered*; mechanism is the model's choice. | Present in the defaults plan **or** in at least one perturbation-sweep plan. |
 
 `reachable` is where mechanism-neutrality lives: a direct `enable_logging`

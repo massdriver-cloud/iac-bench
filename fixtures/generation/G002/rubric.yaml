@@ -200,11 +200,21 @@ items:
         attr: private_network
         through_data: true
 
+  - id: A8
+    weight: 8
+    posture: budget
+    description: >
+      Interface budget — full credit at 30 or fewer inputs, falling
+      linearly to zero at 45. A DBA team legitimately owns many controls, so the budget is wide. A race to expose every setting in
+      order to satisfy exposure checks is the failure this guards against:
+      pass-through modules encode less expertise than tuned ones.
+    budget: {soft: 30, hard: 45}
+
 # Restraint items: none yet. They come from what models actually expose, not
 # from speculation; pass-through shapes are punished by fixture-specific
 # restraint items, never by a variable count.
 #
-# Recorded but unweighted: variable count, % typed,
+# Recorded but unweighted beyond A8's budget: variable count, % typed,
 # % validated, locals count, resource count, SLOC, comment ratio.
 
 # Expertise checklist — grows by discovery from judge rationales; items are

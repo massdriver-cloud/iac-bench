@@ -12,13 +12,13 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7, A8,
               B1_provider_constraints, B2_descriptions]
 ref_flexible:
   gate: true
   min_score: 0.95
   # IAM-only authentication: no password exists, so H7 passes by construction.
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7, A8,
               B1_provider_constraints, B2_descriptions]
 bad_passthrough:
   gate: true
