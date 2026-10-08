@@ -149,9 +149,11 @@ never the model that wrote them.
 
 Two modes, implemented in `src/iacbench/judge.py`:
 
-- **Absolute grading** (`iacbench judge --grade`): each candidate scored 0–4 per graded
-  doctrine section independently (multiple samples, medians, one sentence of evidence per
-  score), normalized to 0–100. Roster-independent, so it is the judged component of the
+- **Absolute grading** (`iacbench judge --grade`): each candidate scored per graded
+  doctrine section independently — 0 no credit, 1 partial, 2 full, or NA (multiple
+  samples, medians, one sentence of evidence per score) — and the weighted mean is
+  normalized to 0–100. The scale is coarse on purpose: three levels are hard to blur
+  together, and a human can check each grade at a glance. Roster-independent, so it is the judged component of the
   composite. Section scores are reported as their own table — one row per doctrine
   section, one column per candidate — so a reader who disagrees with a specific documented
   preference can discount exactly that row.
@@ -165,20 +167,21 @@ median of the calibrated judges' grades; uncalibrated grades are shown, never fo
 ## Calibration
 
 A grade joins the composite only after its judge is calibrated against the doctrine
-owner (`iacbench calibrate`, one fixture at a time):
+owner (`iacbench calibrate`, one fixture at a time). The check is per cell — one module,
+one doctrine section — because that is what the judge produces and what a person can
+answer reliably: "are these variable descriptions good?" is quick; ranking two modules
+across fourteen sections at once is not.
 
-1. **Packets.** The human gets blind pairs ("Module A" vs "Module B"). Each packet states
-   the question — *which module would you rather maintain, judged only on the listed
-   doctrine sections?* — and shows the rubric's findings as settled context, not as
-   grounds for the pick. People are far more consistent choosing between two modules
-   than assigning numbers, so the human picks and the judge grades.
-2. **Agreement.** For each decided pair, the judge agrees when it grades the human's pick
-   strictly higher; equal grades are a miss. Only human-declared ties are excluded. A
-   judge is calibrated for the fixture at ≥ 0.8 raw agreement over at least 8 counted
-   pairs; each judge is gated on its own.
-3. **Adjudication (optional).** For each miss the human sees the judge's differing
-   section grades and evidence and may mark it revised ("the judge saw something I
-   missed"). Revisions produce a disclosed adjudicated number; the gate never uses it.
+1. **Review sheets.** One sheet per module, under a blind label. It lists every graded
+   section with each judge's grade and evidence side by side, then the module source.
+   The human records their own grade (0, 1, 2 or NA) for every cell. Recording a grade
+   rather than agree/disagree keeps the judges' answers from becoming the default, and a
+   miss records how far off the judge was.
+2. **Agreement.** Per judge: the share of cells where its grade equals the human's
+   exactly (NA matches only NA), overall and per section. A judge is calibrated for the
+   fixture at ≥ 0.8 overall agreement over at least 40 cells; each judge is gated on its
+   own. A section the judges keep getting wrong is a signal to reword it in
+   `good-opentofu.md` or drop it from the judged component.
 
 Until a judge clears the gate, its grades are stamped `experimental` and stay out of the
 composite. Known validity risks, mitigated by the gate rather than assumed away:

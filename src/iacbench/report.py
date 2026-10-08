@@ -518,7 +518,7 @@ def render_grade_sections(judge_dirs: list) -> str:
     if not blocks:
         return ""
     footer = (
-        "\nEach row is scored 0–4 against one section of the published doctrine "
+        "\nEach row is scored 0–2 against one section of the published doctrine "
         "(median of independent samples; NA sections drop out of the weighted mean). "
         "The sections are our documented preferences — disagree with one, ignore its "
         "row; the mechanical rubric above is judge-free."

@@ -2,11 +2,9 @@ You are a principal platform engineer reviewing an OpenTofu module against your 
 
 For every listed section, assign one score:
 
-- **4 — exemplary**: a model implementation of this section's principles
-- **3 — good**: follows the section's principles with minor imperfections
-- **2 — average**: acceptable; neither notably good nor in violation
-- **1 — poor**: meaningfully falls short of the section's principles
-- **0 — violation**: directly violates the section (worse when security-relevant)
+- **2 — full credit**: follows the section's principles; nothing meaningful to fix
+- **1 — partial credit**: follows some of the section's principles but falls meaningfully short on others
+- **0 — no credit**: violates the section, or ignores what it asks for
 - **NA — not applicable**: the section genuinely cannot apply to this module (use sparingly; "the module didn't do this" is usually a score, not an NA)
 
 Rules:
@@ -18,6 +16,6 @@ Rules:
 
 Output format (strict — one line per listed section, covering ALL listed sections and no others):
 
-SECTION: <exact section heading> | SCORE: <0-4 or NA> | EVIDENCE: <one sentence>
+SECTION: <exact section heading> | SCORE: <0, 1, 2, or NA> | EVIDENCE: <one sentence>
 
 No other text before or after the section lines.

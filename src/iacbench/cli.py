@@ -51,20 +51,16 @@ def main(argv=None) -> int:
 
     p_cal = sub.add_parser(
         "calibrate",
-        help="judge calibration: packets -> human pairwise verdicts -> adjudicate -> finalize (per judge)",
+        help="judge calibration: review sheets -> human section grades -> finalize (per judge)",
     )
-    p_cal.add_argument("stage", choices=["packets", "adjudicate", "finalize"])
+    p_cal.add_argument("stage", choices=["sheets", "finalize"])
     p_cal.add_argument("--fixture", default="G001")
-    p_cal.add_argument("--candidates", help="directory of candidate module dirs (packets stage)")
+    p_cal.add_argument("--candidates", help="directory of candidate module dirs (sheets stage)")
     p_cal.add_argument(
-        "--judge-dir", required=True,
-        help="dir with the judge's grades.json (packets: its grade order selects the pairs)",
+        "--judge-dir", action="append", required=True,
+        help="dir with a judge's grades.json; repeat for several judges (finalize: one per run)",
     )
     p_cal.add_argument("--out", required=True, help="calibration working directory")
-    p_cal.add_argument(
-        "--pairs-from", default=None,
-        help="packets stage: reuse the pairs of an earlier calibration dir instead of selecting new ones",
-    )
 
     args = parser.parse_args(argv)
 
@@ -94,48 +90,30 @@ def main(argv=None) -> int:
 
     if args.command == "calibrate":
         import json
-        import shutil
-        import tempfile
 
         from . import calibrate
-        from .generation import GenerationFixture, score_generation
+        from .generation import GenerationFixture
 
         out_dir = Path(args.out)
-        judge_dir = Path(args.judge_dir)
-        if args.stage == "packets":
+        judge_dirs = [Path(d) for d in args.judge_dir]
+        if args.stage == "sheets":
             if not args.candidates:
-                print("packets stage requires --candidates")
+                print("sheets stage requires --candidates")
                 return 1
             fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
             candidates = {
                 d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
             }
-            if args.pairs_from:
-                pairs = calibrate.pairs_from_verdicts(Path(args.pairs_from) / "verdicts.yaml")
-            else:
-                grades = json.loads((judge_dir / "grades.json").read_text())["grades"]
-                pairs = calibrate.select_pairs(grades)
-            findings: dict = {}
-            with tempfile.TemporaryDirectory(prefix="iacbench-calib-") as tmp:
-                for label, d in candidates.items():
-                    module_copy = Path(tmp) / label / "module"
-                    shutil.copytree(d, module_copy)
-                    print(f"scoring {label} for mechanical findings...", flush=True)
-                    findings[label] = score_generation(fixture, module_copy, Path(tmp) / label / "work")
-            verdicts = calibrate.write_packets(fixture, candidates, findings, pairs, out_dir)
-            print(f"wrote {len(pairs)} packets under {out_dir / 'pairs'}")
-            print(f"fill in {verdicts} (winner per pair), then run the adjudicate stage")
+            review = calibrate.write_sheets(fixture, candidates, judge_dirs, out_dir)
+            print(f"wrote {len(candidates)} review sheets under {out_dir / 'modules'}")
+            print(f"fill in {review} (your grade per module and section), then run finalize")
             return 0
-        if args.stage == "adjudicate":
-            summary = calibrate.adjudicate(out_dir / "verdicts.yaml", judge_dir, out_dir)
-            print(json.dumps(summary, indent=2))
-            if summary.get("miss"):
-                print(f"\noptional: review {summary['adjudication']}, then run finalize")
-            return 0
-        if args.stage == "finalize":
-            result = calibrate.finalize(out_dir / "verdicts.yaml", judge_dir, out_dir)
+        status = 0
+        for judge_dir in judge_dirs:
+            result = calibrate.finalize(out_dir, judge_dir)
             print(json.dumps(result, indent=2))
-            return 1 if result.get("error") else 0
+            status |= 1 if result.get("error") else 0
+        return status
 
     if args.command == "judge":
         import asyncio

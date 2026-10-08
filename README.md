@@ -104,11 +104,11 @@ IACBENCH_CLOUD=1 AWS_REGION=us-east-1 uv run iacbench selftest --fixture G001
 # judge layer: absolute grades, experimental until calibrated against human verdicts
 uv run iacbench judge --fixture G001 --candidates runs/candidates/G001 --grade \
     --model openai/gpt-5.5 --out runs/judge/G001-gpt
-uv run iacbench calibrate packets --fixture G001 --candidates runs/candidates/G001 \
-    --judge-dir runs/judge/G001-gpt --out runs/calibration/G001
-# ...fill runs/calibration/G001/verdicts.yaml, then per judge:
-uv run iacbench calibrate adjudicate --judge-dir runs/judge/G001-gpt --out runs/calibration/G001
-uv run iacbench calibrate finalize --judge-dir runs/judge/G001-gpt --out runs/calibration/G001
+uv run iacbench calibrate sheets --fixture G001 --candidates runs/candidates/G001 \
+    --judge-dir runs/judge/G001-gpt --judge-dir runs/judge/G001-opus --out runs/calibration/G001
+# ...fill runs/calibration/G001/review.yaml (your grade per module and section), then:
+uv run iacbench calibrate finalize --judge-dir runs/judge/G001-gpt --judge-dir runs/judge/G001-opus \
+    --out runs/calibration/G001
 ```
 
 Tier-2 scoring (invariants A1–A6): validate, re-apply exits zero, required addresses in

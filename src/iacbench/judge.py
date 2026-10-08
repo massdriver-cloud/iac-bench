@@ -250,7 +250,7 @@ def bradley_terry(labels: list, judgments: list, iterations: int = 500) -> dict:
 
 _SECTION_RE = re.compile(r"^## (.+)$", re.MULTILINE)
 _GRADE_LINE_RE = re.compile(
-    r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*(NA|[0-4])(?![\d.])(?:\s*\|\s*EVIDENCE:\s*(.*))?",
+    r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*(NA|[0-2])(?![\d.])(?:\s*\|\s*EVIDENCE:\s*(.*))?",
     re.IGNORECASE,
 )
 
@@ -262,6 +262,9 @@ def _norm_heading(text: str) -> str:
     return re.sub(r"[\s*_`:.]+", " ", text).strip().casefold()
 # The doctrine's own weighting section — parsed for the weighted mean, never
 # graded itself. Lines: "- <Section name>: <weight>". Unlisted sections weigh 1.
+# Per-section scale: 0 no credit, 1 partial, 2 full — coarse on purpose, so a
+# human can check each grade at a glance.
+MAX_SECTION_SCORE = 2
 WEIGHTS_SECTION = "Grading weights"
 _WEIGHT_LINE_RE = re.compile(r"^-\s*(.+?):\s*(\d+(?:\.\d+)?)\s*$", re.MULTILINE)
 
@@ -337,7 +340,7 @@ async def run_grade(
     out_dir: Path,
     samples: int = 3,
 ) -> dict:
-    """Absolute grading: each candidate scored 0-4 per standards-doc section,
+    """Absolute grading: each candidate scored 0-2 per graded doctrine section,
     independently of every other candidate. Medians across samples; overall
     grade = mean of applicable section medians, scaled to 0-100.
 
@@ -383,7 +386,7 @@ async def run_grade(
         applicable = {s: v for s, v in per_section.items() if v is not None}
         total_w = sum(weights.get(s, 1.0) for s in applicable)
         overall = (
-            round(sum(v * weights.get(s, 1.0) for s, v in applicable.items()) / total_w / 4 * 100, 1)
+            round(sum(v * weights.get(s, 1.0) for s, v in applicable.items()) / total_w / MAX_SECTION_SCORE * 100, 1)
             if applicable and not unparsed_sections else None
         )
         from . import hclq

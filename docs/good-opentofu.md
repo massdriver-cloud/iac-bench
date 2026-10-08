@@ -1,7 +1,7 @@
 # What we consider good OpenTofu
 
 **Owner: Chris.** The authoritative definition of module quality for the judge:
-each section below is graded 0–4, except the sections listed under *Scored by the
+each section below is graded 0 (no credit), 1 (partial) or 2 (full), except the sections listed under *Scored by the
 rubric*. Grade what the module does, not what it says.
 The human-facing rationale for these preferences lives in
 `good-opentofu-rationale.md` and is not part of this definition.
@@ -218,7 +218,7 @@ The human-facing rationale for these preferences lives in
 
 ## Grading weights
 
-The judge grades each section above 0–4, except those scored by the rubric; the
+The judge grades each section above 0–2, except those scored by the rubric; the
 overall grade is the weighted mean of applicable graded sections. Sections not listed here weigh 1.
 
 - Sensitive values: 3
