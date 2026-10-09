@@ -23,10 +23,11 @@ section, is the grade right? Two stages:
 Gate rules (the parts a hostile reader checks):
   - Agreement = share of cells where the judge's grade equals the human's
     exactly.
-  - A calibrated stamp requires at least MIN_CELLS cells, overall agreement
-    >= GATE, and refuses while any cell is unfilled.
-  - Per-section agreement is published beside it: a section the judges keep
-    getting wrong is reworded or dropped from the judged component.
+  - A calibrated stamp requires at least MIN_CELLS cells, agreement >= GATE
+    in EVERY section, and refuses while any cell is unfilled. The gate is per
+    section because sections every module aces would otherwise carry a judge
+    that gets the discriminating sections wrong. A section that keeps failing
+    is reworded or dropped from the judged component.
 """
 
 from __future__ import annotations
@@ -41,7 +42,7 @@ import yaml
 BLIND_KEY_FILE = "blind-key.yaml"
 REVIEW_FILE = "review.yaml"
 MIN_CELLS = 40
-GATE = 0.8
+GATE = 0.75
 _EVIDENCE_CHARS = 300
 
 
@@ -275,10 +276,12 @@ def finalize(out_dir: Path, judge_dir: Path) -> dict:
         return result
 
     enough = cells >= MIN_CELLS
+    failing = sorted(s for s, v in result["by_section"].items() if v < GATE)
+    result["failing_sections"] = failing
     status = (
-        "calibrated (section grades agree with the doctrine owner)"
-        if enough and raw is not None and raw >= GATE
-        else (f"experimental (needs >= {MIN_CELLS} cells)" if not enough else "experimental (failed calibration)")
+        f"experimental (needs >= {MIN_CELLS} cells)" if not enough
+        else f"experimental (sections below {GATE}: {', '.join(failing)})" if failing
+        else "calibrated (every section agrees with the doctrine owner)"
     )
     grades["calibration"] = result
     grades["agreement"] = raw

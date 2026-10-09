@@ -178,10 +178,12 @@ across fourteen sections at once is not.
    rather than agree/disagree keeps the judges' answers from becoming the default, and a
    miss records how far off the judge was.
 2. **Agreement.** Per judge: the share of cells where its grade equals the human's
-   exactly, overall and per section. A judge is calibrated for the
-   fixture at ≥ 0.8 overall agreement over at least 40 cells; each judge is gated on its
-   own. A section the judges keep getting wrong is a signal to reword it in
-   `good-opentofu.md` or drop it from the judged component.
+   exactly, per section. A judge is calibrated for the fixture when every
+   section reaches ≥ 0.75 agreement (6 of 8 modules) over at least 40 cells; each judge
+   is gated on its own. The gate is per section because sections every module aces
+   would otherwise carry a judge through the sections that discriminate. A section the
+   judges keep getting wrong is reworded in `good-opentofu.md` or dropped from the
+   judged component.
 
 Until a judge clears the gate, its grades are stamped `experimental` and stay out of the
 composite. Known validity risks, mitigated by the gate rather than assumed away:
