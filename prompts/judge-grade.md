@@ -5,7 +5,8 @@ For every listed section, assign one score:
 - **2 — full credit**: follows the section's principles; nothing meaningful to fix
 - **1 — partial credit**: follows some of the section's principles but falls meaningfully short on others
 - **0 — no credit**: violates the section, or ignores what it asks for
-- **NA — not applicable**: the section genuinely cannot apply to this module (use sparingly; "the module didn't do this" is usually a score, not an NA)
+
+A section with nothing in the module to apply to (no secrets for Sensitive values, no repeated resources for Iteration) has nothing to fault: grade it 2.
 
 Rules:
 - Grade only what is in front of you. Do not assume context beyond the brief and the module.
@@ -16,6 +17,6 @@ Rules:
 
 Output format (strict — one line per listed section, covering ALL listed sections and no others):
 
-SECTION: <exact section heading> | SCORE: <0, 1, 2, or NA> | EVIDENCE: <one sentence>
+SECTION: <exact section heading> | SCORE: <0, 1, or 2> | EVIDENCE: <one sentence>
 
 No other text before or after the section lines.

@@ -150,8 +150,8 @@ never the model that wrote them.
 Two modes, implemented in `src/iacbench/judge.py`:
 
 - **Absolute grading** (`iacbench judge --grade`): each candidate scored per graded
-  doctrine section independently — 0 no credit, 1 partial, 2 full, or NA (multiple
-  samples, medians, one sentence of evidence per score) — and the weighted mean is
+  doctrine section independently — 0 no credit, 1 partial, 2 full; a section with nothing to
+  apply to earns 2 (multiple samples, medians, one sentence of evidence per score) — and the weighted mean is
   normalized to 0–100. The scale is coarse on purpose: three levels are hard to blur
   together, and a human can check each grade at a glance. Roster-independent, so it is the judged component of the
   composite. Section scores are reported as their own table — one row per doctrine
@@ -174,11 +174,11 @@ across fourteen sections at once is not.
 
 1. **Review sheets.** One sheet per module, under a blind label. It lists every graded
    section with each judge's grade and evidence side by side, then the module source.
-   The human records their own grade (0, 1, 2 or NA) for every cell. Recording a grade
+   The human records their own grade (0, 1 or 2) for every cell. Recording a grade
    rather than agree/disagree keeps the judges' answers from becoming the default, and a
    miss records how far off the judge was.
 2. **Agreement.** Per judge: the share of cells where its grade equals the human's
-   exactly (NA matches only NA), overall and per section. A judge is calibrated for the
+   exactly, overall and per section. A judge is calibrated for the
    fixture at ≥ 0.8 overall agreement over at least 40 cells; each judge is gated on its
    own. A section the judges keep getting wrong is a signal to reword it in
    `good-opentofu.md` or drop it from the judged component.

@@ -61,6 +61,9 @@ def main(argv=None) -> int:
         help="dir with a judge's grades.json; repeat for several judges (finalize: one per run)",
     )
     p_cal.add_argument("--out", required=True, help="calibration working directory")
+    p_cal.add_argument(
+        "--prefill", help="sheets stage: earlier calibration dir whose human grades seed this review"
+    )
 
     args = parser.parse_args(argv)
 
@@ -104,7 +107,9 @@ def main(argv=None) -> int:
             candidates = {
                 d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
             }
-            review = calibrate.write_sheets(fixture, candidates, judge_dirs, out_dir)
+            review = calibrate.write_sheets(
+                fixture, candidates, judge_dirs, out_dir, Path(args.prefill) if args.prefill else None
+            )
             print(f"wrote {len(candidates)} review sheets under {out_dir / 'modules'}")
             print(f"fill in {review} (your grade per module and section), then run finalize")
             return 0

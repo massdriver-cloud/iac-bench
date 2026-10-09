@@ -519,7 +519,7 @@ def render_grade_sections(judge_dirs: list) -> str:
         return ""
     footer = (
         "\nEach row is scored 0–2 against one section of the published doctrine "
-        "(median of independent samples; NA sections drop out of the weighted mean). "
+        "(median of independent samples). "
         "The sections are our documented preferences — disagree with one, ignore its "
         "row; the mechanical rubric above is judge-free."
     )

@@ -250,7 +250,7 @@ def bradley_terry(labels: list, judgments: list, iterations: int = 500) -> dict:
 
 _SECTION_RE = re.compile(r"^## (.+)$", re.MULTILINE)
 _GRADE_LINE_RE = re.compile(
-    r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*(NA|[0-2])(?![\d.])(?:\s*\|\s*EVIDENCE:\s*(.*))?",
+    r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*([0-2])(?![\d.])(?:\s*\|\s*EVIDENCE:\s*(.*))?",
     re.IGNORECASE,
 )
 
@@ -258,7 +258,7 @@ _GRADE_LINE_RE = re.compile(
 def _norm_heading(text: str) -> str:
     """Normalize a section heading for keying: judges reformat headings
     (bold, trailing colons, case), and an exact-string mismatch must never
-    silently turn a graded section into an NA."""
+    silently drop a graded section."""
     return re.sub(r"[\s*_`:.]+", " ", text).strip().casefold()
 # The doctrine's own weighting section — parsed for the weighted mean, never
 # graded itself. Lines: "- <Section name>: <weight>". Unlisted sections weigh 1.
@@ -312,7 +312,7 @@ def _median(values: list) -> float:
 async def _grade_once(
     model, system_prompt: str, doc: str, sections: list, brief: str, module_text: str
 ) -> dict:
-    """{normalized section: (score|None, evidence)} for one sample."""
+    """{normalized section: (score, evidence)} for one sample."""
     from inspect_ai.model import ChatMessageSystem, ChatMessageUser
 
     section_list = "\n".join(f"- {s}" for s in sections)
@@ -327,8 +327,7 @@ async def _grade_once(
     )
     scores: dict = {}
     for match in _GRADE_LINE_RE.finditer(output.completion or ""):
-        section, raw = _norm_heading(match.group(1)), match.group(2).upper()
-        scores[section] = (None if raw == "NA" else int(raw), (match.group(3) or "").strip())
+        scores[_norm_heading(match.group(1))] = (int(match.group(2)), (match.group(3) or "").strip())
     return scores
 
 
@@ -342,7 +341,7 @@ async def run_grade(
 ) -> dict:
     """Absolute grading: each candidate scored 0-2 per graded doctrine section,
     independently of every other candidate. Medians across samples; overall
-    grade = mean of applicable section medians, scaled to 0-100.
+    grade = weighted mean of section medians, scaled to 0-100.
 
     UNTRUSTED BY DEFAULT, like the pairwise judge — experimental until it
     demonstrates agreement with human absolute grades.
@@ -374,20 +373,17 @@ async def run_grade(
         for section in sections:
             key = _norm_heading(section)
             graded = [s[key] for s in sample_scores if isinstance(s, dict) and key in s]
-            votes = [score for score, _ in graded if score is not None]
-            explicit_na = any(score is None for score, _ in graded)
+            votes = [score for score, _ in graded]
             per_section[section] = _median(votes) if votes else None
-            evidence[section] = [f"[{'NA' if score is None else score}] {text}" for score, text in graded]
-            if not votes and not explicit_na:
-                # Zero votes without an explicit NA means parsing loss, not
-                # inapplicability — the overall would be computed on a
-                # different denominator than other candidates. Refuse it.
+            evidence[section] = [f"[{score}] {text}" for score, text in graded]
+            if not votes:
+                # Parsing loss: the overall would be computed over different
+                # sections than other candidates'. Refuse it.
                 unparsed_sections.append(section)
-        applicable = {s: v for s, v in per_section.items() if v is not None}
-        total_w = sum(weights.get(s, 1.0) for s in applicable)
+        total_w = sum(weights.get(s, 1.0) for s in sections)
         overall = (
-            round(sum(v * weights.get(s, 1.0) for s, v in applicable.items()) / total_w / MAX_SECTION_SCORE * 100, 1)
-            if applicable and not unparsed_sections else None
+            round(sum(per_section[s] * weights.get(s, 1.0) for s in sections) / total_w / MAX_SECTION_SCORE * 100, 1)
+            if not unparsed_sections else None
         )
         from . import hclq
         results[label] = {

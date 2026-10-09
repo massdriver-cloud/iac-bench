@@ -2,22 +2,28 @@
 
 **Owner: Chris.** The authoritative definition of module quality for the judge:
 each section below is graded 0 (no credit), 1 (partial) or 2 (full), except the sections listed under *Scored by the
-rubric*. Grade what the module does, not what it says.
+rubric*. A section with nothing in the module to apply to has nothing to fault and
+earns 2. Grade what the module does, not what it says.
 The human-facing rationale for these preferences lives in
 `good-opentofu-rationale.md` and is not part of this definition.
 
 ## Interface design
 
-- The interface is sized to the audience the prompt describes. Expose what *that*
-  audience knows, cares about, and legitimately needs to vary; have opinions about
-  everything else. Consumers new to the service get a handful of plain-language inputs
-  and no service jargon. A specialist team gets the controls its discipline expects to
-  own. There is no universal variable count. Judge the interface against the stated
-  audience: settings that audience would not understand or care about are
-  overconfiguration, and missing controls it would expect to own are overprescription.
+Grade the module's inputs against what the prompt asks the module to do and who will
+use it. (Which resources the module creates is Scope; how it computes values internally
+is Internal logic.)
+
+- Start from the use case. The inputs cover the decisions that genuinely differ between
+  deployments of this module for that use case, and the module makes every decision the
+  use case already settles. An input the use case gives no reason to vary is
+  overconfiguration; a decision the use case leaves open, hardcoded, is
+  overprescription.
+- Then fit those inputs to the audience. Express them in terms that audience knows and
+  cares about. Consumers new to the service get a handful of plain-language inputs and
+  no service jargon; a specialist team gets the controls its discipline expects to own.
+  There is no universal variable count.
 - Variablize *concepts*, not resource attributes, wherever the audience thinks in
-  concepts. An `environment` input that drives versioning, logging, and retention beats
-  three boolean toggles.
+  concepts.
 - Expose a core capability at the audience's level of abstraction. Offering a capability
   is good; *how* it is offered must fit the consumer. For an audience new to the service,
   a single switch or plain-language choice that the module expands into a sound
@@ -31,18 +37,25 @@ The human-facing rationale for these preferences lives in
 
 ## Variables and validation
 
-- The variables that *should* be guarded are guarded, with error messages that teach.
-  Validation coverage as a percentage is meaningless; validation on the input that can
-  silently break prod is everything.
+- Guard the inputs where a bad value does damage: those that are easy to check and
+  would otherwise fail at apply time or silently break prod get validation, with error
+  messages that teach. Validation coverage as a percentage is meaningless.
+- Validation conditions are exact: they accept every valid value and reject the
+  invalid ones. A wrong condition is worse than none.
+- Avoid pairs of variables that can be set to conflict with each other unless necessary.
 
-## Structure
+## Internal logic
+
+Grade how the module computes what it needs internally: its locals and expressions,
+not its file organization (File layout) or its inputs (Interface design).
 
 - Use locals to compute inferred values from concept inputs rather than demanding more
   inputs. Deep chains of clever expressions are their own anti-pattern; locals should make
-  the module *more* readable, not show off. Avoid pairs of variables that can be set to
-  conflict with each other unless necessary.
+  the module *more* readable, not show off.
 
 ## Scope
+
+Grade which resources the module creates for the job it was given.
 
 - Include the resources a competent operator would consider part of the job (access
   posture, encryption, cost and data hygiene) — proportionate to the use case, without
@@ -68,10 +81,11 @@ The human-facing rationale for these preferences lives in
 
 ## Outputs
 
-- Minimal outputs, mirroring the variables philosophy: output the values that are relevant
-  to *using* the module's resources from outside (ids, ARNs, endpoints, computed names).
-  Exporting everything because you can is the output-side version of the pass-through
-  module.
+- Output the values a consumer needs to *use* the module's resources from outside
+  (ids, ARNs, endpoints, computed names). Covering those needs matters more than
+  keeping the list short.
+- Exporting every attribute of every resource because you can is the output-side
+  version of the pass-through module.
 
 ## Tagging
 
@@ -106,10 +120,14 @@ The human-facing rationale for these preferences lives in
 
 ## File layout
 
-- `variables.tf` and `outputs.tf` when they're needed; a `main.tf` is good, especially
-  when the resources fit comfortably in one file. Beyond roughly 150–200 lines of
-  resources, or more than one clear concern, split conceptually (`bucket.tf`,
-  `logging.tf`) for readability. (Cutoff is a suggested default, not a hard line.)
+- Variables, outputs and resources each have their place: `variables.tf` and
+  `outputs.tf` when the module has them. A single file holding everything has no
+  layout and earns no credit.
+- A `main.tf` is fine for the core resources of the bundle.
+- Split conceptually into separate files when the module has more than one clear
+  concern, such as a supporting resource with its own configuration alongside the main
+  one, whatever the file length. Beyond roughly 150–200 lines of resources, split for
+  readability. (The line count is a suggested default, not a hard line.)
 
 ## Destructive defaults
 
@@ -173,9 +191,12 @@ The human-facing rationale for these preferences lives in
 
 ## Documentation
 
-- Every variable and output has a `description`. A README is positive. Some documentation
-  is good; excessive documentation is not good; no documentation is bad; incorrect or
-  out-of-date documentation is really bad.
+- Every variable and output has a `description`.
+- Comments explain what is complex or unintuitive; obvious code needs none, and
+  excessive commenting is noise.
+- A README is positive and can carry what sparse comments leave out. Good comments, a
+  good README, or both earn full credit; neither earns none.
+- Incorrect or out-of-date documentation is really bad.
 
 ## Deprecated and escape-hatch patterns
 
@@ -219,7 +240,7 @@ The human-facing rationale for these preferences lives in
 ## Grading weights
 
 The judge grades each section above 0–2, except those scored by the rubric; the
-overall grade is the weighted mean of applicable graded sections. Sections not listed here weigh 1.
+overall grade is the weighted mean of the graded sections. Sections not listed here weigh 1.
 
 - Sensitive values: 3
 - Interface design: 2

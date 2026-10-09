@@ -8,17 +8,21 @@ section, is the grade right? Two stages:
   sheets   — one review sheet per module under blind labels ("Module A"):
              a table of every graded section with each judge's grade and
              evidence side by side, then the module source. The human records
-             their OWN grade (0, 1, 2 or NA) per cell in review.yaml — not
+             their OWN grade (0, 1 or 2) per cell in review.yaml — not
              agree/disagree, so seeing two judges cannot collapse into
              nodding along, and a miss records how far off the judge was.
              review.yaml pins the doctrine edition and per-candidate module
              hashes so a review can never silently drift from its artifacts.
+             After a doctrine revision, an earlier review can prefill the
+             human's grades (matched by candidate and section heading); rows
+             where a judge now differs are flagged, so only those need a look.
+             A renamed section starts blank.
   finalize — per judge: exact agreement between the judge's grade and the
              human's, overall and per section; stamps grades.json.
 
 Gate rules (the parts a hostile reader checks):
   - Agreement = share of cells where the judge's grade equals the human's
-    exactly (NA matches only NA).
+    exactly.
   - A calibrated stamp requires at least MIN_CELLS cells, overall agreement
     >= GATE, and refuses while any cell is unfilled.
   - Per-section agreement is published beside it: a section the judges keep
@@ -90,10 +94,11 @@ def _binding_problems(doc_sha: str | None, shas: dict, grades: dict) -> list:
     return problems
 
 
-def write_sheets(fixture, candidates: dict, judge_dirs: list, out_dir: Path) -> Path:
+def write_sheets(fixture, candidates: dict, judge_dirs: list, out_dir: Path, prefill: Path | None = None) -> Path:
     """Review sheets (modules/Module-X.md) plus review.yaml to fill. Every
     judge must have graded the current doctrine edition and these exact
-    module snapshots."""
+    module snapshots. `prefill` is an earlier review directory whose grades
+    seed this one for the candidates whose snapshots are unchanged."""
     from .artifacts import module_sha
     from .judge import (
         DEFAULT_PRINCIPLES,
@@ -115,6 +120,14 @@ def write_sheets(fixture, candidates: dict, judge_dirs: list, out_dir: Path) -> 
             raise ValueError(f"{_judge_name(judge)}: " + "; ".join(problems))
     blind = _blind_labels(out_dir.name, shas)
     ordered = sorted(blind, key=blind.get)
+    previous: dict = {}
+    if prefill:
+        earlier = _load_review(prefill)
+        previous = {
+            real: {s: _norm(g) for s, g in row.items() if s in sections}
+            for real, row in earlier["grades"].items()
+            if earlier["candidates"].get(real) == shas.get(real)
+        }
 
     for real in ordered:
         label = blind[real]
@@ -123,7 +136,25 @@ def write_sheets(fixture, candidates: dict, judge_dirs: list, out_dir: Path) -> 
             cells = [_cell(j, real, section) for j in judges]
             grades_txt = " | ".join(str(g) for g, _ in cells)
             evidence = "<br>".join(f"**{_judge_name(j)}:** {e}" for j, (_, e) in zip(judges, cells, strict=True))
-            rows.append(f"| {section} | {grades_txt} | {evidence} |")
+            if prefill:
+                yours = previous.get(real, {}).get(section)
+                flag = "blank" if yours is None else ("⚠ check" if any(g != yours for g, _ in cells) else "")
+                rows.append(f"| {section} | {'' if yours is None else yours} | {flag} | {grades_txt} | {evidence} |")
+            else:
+                rows.append(f"| {section} | {grades_txt} | {evidence} |")
+        if prefill:
+            header = "| Section | Yours | Check | " + " | ".join(_judge_name(j) for j in judges) + " | Evidence |"
+            rule = "|---|---|---|" + "---|" * len(judges) + "---|"
+            intro = [
+                "Your grades from the previous review are filled in. Look at rows",
+                "marked **⚠ check** (a judge now differs from you) and **blank** (a new or",
+                "renamed section); change a grade only if you now see it differently.",
+                "",
+            ]
+        else:
+            header = "| Section | " + " | ".join(_judge_name(j) for j in judges) + " | Evidence |"
+            rule = "|---|" + "---|" * len(judges) + "---|"
+            intro = []
         body = [
             f"# {label}",
             "",
@@ -131,16 +162,17 @@ def write_sheets(fixture, candidates: dict, judge_dirs: list, out_dir: Path) -> 
             "",
             "For each doctrine section below, record **your own grade** for this",
             f"module in {REVIEW_FILE} under `{label}`: 0 (no credit), 1 (partial",
-            "credit), 2 (full credit), or NA if the section cannot apply to this",
-            "module. The judges' grades and evidence are there to speed you up;",
+            "credit) or 2 (full credit). A section with nothing in the module to",
+            "apply to has nothing to fault and earns 2. The judges' grades and evidence are there to speed you up;",
             "agree with them or not. Grade only these sections: security,",
             "tagging, provider configuration, versions, destructive defaults and",
             "scope invention are scored by the rubric and are not part of this review.",
             "",
             "## Judges' grades",
             "",
-            "| Section | " + " | ".join(_judge_name(j) for j in judges) + " | Evidence |",
-            "|---|" + "---|" * len(judges) + "---|",
+            *intro,
+            header,
+            rule,
             *rows,
             "",
             "## Brief",
@@ -155,14 +187,14 @@ def write_sheets(fixture, candidates: dict, judge_dirs: list, out_dir: Path) -> 
 
     review_path = out_dir / REVIEW_FILE
     review_path.write_text(
-        "# Your grade per module and doctrine section: 0, 1, 2, or NA.\n"
+        "# Your grade per module and doctrine section: 0, 1 or 2.\n"
         "# Read modules/Module-X.md for the source and the judges' grades.\n"
         + yaml.safe_dump(
             {
                 "fixture": fixture.id,
                 "principles_sha256": doc_sha,
                 "candidates": {blind[r]: shas[r] for r in ordered},
-                "grades": {blind[r]: {s: None for s in sections} for r in ordered},
+                "grades": {blind[r]: {s: previous.get(r, {}).get(s) for s in sections} for r in ordered},
                 "notes": {blind[r]: "" for r in ordered},
             },
             sort_keys=False,
@@ -188,17 +220,21 @@ def _load_review(out_dir: Path) -> dict:
 def _norm(value):
     if value is None:
         return None
-    text = str(value).strip().upper()
-    if text == "NA":
-        return "NA"
+    text = str(value).strip()
     if text in {"0", "1", "2"}:
         return int(text)
-    raise ValueError(f"grade must be 0, 1, 2 or NA, got {value!r}")
+    raise ValueError(f"grade must be 0, 1 or 2, got {value!r}")
 
 
 def finalize(out_dir: Path, judge_dir: Path) -> dict:
+    from .judge import DEFAULT_PRINCIPLES, graded_sections
+
     review = _load_review(out_dir)
     grades = _load_grades(judge_dir)
+    sections = graded_sections(DEFAULT_PRINCIPLES.read_text())
+    stray = sorted({s for row in review["grades"].values() for s in row} - set(sections))
+    if stray:
+        return {"error": "review.yaml names sections that are not graded", "problems": stray}
     problems = _binding_problems(review.get("principles_sha256"), review["candidates"], grades)
     if problems:
         return {"error": "artifact/edition binding mismatch", "problems": problems}
@@ -208,8 +244,8 @@ def finalize(out_dir: Path, judge_dir: Path) -> dict:
     by_section: dict = {}
     misses: list = []
     for label, row in review["grades"].items():
-        for section, human in row.items():
-            human = _norm(human)
+        for section in sections:
+            human = _norm(row.get(section))
             if human is None:
                 unfilled += 1
                 continue
@@ -227,7 +263,7 @@ def finalize(out_dir: Path, judge_dir: Path) -> dict:
     result = {
         "fixture": review["fixture"],
         "judge_model": grades.get("judge_model"),
-        "method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2/NA)",
+        "method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)",
         "cells": cells,
         "agreement": raw,
         "by_section": {s: round(a / n, 3) for s, (a, n) in by_section.items()},
