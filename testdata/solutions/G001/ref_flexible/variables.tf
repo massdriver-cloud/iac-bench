@@ -24,8 +24,8 @@ variable "transition_days" {
   default     = 30
 
   validation {
-    condition     = var.transition_days == 0 || var.transition_days >= 30
-    error_message = "transition_days must be 0 (disabled) or at least 30 (S3 minimum)."
+    condition     = var.transition_days >= 0 && floor(var.transition_days) == var.transition_days
+    error_message = "transition_days must be 0 (disabled) or a whole number of days."
   }
 }
 
@@ -41,13 +41,13 @@ variable "transition_storage_class" {
 }
 
 variable "noncurrent_expiration_days" {
-  description = "Days before old object versions are deleted. 0 disables expiry entirely (versions kept forever)."
+  description = "Days before old object versions are deleted (prod only; other environments keep no old versions). Defaults to 90 in prod; 0 disables expiry entirely (versions kept forever)."
   type        = number
-  default     = 90
+  default     = null
 
   validation {
-    condition     = var.noncurrent_expiration_days >= 0
-    error_message = "noncurrent_expiration_days must be 0 (disabled) or a positive number of days."
+    condition     = var.noncurrent_expiration_days == null || try(var.noncurrent_expiration_days >= 0 && floor(var.noncurrent_expiration_days) == var.noncurrent_expiration_days, false)
+    error_message = "noncurrent_expiration_days must be 0 (disabled) or a whole number of days."
   }
 }
 

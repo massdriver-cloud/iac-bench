@@ -48,6 +48,10 @@ def main(argv=None) -> int:
     )
     p_judge.add_argument("--grade", action="store_true", help="absolute grading mode: score each candidate 0-100 against good-opentofu.md, no comparisons")
     p_judge.add_argument("--samples", type=int, default=3, help="grading samples per candidate (grade mode)")
+    p_judge.add_argument(
+        "--author-label",
+        help="grade mode, bias experiment only: tell the judge every module was written by this name",
+    )
 
     p_cal = sub.add_parser(
         "calibrate",
@@ -140,7 +144,9 @@ def main(argv=None) -> int:
                     d.name: d for d in sorted(Path(args.candidates).iterdir()) if d.is_dir()
                 }
                 summary = asyncio.run(
-                    run_grade(fixture.id, fixture.brief, candidates, args.model, out_dir, args.samples)
+                    run_grade(
+                        fixture.id, fixture.brief, candidates, args.model, out_dir, args.samples, args.author_label
+                    )
                 )
                 print(json.dumps(summary["grades"], indent=2))
             if args.human:

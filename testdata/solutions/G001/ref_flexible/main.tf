@@ -2,6 +2,8 @@ locals {
   is_prod       = var.environment == "prod"
   bucket_name   = "assets-${var.purpose}-${random_id.suffix.hex}"
   force_destroy = var.force_destroy != null ? var.force_destroy : !local.is_prod
+  # Old versions exist only where versioning does.
+  noncurrent_days = local.is_prod ? coalesce(var.noncurrent_expiration_days, 90) : 0
 
   tags = merge(var.extra_tags, {
     managed-by  = "opentofu"
@@ -57,6 +59,18 @@ resource "aws_s3_bucket_versioning" "assets" {
 resource "aws_s3_bucket_lifecycle_configuration" "assets" {
   bucket = aws_s3_bucket.assets.id
 
+  lifecycle {
+    precondition {
+      condition     = var.noncurrent_expiration_days == null || var.noncurrent_expiration_days == 0 || local.is_prod
+      error_message = "noncurrent_expiration_days applies only to prod, the one environment with versioning; leave it unset elsewhere."
+    }
+    precondition {
+      # S3 requires 30 days in STANDARD before an infrequent-access class; GLACIER_IR has no minimum.
+      condition     = var.transition_days == 0 || var.transition_days >= 30 || var.transition_storage_class == "GLACIER_IR"
+      error_message = "transition_days must be 0 or at least 30 for STANDARD_IA and ONEZONE_IA."
+    }
+  }
+
   rule {
     id     = "abort-incomplete-multipart"
     status = "Enabled"
@@ -85,7 +99,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
   }
 
   dynamic "rule" {
-    for_each = var.noncurrent_expiration_days > 0 ? [1] : []
+    for_each = local.noncurrent_days > 0 ? [1] : []
 
     content {
       id     = "expire-noncurrent-versions"
@@ -94,7 +108,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
       filter {}
 
       noncurrent_version_expiration {
-        noncurrent_days = var.noncurrent_expiration_days
+        noncurrent_days = local.noncurrent_days
       }
     }
   }

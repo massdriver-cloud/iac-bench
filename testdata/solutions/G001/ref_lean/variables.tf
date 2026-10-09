@@ -30,7 +30,7 @@ variable "transition_days" {
 }
 
 variable "noncurrent_expiration_days" {
-  description = "Days before old object versions are deleted. 0 (the default) keeps versions forever — deletion is opt-in."
+  description = "Days before old object versions are deleted (prod only; other environments keep no old versions). 0 (the default) keeps versions forever — deletion is opt-in."
   type        = number
   default     = 0
 

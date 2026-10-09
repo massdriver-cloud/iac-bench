@@ -232,6 +232,8 @@ def finalize(out_dir: Path, judge_dir: Path) -> dict:
 
     review = _load_review(out_dir)
     grades = _load_grades(judge_dir)
+    if grades.get("author_label"):
+        return {"error": "these grades were made with an author label (bias experiment); only blind grades calibrate"}
     sections = graded_sections(DEFAULT_PRINCIPLES.read_text())
     stray = sorted({s for row in review["grades"].values() for s in row} - set(sections))
     if stray:

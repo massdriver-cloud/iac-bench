@@ -310,9 +310,12 @@ def _median(values: list) -> float:
 
 
 async def _grade_once(
-    model, system_prompt: str, doc: str, sections: list, brief: str, module_text: str
+    model, system_prompt: str, doc: str, sections: list, brief: str, module_text: str,
+    author: str | None = None,
 ) -> dict:
-    """{normalized section: (score, evidence)} for one sample."""
+    """{normalized section: (score, evidence)} for one sample. `author` names
+    the module's author to the judge — only for the authorship-bias
+    experiment; scored grading is always blind."""
     from inspect_ai.model import ChatMessageSystem, ChatMessageUser
 
     section_list = "\n".join(f"- {s}" for s in sections)
@@ -320,7 +323,8 @@ async def _grade_once(
         f"# The organization's standards document\n\n{doc}\n\n"
         f"# The sections to grade\n\n{section_list}\n\n"
         f"# The brief this module was built against\n\n{brief}\n\n"
-        f"# The module to grade\n\n{module_text}"
+        + (f"# The module's author\n\nThis module was written by {author}.\n\n" if author else "")
+        + f"# The module to grade\n\n{module_text}"
     )
     output = await model.generate(
         [ChatMessageSystem(content=system_prompt), ChatMessageUser(content=user)]
@@ -338,6 +342,7 @@ async def run_grade(
     judge_model: str,
     out_dir: Path,
     samples: int = 3,
+    author: str | None = None,
 ) -> dict:
     """Absolute grading: each candidate scored 0-2 per graded doctrine section,
     independently of every other candidate. Medians across samples; overall
@@ -364,7 +369,7 @@ async def run_grade(
     for label, module_dir in sorted(candidates.items()):
         module_text = render_module(module_dir)
         sample_scores = await asyncio.gather(
-            *[_grade_once(model, system_prompt, doc, sections, brief, module_text) for _ in range(samples)],
+            *[_grade_once(model, system_prompt, doc, sections, brief, module_text, author) for _ in range(samples)],
             return_exceptions=True,
         )
         per_section: dict = {}
@@ -404,6 +409,7 @@ async def run_grade(
         "graded_sections": sections,
         "section_weights": weights,
         "status": "experimental (not calibrated against human absolute grades)",
+        "author_label": author,
         "grades": {label: r["overall"] for label, r in sorted(results.items(), key=lambda kv: -(kv[1]["overall"] or 0))},
         "detail": results,
     }

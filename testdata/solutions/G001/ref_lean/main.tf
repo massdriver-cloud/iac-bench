@@ -58,6 +58,13 @@ resource "aws_s3_bucket_versioning" "assets" {
 resource "aws_s3_bucket_lifecycle_configuration" "assets" {
   bucket = aws_s3_bucket.assets.id
 
+  lifecycle {
+    precondition {
+      condition     = var.noncurrent_expiration_days == 0 || local.is_prod
+      error_message = "noncurrent_expiration_days applies only to prod, the one environment with versioning; leave it 0 elsewhere."
+    }
+  }
+
   # Always on: failed multipart fragments are storage garbage, not data.
   rule {
     id     = "abort-incomplete-multipart"
@@ -88,7 +95,7 @@ resource "aws_s3_bucket_lifecycle_configuration" "assets" {
 
   # Deleting old versions is destructive; it stays off unless asked for.
   dynamic "rule" {
-    for_each = var.noncurrent_expiration_days > 0 ? [1] : []
+    for_each = local.is_prod && var.noncurrent_expiration_days > 0 ? [1] : []
 
     content {
       id     = "expire-noncurrent-versions"

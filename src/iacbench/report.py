@@ -259,6 +259,9 @@ def _load_grade_data(judge_dirs: list) -> list:
         if not path.is_file():
             continue
         data = json.loads(path.read_text())
+        if data.get("author_label"):
+            # Bias-experiment grades: the judge was told an author. Never scored.
+            continue
         entries.append({
             "fixture": data.get("fixture"),
             "judge_model": data.get("judge_model", "?"),
