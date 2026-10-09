@@ -44,6 +44,12 @@ is Internal logic.)
   one: format checks on identifiers are optional, and their looseness costs nothing.
 - Validation coverage as a percentage is meaningless.
 - Avoid pairs of variables that can be set to conflict with each other unless necessary.
+- 2: the inputs where a realistic mistake would break the deployment are guarded, and
+  no condition rejects a valid value.
+- 1: some of those guards are missing, a condition rejects a valid value, or inputs
+  can be set to conflict.
+- 0: no validation, though the module has inputs where a realistic mistake would break
+  the deployment.
 
 ## Internal logic
 
