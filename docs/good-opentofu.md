@@ -16,20 +16,16 @@ is Internal logic.)
 - Start from the use case. The inputs cover the decisions that genuinely differ between
   deployments of this module for that use case, and the module makes every decision the
   use case already settles. An input the use case gives no reason to vary is
-  overconfiguration; a decision the use case leaves open, hardcoded, is
-  overprescription.
-- Then fit those inputs to the audience. Express them in terms that audience knows and
-  cares about. Consumers new to the service get a handful of plain-language inputs and
-  no service jargon; a specialist team gets the controls its discipline expects to own.
-  There is no universal variable count.
+  overconfiguration however friendly its form; a decision the use case leaves open,
+  hardcoded, is overprescription.
+- Then check each of those inputs against the audience: the consumer can choose its
+  value from their own requirements and knowledge. A specialist team can own the
+  controls its discipline expects; for a consumer new to the service, a decision that
+  takes service expertise is raised to a level they can decide on, or made by the
+  module. There is no universal variable count.
 - Variablize *concepts*, not resource attributes, wherever the audience thinks in
-  concepts.
-- Expose a core capability at the audience's level of abstraction. Offering a capability
-  is good; *how* it is offered must fit the consumer. For an audience new to the service,
-  a single switch or plain-language choice that the module expands into a sound
-  configuration is the reward-worthy form, and exposing the capability's raw internals
-  (rule structures, thresholds, service-specific class names) is overconfiguration. A
-  specialist audience may warrant the internals.
+  concepts. Abstraction serves the consumer and is not a goal in itself: an input the
+  use case calls for and the consumer can decide on needs no further wrapping.
 - Anti-pattern, for every audience: the pass-through module — one variable per resource
   attribute, defaults mirroring provider defaults, no judgment encoded anywhere. A
   specialist audience earns more controls, not an absence of opinions; security posture
@@ -37,11 +33,16 @@ is Internal logic.)
 
 ## Variables and validation
 
-- Guard the inputs where a bad value does damage: those that are easy to check and
-  would otherwise fail at apply time or silently break prod get validation, with error
-  messages that teach. Validation coverage as a percentage is meaningless.
-- Validation conditions are exact: they accept every valid value and reject the
-  invalid ones. A wrong condition is worse than none.
+- Validation earns its place by catching a mistake a consumer could realistically
+  make that would otherwise break the deployment or behave in a way they would not
+  expect, or by making an input with non-obvious valid values self-explanatory, with
+  an error message that teaches.
+- An input is only a validation gap if a rule could tell a good value from a bad one.
+  Whether a value names the right existing resource is something only the provider
+  can answer; leaving it to the provider is correct.
+- Conditions never reject a valid value. They do not need to catch every invalid
+  one: format checks on identifiers are optional, and their looseness costs nothing.
+- Validation coverage as a percentage is meaningless.
 - Avoid pairs of variables that can be set to conflict with each other unless necessary.
 
 ## Internal logic
@@ -191,12 +192,12 @@ Grade which resources the module creates for the job it was given.
 
 ## Documentation
 
-- Every variable and output has a `description`.
-- Comments explain what is complex or unintuitive; obvious code needs none, and
-  excessive commenting is noise.
-- A README is positive and can carry what sparse comments leave out. Good comments, a
-  good README, or both earn full credit; neither earns none.
-- Incorrect or out-of-date documentation is really bad.
+- Every variable and output has a `description`. Comments explain what is complex or
+  unintuitive; a README can carry what comments leave out. Comments, a README, or
+  both can make a module understandable.
+- 2: accurate, and the amount fits the module.
+- 1: accurate, but too sparse or so heavy it becomes noise.
+- 0: none, or any of it is wrong or out of date.
 
 ## Deprecated and escape-hatch patterns
 
