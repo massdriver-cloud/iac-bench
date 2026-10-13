@@ -38,7 +38,8 @@ resource "google_sql_database_instance" "this" {
     disk_autoresize             = true
     deletion_protection_enabled = var.deletion_protection
 
-    user_labels = merge(var.labels, { environment = var.environment })
+    # Cloud SQL ignores the provider's default_labels; labels must be set here.
+    user_labels = merge(var.labels, { environment = var.environment, managed-by = "opentofu" })
 
     ip_configuration {
       ipv4_enabled    = false

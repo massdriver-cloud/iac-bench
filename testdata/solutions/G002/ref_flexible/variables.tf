@@ -53,23 +53,43 @@ variable "maintenance_day" {
   description = "Maintenance day, 1 = Monday .. 7 = Sunday."
   type        = number
   default     = 6
+
+  validation {
+    condition     = contains([1, 2, 3, 4, 5, 6, 7], var.maintenance_day)
+    error_message = "maintenance_day must be 1 (Monday) through 7 (Sunday)."
+  }
 }
 
 variable "maintenance_hour" {
   description = "Maintenance hour, 0-23 UTC."
   type        = number
   default     = 4
+
+  validation {
+    condition     = var.maintenance_hour >= 0 && var.maintenance_hour <= 23 && floor(var.maintenance_hour) == var.maintenance_hour
+    error_message = "maintenance_hour must be a whole hour from 0 to 23 (UTC)."
+  }
 }
 
 variable "backup" {
   description = "Backup policy. enabled = false turns off automated backups and point-in-time recovery."
   type = object({
-    enabled              = optional(bool, true)
-    start_time           = optional(string, "03:00")
-    retained_backups     = optional(number, 14)
-    log_retention_days   = optional(number, 7)
+    enabled            = optional(bool, true)
+    start_time         = optional(string, "03:00")
+    retained_backups   = optional(number, 14)
+    log_retention_days = optional(number, 7)
   })
   default = {}
+
+  validation {
+    condition     = can(regex("^([01][0-9]|2[0-3]):[0-5][0-9]$", var.backup.start_time))
+    error_message = "backup.start_time must be HH:MM (24-hour, UTC)."
+  }
+
+  validation {
+    condition     = var.backup.log_retention_days >= 1 && var.backup.log_retention_days <= 7
+    error_message = "backup.log_retention_days must be 1-7 on the Enterprise edition."
+  }
 }
 
 variable "deletion_protection" {
@@ -88,4 +108,10 @@ variable "labels" {
   description = "Labels to apply to the instance."
   type        = map(string)
   default     = {}
+}
+
+variable "region" {
+  description = "GCP region the instance runs in."
+  type        = string
+  default     = "us-central1"
 }

@@ -14,7 +14,7 @@ resource "google_sql_database_instance" "this" {
     disk_size             = var.disk_size_gb
     disk_autoresize       = true
     disk_autoresize_limit = var.disk_autoresize_limit_gb
-    user_labels           = var.labels
+    user_labels           = merge(var.labels, { managed-by = "opentofu" })
 
     ip_configuration {
       ipv4_enabled    = false

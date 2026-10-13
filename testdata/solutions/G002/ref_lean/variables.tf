@@ -100,3 +100,9 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "region" {
+  description = "GCP region the instance runs in."
+  type        = string
+  default     = "us-central1"
+}

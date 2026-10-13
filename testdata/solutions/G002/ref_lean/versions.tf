@@ -12,9 +12,3 @@ terraform {
     }
   }
 }
-
-provider "google" {
-  default_labels = {
-    managed-by = "opentofu"
-  }
-}

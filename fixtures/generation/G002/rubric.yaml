@@ -137,6 +137,22 @@ items:
     check:
       var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}
 
+  - id: H9
+    weight: 4
+    posture: ladder
+    description: >
+      Explicit provider configuration with a configurable region. Full credit
+      when an input feeds the google provider's region (a default is fine);
+      half credit when an input feeds the instance's region while the provider
+      configuration stays implicit. Neither leaves the region to whatever
+      environment runs the module. The project is not scored: in GCP it
+      conventionally travels with the credentials.
+    ladder:
+      - score: 1.0
+        check: {var_feeds_provider_attr: {provider: google, attr: region}}
+      - score: 0.5
+        check: {var_feeds_attr: {type: google_sql_database_instance, attr: region}}
+
   # Audience fit (A*). The audience is a DBA team that "expects to own the
   # decisions that are genuinely theirs" but does not want to re-decide what
   # should be the same everywhere. Exposure items are the controls a DBA
