@@ -41,6 +41,7 @@ class GenerationFixture:
     domain: str
     suite_version: str
     tier: int
+    cloud: str  # aws | gcp | azure — whose credentials the plans need
     scoring_policy: str
     mandatory: list
     items: list  # [{id, weight, description, check | behavior, posture?, partial?}]
@@ -69,6 +70,7 @@ class GenerationFixture:
             domain=data["domain"],
             suite_version=data["suite_version"],
             tier=data.get("tier", 2),
+            cloud=data["cloud"],
             scoring_policy=data.get("scoring_policy", "v1"),
             mandatory=data.get("mandatory", []),
             items=data["items"] + baseline_items,
@@ -121,8 +123,8 @@ class GenerationResult:
 class RootProbeHarness:
     """Plans the module as a root module: one init, then repeated
     `tofu plan -var-file=<generated>.tfvars.json` runs in the same dir.
-    Provider configuration comes from the environment (AWS_REGION, ambient
-    credentials) — never injected."""
+    Provider configuration comes from the environment (region, project or
+    subscription, ambient credentials) — never injected."""
 
     def __init__(self, module_dir: Path, timeout_s: int = 180):
         self.module_dir = Path(module_dir).resolve()
@@ -358,7 +360,9 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     for item in fixture.items:
         try:
             if item.get("posture") == "default_on":
-                value = checks.grade_default_on(ctx, item["behavior"], item.get("partial", 0.5))
+                value = checks.grade_default_on(
+                    ctx, item["behavior"], item.get("partial", 0.5), item.get("hardcoded_on", 0.0)
+                )
             else:
                 value = evaluate_memo(ctx, item["id"], item["check"])
         except Exception as exc:

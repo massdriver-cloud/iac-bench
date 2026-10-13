@@ -1,0 +1,45 @@
+# Generation reference matrix (docs/generation-check-engine.md). No score
+# caps: mandatory failures are findings, not score ceilings — the bad
+# references are asserted by WHICH items fail, with score bounds as sanity
+# checks on true, uncapped values.
+#
+# ref_lean infers instance count, zone balancing, and retention from an
+# environment concept and maps a plain size to a SKU; ref_flexible exposes
+# the SKU, autoscale bounds, and a zone-redundancy switch directly. Both are
+# good designs for an SRE audience.
+ref_lean:
+  gate: true
+  min_score: 0.95
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6,
+              B1_provider_constraints, B2_descriptions]
+ref_flexible:
+  gate: true
+  min_score: 0.95
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6,
+              B1_provider_constraints, B2_descriptions]
+bad_passthrough:
+  gate: true
+  # Every security setting is a variable (H1-H3 fail even though H3's
+  # defaults are safe — a knob is the defect), no identity, no observability,
+  # worker internals exposed (A6), unbounded provider (B1),
+  # no descriptions (B2). It still earns the exposure items and zone
+  # balancing as reachable.
+  max_score: 0.35
+  must_fail: [H1, H2, H3, H4, H6, A6, B1_provider_constraints, B2_descriptions]
+bad_minimal:
+  gate: true
+  # Bare plan + app: provider defaults leave HTTPS off and basic-auth
+  # publishing on (H1, H2), no identity, health check, observability, or
+  # redundancy, and almost no exposure. Its >= 3.0, < 5.0 window spans two
+  # majors (B1). H3 passes: provider defaults are already strong transport
+  # and nothing weakens them.
+  max_score: 0.25
+  must_pass: [H3, A6]
+  must_fail: [H1, H2, H4, H5, H6, H7, H8, A1, A2, A3, A5, B1_provider_constraints, B2_descriptions]
+bad_unsafe:
+  gate: true
+  # ref_lean with one critical defect: https_only is a knob (defaulting
+  # true). The hardcoded posture fails H1; the number stays true.
+  max_score: 0.90
+  must_pass: [H2, H3, H4]
+  must_fail: [H1]

@@ -75,8 +75,11 @@ uv run iacbench report --log-dir logs --judge-dir runs/judge/G001-v1 --out repor
 
 ### Tier 2 (real AWS)
 
-Tier-2 commands need AWS credentials in the environment (they are not baked into the
-container). With creds present:
+Tier-2 commands need cloud credentials in the environment (they are not baked into the
+container). Generation fixtures plan against AWS, GCP, or Azure — each rubric declares
+which — and only ever plan, so read-only credentials suffice and are recommended.
+`scripts/cloud-env` prints short-lived credentials for all three clouds on the host, for
+piping into the container. With creds present:
 
 ```bash
 # validate the Tier-2 checkers — creates and destroys real (free-tier) resources
@@ -94,8 +97,9 @@ uv run iacbench sweep --delete
 uv run inspect eval src/iacbench/task.py@generate_module -T fixture=G001 \
     --model anthropic/claude-sonnet-5 --epochs 3
 
-# generation selftest: scores the reference matrix (2 good designs, 3 bad) — plan-only
-IACBENCH_AWS=1 AWS_REGION=us-east-1 uv run iacbench selftest --fixture G001
+# generation selftest: scores each fixture's reference matrix (2 good designs,
+# 3 bad) — plan-only, against the cloud the fixture's rubric declares
+IACBENCH_CLOUD=1 AWS_REGION=us-east-1 uv run iacbench selftest --fixture G001
 
 # judge layer (experimental until human-calibrated): blind pairwise + Bradley-Terry
 uv run iacbench judge --fixture G001 --candidates runs/candidates/G001

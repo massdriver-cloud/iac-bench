@@ -18,6 +18,7 @@ from pathlib import Path
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import Sample
+from inspect_ai.model import GenerateConfig
 from inspect_ai.scorer import Score, Target, accuracy, scorer, stderr
 from inspect_ai.solver import TaskState, basic_agent, solver, system_message
 from inspect_ai.tool import tool
@@ -316,6 +317,9 @@ def generation_scorer():
                 "mandatory_failures": result.mandatory_failures,
                 "probe_plans": result.probe_plans,
                 "module_sha": result.module_sha,
+                # Where the generated module lives, so judge and calibration
+                # can collect it as a candidate.
+                "candidate_dir": str(scratch),
                 "check_dsl_version": CHECK_DSL_VERSION,
                 "fixture": fixture.id,
                 "tofu_version": tofu_version(),
@@ -323,6 +327,11 @@ def generation_scorer():
         )
 
     return score
+
+
+# A model API that keeps failing (exhausted quota, outage) must end the sample
+# as an error, never run out the clock and get scored as a real 0.
+API_RETRY_CONFIG = GenerateConfig(max_retries=3)
 
 
 @task
@@ -333,7 +342,8 @@ def generate_module(
 ):
     """Tier 2 generation: build a module from a brief; scored by the fixture rubric.
 
-    Plan-only — requires AWS credentials but creates no resources.
+    Plan-only — requires credentials for the cloud the fixture declares, but
+    creates no resources.
     """
     from iacbench.generation import GenerationFixture
 
@@ -360,6 +370,7 @@ def generate_module(
         scorer=generation_scorer(),
         message_limit=message_limit,
         time_limit=time_limit,
+        config=API_RETRY_CONFIG,
     )
 
 
@@ -482,6 +493,7 @@ def fix_apply_failure(
         scorer=invariants_apply(),
         message_limit=message_limit,
         time_limit=time_limit,
+        config=API_RETRY_CONFIG,
     )
 
 
@@ -525,4 +537,5 @@ def fix_plan_failure(
         scorer=invariants(),
         message_limit=message_limit,
         time_limit=time_limit,
+        config=API_RETRY_CONFIG,
     )

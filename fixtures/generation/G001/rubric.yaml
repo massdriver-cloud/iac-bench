@@ -18,6 +18,7 @@ id: G001
 domain: generation
 suite_version: v0.1.0
 tier: 2
+cloud: aws
 scoring_policy: v1  # pinned pre-publication; see docs/generation-check-engine.md
 
 # Mandatory items are security posture. Failing one does NOT cap the score
@@ -153,13 +154,73 @@ items:
         quantifier: any
         type: aws_s3_bucket_logging
 
-  - id: H10
-    weight: 6
+  # Audience fit (A*). The brief's audience is application developers who
+  # don't know S3, fill in "a couple of obvious inputs," and trust the module
+  # for everything else. Exposure items are controls that audience needs;
+  # restraint items are settings it would not understand or care about, and
+  # are how this fixture punishes pass-through shapes (never a variable count).
+  # Taint is syntactic (through locals): a strong signal, not a semantics
+  # proof.
+  - id: A1
+    weight: 2
     description: >
-      Interface restraint — at most 8 inputs. The brief only implies this
-      ("a couple of obvious inputs"); the budget itself is hidden.
+      Exposure — consumers can influence the bucket's name (directly, as a
+      prefix, or through a concept such as purpose). Naming is the one input
+      every app team obviously has.
     check:
-      interface: {max_variables: 8}
+      any_of:
+        - var_feeds_attr: {attr: bucket}
+        - var_feeds_attr: {attr: bucket_prefix}
+
+  - id: A2
+    weight: 3
+    description: >
+      Restraint — encryption is not consumer-configurable: no input selects
+      the key or the algorithm, directly or by deriving one from the other.
+      The module owns encryption for this audience.
+    check:
+      not:
+        any_of:
+          - var_feeds_attr: {attr: kms_master_key_id}
+          - var_feeds_attr: {attr: sse_algorithm}
+
+  - id: A3
+    weight: 1
+    description: >
+      Restraint — no input controls object ownership or ACLs.
+    check:
+      not:
+        any_of:
+          - var_feeds_attr: {attr: object_ownership}
+          - var_feeds_attr: {attr: acl}
+
+  - id: A4
+    weight: 2
+    description: >
+      Restraint — no CDN or static-website architecture: no distribution,
+      origin access control, or website configuration at defaults or under
+      any documented input, and no bucket policy granting the CloudFront
+      service. Distribution was never part of the request.
+    check:
+      not:
+        any_of:
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_cloudfront_distribution
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_cloudfront_origin_access_control
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_s3_bucket_website_configuration
+          - expr_matches:
+              type: aws_s3_bucket_policy
+              attr: policy
+              pattern: 'cloudfront\.amazonaws\.com'
+              match: any
 
   - id: H12
     weight: 2
@@ -273,10 +334,3 @@ expertise:
         attr: bucket
         pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity\.'
         or_attr_present: bucket_prefix
-  - id: E8_custom_kms_key
-    description: >
-      Consumers can supply their own KMS key for encryption — as an optional
-      reference, never a raw secret.
-    discovered_via: owner review, 2026-08-21
-    check:
-      var_feeds_attr: {attr: kms_master_key_id, has_default: true}

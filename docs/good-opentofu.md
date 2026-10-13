@@ -7,15 +7,26 @@ The human-facing rationale for these preferences lives in
 
 ## Interface design
 
-- Variablize *concepts*, not resource attributes. An `environment` input that drives
-  versioning, logging, and retention beats three boolean toggles. The module should encode
-  expertise: expose the handful of inputs consumers legitimately need to vary, and have
-  opinions about everything else.
-- ~5–10 variables is the healthy range, not a hard rule: very simple modules may need
-  2–4, and complex services may justify more than 10. Above 10, suspect
-  overconfigurability and missing expertise; below 5, suspect overprescription.
-- Anti-pattern: the pass-through module — one variable per resource attribute, defaults
-  mirroring provider defaults, no judgment encoded anywhere.
+- The interface is sized to the audience the prompt describes. Expose what *that*
+  audience knows, cares about, and legitimately needs to vary; have opinions about
+  everything else. Consumers new to the service get a handful of plain-language inputs
+  and no service jargon. A specialist team gets the controls its discipline expects to
+  own. There is no universal variable count. Judge the interface against the stated
+  audience: settings that audience would not understand or care about are
+  overconfiguration, and missing controls it would expect to own are overprescription.
+- Variablize *concepts*, not resource attributes, wherever the audience thinks in
+  concepts. An `environment` input that drives versioning, logging, and retention beats
+  three boolean toggles.
+- Expose a core capability at the audience's level of abstraction. Offering a capability
+  is good; *how* it is offered must fit the consumer. For an audience new to the service,
+  a single switch or plain-language choice that the module expands into a sound
+  configuration is the reward-worthy form, and exposing the capability's raw internals
+  (rule structures, thresholds, service-specific class names) is overconfiguration. A
+  specialist audience may warrant the internals.
+- Anti-pattern, for every audience: the pass-through module — one variable per resource
+  attribute, defaults mirroring provider defaults, no judgment encoded anywhere. A
+  specialist audience earns more controls, not an absence of opinions; security posture
+  stays non-negotiable regardless of who the consumer is.
 
 ## Variables and validation
 
@@ -121,7 +132,8 @@ The human-facing rationale for these preferences lives in
 - The line between good and bad gold-plating: **parameterizing a core capability of the
   requested service is expertise; inventing an uncommunicated use-case is scope creep.**
   Configuring a native feature of the service that was asked for — including requiring
-  user input to do so — is good practice, not scope creep. Adding a capability, consumer,
+  user input to do so — is good practice, not scope creep (how that input is shaped is
+  judged under Interface design). Adding a capability, consumer,
   or integration the prompt never implied invents a new use-case, and is worse when the
   invention opens access paths or weakens the security posture. Judge added resources and
   inputs by which side of that line they fall on.

@@ -77,14 +77,34 @@ def _match_value(value, spec) -> bool:
     return value == spec  # literal equality (bool/number/string/list)
 
 
-def _where_keys(where: dict) -> set:
-    """All key names appearing anywhere in a where spec (nested included)."""
-    keys: set = set()
-    for k, v in where.items():
-        keys.add(k)
-        if isinstance(v, dict) and not _is_leaf_predicate(v):
-            keys |= _where_keys(v)
-    return keys
+def _where_leaf_values(node, where: dict):
+    """Static-source values at the leaf paths a where spec names, following
+    nested blocks (lists of dicts) and `dynamic` blocks. A dynamic block's
+    for_each is yielded too: it gates the block's existence, so a variable
+    feeding it controls the behavior as surely as one feeding the leaf."""
+    if isinstance(node, list):
+        for item in node:
+            yield from _where_leaf_values(item, where)
+        return
+    if not isinstance(node, dict):
+        return
+    for key, spec in where.items():
+        leaf = not isinstance(spec, dict) or _is_leaf_predicate(spec)
+        children = []
+        if key in node:
+            children.append(node[key])
+        for dyn in node.get("dynamic", []) or []:
+            if isinstance(dyn, dict) and key in dyn:
+                block = dyn[key]
+                if isinstance(block, dict):
+                    if "for_each" in block:
+                        yield block["for_each"]
+                    children.append(block.get("content", {}))
+        for child in children:
+            if leaf:
+                yield child
+            else:
+                yield from _where_leaf_values(child, spec)
 
 
 def _match_where(values: dict, where: dict) -> bool:
@@ -166,7 +186,32 @@ def _instance_unconditional(attrs: dict, loc: dict) -> bool:
 def _is_literal(value, expected) -> bool:
     if isinstance(value, str) and "${" in value:
         return False
+    if isinstance(expected, dict) and "in" in expected:
+        return value in expected["in"]
     return value == expected
+
+
+_DYNAMIC = object()  # a dynamic block on the path: generated, never literal
+
+
+def _path_values(node, path: list) -> list:
+    """Every value at a dotted attribute path through nested blocks (parsed as
+    lists of dicts). A `dynamic` block on the path yields _DYNAMIC; a path
+    that leads nowhere yields [_MISSING]."""
+    if not path:
+        return [node]
+    if isinstance(node, list):
+        if not node:
+            return [_MISSING]
+        return [v for item in node for v in _path_values(item, path)]
+    if not isinstance(node, dict):
+        return [_MISSING]
+    head, rest = path[0], path[1:]
+    if rest and any(isinstance(d, dict) and head in d for d in node.get("dynamic", []) or []):
+        return [_DYNAMIC]
+    if head not in node:
+        return [_MISSING]
+    return _path_values(node[head], rest)
 
 
 def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
@@ -178,30 +223,39 @@ def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
     existence-unconditional (no variable taint on count/for_each), so the
     protection cannot be gated off entirely. Conditional *secure* siblings
     (e.g. a prod-only log-bucket guard with the same literal values) pass.
-    `attrs_exist` only requires attribute presence."""
+    `attrs_exist` only requires attribute presence. Attribute names may be
+    dotted paths through nested blocks (`settings.ip_configuration.ssl_mode`);
+    every occurrence along the path must be literal, and a dynamic block on
+    the path is a knob. An expected value of `{in: [...]}` accepts any
+    listed literal (the same operator `where` uses)."""
     loc = hclq.locals_map(ctx.module_dir)
     attrs = spec.get("attrs") or {}
     attrs_exist = spec.get("attrs_exist") or []
     instances = hclq.resource_attrs(ctx.module_dir, spec["type"])
+    def values(inst: dict, name: str) -> list:
+        return _path_values(inst, name.split("."))
+
     if attrs and any(
-        not _is_literal(inst.get(name, _MISSING), expected)
+        v is _DYNAMIC or not _is_literal(v, expected)
         for inst in instances
         for name, expected in attrs.items()
+        for v in values(inst, name)
     ):
         return False
     for inst in instances:
         if not _instance_unconditional(inst, loc):
             continue
-        if any(name not in inst for name in attrs_exist):
+        if any(_MISSING in values(inst, name) for name in attrs_exist):
             continue
-        if attrs and any(name not in inst for name in attrs):
+        if attrs and any(_MISSING in values(inst, name) for name in attrs):
             continue
         return True
     return False
 
 
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens over attribute expressions resolved through locals.
+    """Static lens over attribute expressions resolved through locals and
+    data sources.
     match: every (default) — every resource of `type` has `attr` matching
     `pattern` or has `or_attr_present`; match: any — at least one resource's
     `attr` matches."""
@@ -228,8 +282,14 @@ def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
 def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
     """Static lens: some declared variable (transitively through locals) feeds
     the named attribute. `has_default: true` restricts to optional variables —
-    e.g. 'consumers can add tags without being forced to'."""
-    feeding = hclq.vars_feeding_attr(ctx.module_dir, spec["attr"])
+    e.g. 'consumers can add tags without being forced to'. `type` restricts
+    the search to one resource type; the attribute may sit in nested or
+    dynamic blocks. `through_data: true` also follows data-source lookups
+    keyed by a variable (off by default: a value *read from* a secret store
+    is not the same as a value supplied as input)."""
+    feeding = hclq.vars_feeding_attr(
+        ctx.module_dir, spec["attr"], spec.get("type"), bool(spec.get("through_data"))
+    )
     declared = hclq.variables(ctx.module_dir)
     want_default = spec.get("has_default")
     for name in feeding:
@@ -430,11 +490,21 @@ def evaluate(ctx: CheckContext, spec: dict) -> bool:
     return verb(ctx, body)
 
 
-def grade_default_on(ctx: CheckContext, spec: dict, partial: float = 0.5) -> float:
+def grade_default_on(
+    ctx: CheckContext, spec: dict, partial: float = 0.5, hardcoded_on: float = 0.0
+) -> float:
     """The graded `default_on` posture ladder (docs/generation-check-engine.md):
     1.0 = present at defaults with variable influence (an opt-out exists);
     partial = opt-in only (absent at defaults, reachable through the sweep);
-    0.0 = absent everywhere, or hardcoded in either polarity."""
+    0.0 = absent everywhere, or hardcoded in either polarity.
+    `hardcoded_on` credits present-at-defaults with no opt-out, for
+    protections where always-on costs flexibility but blocks nothing.
+    A list of behaviors is alternative mechanisms for the same protection;
+    the best-graded one counts."""
+    if isinstance(spec, list):
+        return max(
+            (grade_default_on(ctx, s, partial, hardcoded_on) for s in spec), default=0.0
+        )
     behavior = dict(spec)
     behavior.pop("plans", None)
     behavior.pop("quantifier", None)
@@ -442,16 +512,17 @@ def grade_default_on(ctx: CheckContext, spec: dict, partial: float = 0.5) -> flo
     if at_defaults:
         loc = hclq.locals_map(ctx.module_dir)
         # An opt-out exists when a variable gates the resource's existence, or
-        # feeds one of the attributes the behavior is defined by (`where`
-        # keys) — unrelated var-fed attributes (tags = var.tags) prove nothing.
-        behavior_attrs = _where_keys(spec.get("where") or {})
+        # feeds the exact attribute path the behavior is defined by (`where`
+        # leaves) — unrelated var-fed attributes (tags = var.tags, or a
+        # sibling setting in the same nested block) prove nothing.
+        where = spec.get("where") or {}
         for inst in hclq.resource_attrs(ctx.module_dir, spec["type"]):
             if not _instance_unconditional(inst, loc):
                 return 1.0
-            for name, value in inst.items():
-                if name in behavior_attrs and hclq._var_closure(loc, value):
+            for value in _where_leaf_values(inst, where):
+                if hclq._var_closure(loc, value):
                     return 1.0
-        return 0.0  # hardcoded-on: inflexible, breaks legitimate opt-out
+        return float(hardcoded_on)  # hardcoded-on: no opt-out
     if _verb_resource(ctx, {**behavior, "plans": "sweep", "quantifier": "any"}):
         return float(partial)
     return 0.0
