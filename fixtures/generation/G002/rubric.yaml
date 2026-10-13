@@ -219,8 +219,8 @@ items:
     description: >
       Exposure — the VPC network the instance attaches to is an input
       (required or defaulted), directly or through a data-source lookup.
-      The brief names today's network; hardcoding it bakes one environment
-      into a reusable module.
+      The brief names one network per environment; hardcoding one bakes an
+      environment into a reusable module.
     check:
       var_feeds_attr:
         type: google_sql_database_instance
@@ -231,15 +231,39 @@ items:
     weight: 8
     posture: budget
     description: >
-      Interface budget — full credit at 20 or fewer inputs, falling
-      linearly to zero at 35. A DBA team legitimately owns more controls
-      than an app team; the reference modules cover every exposure item in
-      15 or fewer. A race to expose every setting in
+      Interface budget — full credit at 25 or fewer inputs, falling
+      linearly to zero at 35. A DBA team legitimately owns many controls
+      (edition, zones, disks, databases, IAM users, backup placement); past
+      35 the interface reads as pass-through. A race to expose every setting in
       order to satisfy exposure checks is the failure this guards against:
       pass-through modules encode less expertise than tuned ones.
-    budget: {soft: 20, hard: 35}
+    budget: {soft: 25, hard: 35}
 
-# Restraint items: none yet. They come from what models actually expose, not
+  - id: A9
+    weight: 2
+    description: >
+      Restraint — no networking setup. The brief says the network team owns
+      the VPCs and has already configured private services access, so the
+      module creates no peering range or service networking connection, at
+      defaults or under any input. Building networking turns a database
+      module into a networking module the DBAs would then own.
+    check:
+      not:
+        any_of:
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: google_service_networking_connection
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: google_compute_global_address
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: google_compute_network
+
+# Restraint items come from what models actually build or expose, never
 # from speculation; pass-through shapes are punished by fixture-specific
 # restraint items, never by a variable count.
 #

@@ -12,14 +12,14 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7, A8,
-              B1_provider_constraints, B2_descriptions]
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7, A8, A9,
+              B1_provider_constraints, B2_descriptions, B3_opentofu_constraint]
 ref_flexible:
   gate: true
   min_score: 0.95
   # IAM-only authentication: no password exists, so H7 passes by construction.
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7, A8,
-              B1_provider_constraints, B2_descriptions]
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7, A8, A9,
+              B1_provider_constraints, B2_descriptions, B3_opentofu_constraint]
 bad_passthrough:
   gate: true
   # Security posture is a set of knobs (ipv4_enabled, ssl_mode), the root
@@ -48,5 +48,5 @@ bad_minimal:
   # opt-out, so H3 grades 0.
   max_score: 0.20
   must_fail: [H1, H2, H3, H4, H5, H8, H9, A1, A2, A3, A4, A5, A6, A7,
-              B1_provider_constraints, B2_descriptions]
+              B1_provider_constraints, B2_descriptions, B3_opentofu_constraint]
   items: {H3: 0.0, H4: 0.0, H5: 0.0}

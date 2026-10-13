@@ -9,9 +9,8 @@ variable "name" {
 }
 
 variable "network" {
-  description = "Name of the VPC network the instance attaches to over private IP. The network must have private services access configured."
+  description = "Name of the environment's VPC network (e.g. apps-prod). The instance attaches over private IP; the network must already have private services access configured."
   type        = string
-  default     = "default"
 }
 
 variable "environment" {
