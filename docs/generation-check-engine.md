@@ -150,6 +150,7 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 | `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals; `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
 | `var_feeds_provider_attr` | static | some declared variable feeds the named attribute of a provider configuration block (nested blocks such as `default_tags` included), transitively through locals; `provider` restricts to one provider; `has_default` as above |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
+| `opentofu_constraint` | static | required_version is declared and every declaration excludes the next major version |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |
 | `output_named` | static | an output exists whose name/value matches |
 | `interface` | static | structural constraints: variable count budget, descriptions required on every variable and output |

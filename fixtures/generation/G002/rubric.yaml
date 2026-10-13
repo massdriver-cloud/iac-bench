@@ -131,11 +131,22 @@ items:
 
   - id: H8
     weight: 2
+    posture: ladder
     description: >
-      Label support is table stakes — consumers can add their own labels to
-      the instance through an optional input.
-    check:
-      var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}
+      Consumers can add their own labels through an optional input. Full
+      credit when that input feeds both the provider's default_labels (one
+      setting labels every resource that supports it) and the instance's
+      user_labels (Cloud SQL instances do not inherit default_labels); half
+      credit for user_labels alone. default_labels alone never reaches the
+      instance and earns nothing.
+    ladder:
+      - score: 1.0
+        check:
+          all_of:
+            - var_feeds_provider_attr: {provider: google, attr: default_labels, has_default: true}
+            - var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}
+      - score: 0.5
+        check: {var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}}
 
   - id: H9
     weight: 4
@@ -220,11 +231,13 @@ items:
     weight: 8
     posture: budget
     description: >
-      Interface budget — full credit at 30 or fewer inputs, falling
-      linearly to zero at 45. A DBA team legitimately owns many controls, so the budget is wide. A race to expose every setting in
+      Interface budget — full credit at 20 or fewer inputs, falling
+      linearly to zero at 35. A DBA team legitimately owns more controls
+      than an app team; the reference modules cover every exposure item in
+      15 or fewer. A race to expose every setting in
       order to satisfy exposure checks is the failure this guards against:
       pass-through modules encode less expertise than tuned ones.
-    budget: {soft: 30, hard: 45}
+    budget: {soft: 20, hard: 35}
 
 # Restraint items: none yet. They come from what models actually expose, not
 # from speculation; pass-through shapes are punished by fixture-specific
@@ -233,9 +246,32 @@ items:
 # Recorded but unweighted beyond A8's budget: variable count, % typed,
 # % validated, locals count, resource count, SLOC, comment ratio.
 
-# Expertise checklist — grows by discovery from judge rationales; items are
-# added only once a judge run cites them. Candidates to watch for (not yet
-# items): query insights, disk autoresize, a password validation policy,
-# IAM database authentication, slow-query / connection logging flags,
-# connector enforcement, the maintenance update track.
-expertise: []
+# Expertise checklist — service-specific touches, each weighing 1, pooled
+# into the mechanical score. Items normally come from judge rationales;
+# discovered_via records where each came from.
+expertise:
+  - id: E1_backups_survive_deletion
+    description: >
+      Automated backups outlive the instance: retain_backups_on_delete or a
+      final backup on deletion. Cloud SQL otherwise deletes them with it.
+    discovered_via: doctrine owner, 2026-10-13
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: google_sql_database_instance
+            where: {settings: {retain_backups_on_delete: true}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: google_sql_database_instance
+            where: {settings: {final_backup_config: {enabled: true}}}
+  - id: E2_customer_managed_key
+    description: >
+      A customer-managed encryption key can be supplied (encryption_key_name).
+      Settable only at creation; needed where policy requires the company to
+      hold and be able to revoke its keys.
+    discovered_via: doctrine owner, 2026-10-13
+    check:
+      var_feeds_attr: {type: google_sql_database_instance, attr: encryption_key_name}

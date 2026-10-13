@@ -115,3 +115,9 @@ variable "region" {
   type        = string
   default     = "us-central1"
 }
+
+variable "kms_key_name" {
+  description = "Cloud KMS key (projects/.../cryptoKeys/...) for customer-managed encryption. Only settable when the instance is created; null uses Google-managed keys."
+  type        = string
+  default     = null
+}

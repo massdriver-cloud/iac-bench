@@ -1,3 +1,4 @@
 provider "google" {
-  region = var.region
+  region         = var.region
+  default_labels = local.labels
 }

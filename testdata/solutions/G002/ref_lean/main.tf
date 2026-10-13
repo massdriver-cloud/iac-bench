@@ -3,6 +3,8 @@ data "google_compute_network" "this" {
 }
 
 locals {
+  labels = merge(var.labels, { environment = var.environment, managed-by = "opentofu" })
+
   is_prod          = var.environment == "prod"
   retained_backups = local.is_prod ? 30 : 7
 
@@ -37,9 +39,11 @@ resource "google_sql_database_instance" "this" {
     disk_size                   = var.disk_size_gb
     disk_autoresize             = true
     deletion_protection_enabled = var.deletion_protection
+    # Backups outlive the instance, so retiring one never loses its history.
+    retain_backups_on_delete = true
 
-    # Cloud SQL ignores the provider's default_labels; labels must be set here.
-    user_labels = merge(var.labels, { environment = var.environment, managed-by = "opentofu" })
+    # Cloud SQL instances do not inherit the provider's default_labels.
+    user_labels = local.labels
 
     ip_configuration {
       ipv4_enabled    = false

@@ -28,7 +28,7 @@ bad_passthrough:
   # credit only. Exposure items pass — a pass-through exposes everything.
   max_score: 0.55
   must_fail: [H1, H2, H4, H5, H7, H9, B2_descriptions]
-  items: {H4: 0.5, H5: 0.5}
+  items: {H4: 0.5, H5: 0.5, H8: 0.5}
 bad_unsafe:
   gate: true
   # One critical defect: allow_public_access feeds ipv4_enabled, so network
@@ -39,7 +39,7 @@ bad_unsafe:
   # hardcoded_on partial credit.
   max_score: 0.85
   must_fail: [H1, H3, H9]
-  items: {H3: 0.0, H4: 0.75, H5: 0.75}
+  items: {H3: 0.0, H4: 0.75, H5: 0.75, H8: 0.5}
 bad_minimal:
   gate: true
   # Bare instance: public IP by provider default, no TLS requirement, no

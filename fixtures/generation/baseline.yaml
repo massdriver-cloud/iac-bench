@@ -18,6 +18,15 @@ items:
     check:
       provider_constraints: {}
 
+  - id: B3_opentofu_constraint
+    weight: 1
+    description: >
+      required_version is declared and stays within one major version of
+      OpenTofu (~>, an upper bound, or a pin). OpenTofu is far more stable
+      than the providers, so it weighs less than B1.
+    check:
+      opentofu_constraint: {}
+
   - id: B2_descriptions
     weight: 2
     description: >
