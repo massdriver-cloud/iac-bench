@@ -164,6 +164,28 @@ items:
       - score: 0.5
         check: {var_feeds_attr: {type: google_sql_database_instance, attr: region}}
 
+  - id: H10
+    weight: 4
+    description: >
+      No database password stored in state — no database user's password and
+      no instance root password is set through an attribute OpenTofu records.
+      IAM database authentication, or write-only passwords (password_wo,
+      root_password_wo), pass; generated or supplied passwords written to the
+      ordinary attributes land in state in plain text and fail.
+    check:
+      not:
+        any_of:
+          - expr_matches:
+              type: google_sql_user
+              attr: password
+              match: any
+              pattern: '^(?!\s*null\s*$)'
+          - expr_matches:
+              type: google_sql_database_instance
+              attr: root_password
+              match: any
+              pattern: '^(?!\s*null\s*$)'
+
   # Audience fit (A*). The audience is a DBA team that "expects to own the
   # decisions that are genuinely theirs" but does not want to re-decide what
   # should be the same everywhere. Exposure items are the controls a DBA
@@ -299,3 +321,31 @@ expertise:
     discovered_via: doctrine owner, 2026-10-13
     check:
       var_feeds_attr: {type: google_sql_database_instance, attr: encryption_key_name}
+  - id: E3_iam_database_login
+    description: >
+      IAM database authentication is enabled (the cloudsql.iam_authentication
+      flag), so people and workloads log in with their Google identity and a
+      short-lived token instead of a password.
+    discovered_via: doctrine owner, 2026-10-14
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: google_sql_database_instance
+        where:
+          settings:
+            database_flags: {name: cloudsql.iam_authentication, value: "on"}
+  - id: E4_manages_databases
+    description: >
+      The DBAs can declare the instance's databases through an input.
+      Managing databases is a core DBA responsibility.
+    discovered_via: doctrine owner, 2026-10-14
+    check:
+      var_feeds_attr: {type: google_sql_database, attr: name}
+  - id: E5_manages_users
+    description: >
+      The DBAs can declare the instance's database users (IAM or built-in)
+      through an input. Managing users is a core DBA responsibility.
+    discovered_via: doctrine owner, 2026-10-14
+    check:
+      var_feeds_attr: {type: google_sql_user, attr: name}

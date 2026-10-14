@@ -9,26 +9,22 @@ locals {
   retained_backups = local.is_prod ? 30 : 7
 
   # Connection and slow-query logging are the same on every instance; DBA
-  # flags layer on top and win on conflict.
+  # flags layer on top and win on conflict. People and workloads log in with
+  # their Google identity, so the module never creates or stores a password.
   database_flags = merge(
     {
-      log_connections            = "on"
-      log_disconnections         = "on"
-      log_min_duration_statement = "1000"
+      "cloudsql.iam_authentication" = "on"
+      log_connections               = "on"
+      log_disconnections            = "on"
+      log_min_duration_statement    = "1000"
     },
     var.database_flags,
   )
 }
 
-resource "random_password" "postgres" {
-  length  = 32
-  special = false
-}
-
 resource "google_sql_database_instance" "this" {
   name                = var.name
   database_version    = "POSTGRES_${var.postgres_version}"
-  root_password       = random_password.postgres.result
   deletion_protection = var.deletion_protection
 
   settings {
@@ -80,4 +76,19 @@ resource "google_sql_database_instance" "this" {
       }
     }
   }
+}
+
+resource "google_sql_database" "this" {
+  for_each = var.databases
+
+  name     = each.value
+  instance = google_sql_database_instance.this.name
+}
+
+resource "google_sql_user" "iam" {
+  for_each = var.iam_users
+
+  name     = each.value
+  instance = google_sql_database_instance.this.name
+  type     = "CLOUD_IAM_USER"
 }

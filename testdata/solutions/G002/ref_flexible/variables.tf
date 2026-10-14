@@ -98,6 +98,12 @@ variable "deletion_protection" {
   default     = true
 }
 
+variable "databases" {
+  description = "Databases to create on the instance."
+  type        = set(string)
+  default     = []
+}
+
 variable "iam_users" {
   description = "IAM principals (user emails) granted database login through IAM authentication."
   type        = set(string)

@@ -46,6 +46,18 @@ variable "database_flags" {
   default     = {}
 }
 
+variable "databases" {
+  description = "Databases to create on the instance."
+  type        = set(string)
+  default     = []
+}
+
+variable "iam_users" {
+  description = "IAM principals (user emails) granted database login through IAM authentication."
+  type        = set(string)
+  default     = []
+}
+
 variable "maintenance_window" {
   description = "Weekly maintenance window: day (1 = Monday .. 7 = Sunday) and hour (0-23, UTC)."
   type = object({

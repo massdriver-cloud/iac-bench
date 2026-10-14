@@ -12,9 +12,3 @@ output "private_ip_address" {
   description = "Private IP address of the instance."
   value       = google_sql_database_instance.this.private_ip_address
 }
-
-output "postgres_password" {
-  description = "Generated password for the postgres user."
-  value       = random_password.postgres.result
-  sensitive   = true
-}
