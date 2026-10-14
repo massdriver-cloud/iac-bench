@@ -76,6 +76,29 @@ def variables(module_dir: Path) -> dict:
     return out
 
 
+_CONTAINS_RE = re.compile(r"contains\(\s*\[([^\]]*)\]")
+
+
+def allowed_values(meta: dict) -> list:
+    """Candidate values harvested from `contains([...], var.x)` validations."""
+    for condition in meta.get("validation_conditions", []):
+        m = _CONTAINS_RE.search(condition)
+        if not m:
+            continue
+        values = []
+        for raw in m.group(1).split(","):
+            raw = raw.strip().strip('"').strip("'")
+            if not raw:
+                continue
+            try:
+                values.append(json.loads(raw))
+            except (ValueError, json.JSONDecodeError):
+                values.append(raw)
+        if values:
+            return values
+    return []
+
+
 def parse_tfvars(path: Path) -> dict:
     """Parse a .tfvars (HCL) or .tfvars.json file into a plain dict. tfvars
     values are literals by definition; expressions surface as ${...} strings

@@ -3,7 +3,9 @@
 # references are asserted by WHICH items fail, with score bounds as sanity
 # checks on true, uncapped values.
 #
-# Engine coverage: H1/H2 exercise dotted-path `hardcoded` (H2 with `in:`);
+# Engine coverage: H1/H2 exercise dotted-path `hardcoded` (H2 with `in:`;
+# ref_flexible earns H2 instead through var_domain_closed, an ssl_mode input
+# limited to the secure modes);
 # H3 exercises multi-behavior default_on (ref_lean earns it through the
 # native settings flag, ref_flexible through the provider-level guard only);
 # the A* items exercise nested, type-scoped var_feeds_attr; A7 exercises

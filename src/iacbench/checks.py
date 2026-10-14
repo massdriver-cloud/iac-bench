@@ -293,6 +293,31 @@ def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
     return _any_declared(ctx, feeding, spec.get("has_default"))
 
 
+# Alternatives the perturbation sweep tries per input, beyond its current value.
+SWEEP_ALTERNATIVES = 5
+
+
+def _verb_var_domain_closed(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: the named attribute is fed by at least one variable, and
+    every variable feeding it has a domain the sweep enumerates in full — a
+    bool, or a `contains([...])` validation listing few enough values. Pair
+    it with a sweep `resource` check to prove that no reachable value is
+    unsafe: an input limited to secure choices is then a decision, not a hole."""
+    feeding = hclq.vars_feeding_attr(ctx.module_dir, spec["attr"], spec.get("type"))
+    declared = hclq.variables(ctx.module_dir)
+    names = [n for n in feeding if n in declared]
+    if not names:
+        return False
+    for name in names:
+        meta = declared[name]
+        if meta["type"].strip() == "bool":
+            continue
+        allowed = hclq.allowed_values(meta)
+        if not allowed or len(allowed) > SWEEP_ALTERNATIVES + 1:
+            return False
+    return True
+
+
 def _verb_var_feeds_provider_attr(ctx: CheckContext, spec: dict) -> bool:
     """Static lens: some declared variable (transitively through locals) feeds
     the named attribute of a provider configuration block — e.g. a region
@@ -483,6 +508,7 @@ _VERBS = {
     "hardcoded": _verb_hardcoded,
     "expr_matches": _verb_expr_matches,
     "var_feeds_attr": _verb_var_feeds_attr,
+    "var_domain_closed": _verb_var_domain_closed,
     "provider_constraints": _verb_provider_constraints,
     "opentofu_constraint": _verb_opentofu_constraint,
     "provider_config_attr": _verb_provider_config_attr,

@@ -28,7 +28,7 @@ resource "google_sql_database_instance" "this" {
     ip_configuration {
       ipv4_enabled    = false
       private_network = "projects/${data.google_client_config.current.project}/global/networks/${var.network}"
-      ssl_mode        = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"
+      ssl_mode        = var.ssl_mode
     }
 
     backup_configuration {

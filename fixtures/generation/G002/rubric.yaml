@@ -45,15 +45,23 @@ items:
     weight: 10
     posture: hardcoded
     description: >
-      Encrypted connections are required — ssl_mode is hardcoded to a mode
-      that rejects unencrypted clients, on every planned instance.
+      Encrypted connections are required on every planned instance. ssl_mode
+      is either hardcoded to a mode that rejects unencrypted clients, or fed
+      by an input whose every value the sweep plans (a bool, or a validation
+      listing the allowed modes) with no plan accepting unencrypted clients.
+      Choosing between encrypted-only and client certificates is a DBA
+      decision; offering unencrypted connections is not.
     check:
       all_of:
-        - hardcoded:
-            type: google_sql_database_instance
-            attrs:
-              settings.ip_configuration.ssl_mode:
-                in: [ENCRYPTED_ONLY, TRUSTED_CLIENT_CERTIFICATE_REQUIRED]
+        - any_of:
+            - hardcoded:
+                type: google_sql_database_instance
+                attrs:
+                  settings.ip_configuration.ssl_mode:
+                    in: [ENCRYPTED_ONLY, TRUSTED_CLIENT_CERTIFICATE_REQUIRED]
+            - var_domain_closed:
+                type: google_sql_database_instance
+                attr: ssl_mode
         - resource:
             plans: [defaults, sweep]
             quantifier: all

@@ -49,7 +49,7 @@ class CloudAuthError(RuntimeError):
 # Harvested allowed-value lists (and fixture perturb hints) keep up to this
 # many candidates so distant values like a "prod" tier stay reachable;
 # type-derived perturbation stays at one candidate per variable.
-_MAX_SWEEP_VALUES = 5
+_MAX_SWEEP_VALUES = checks.SWEEP_ALTERNATIVES
 _TFVARS_NAMES = ("minimal.tfvars.json", "minimal.tfvars")
 
 
@@ -180,31 +180,8 @@ class RootProbeHarness:
 
 # ---------------------------------------------------------------- sweep
 
-_CONTAINS_RE = re.compile(r"contains\(\s*\[([^\]]*)\]")
-
-
-def _allowed_values(meta: dict) -> list:
-    """Candidate values harvested from `contains([...], var.x)` validations."""
-    for condition in meta.get("validation_conditions", []):
-        m = _CONTAINS_RE.search(condition)
-        if not m:
-            continue
-        values = []
-        for raw in m.group(1).split(","):
-            raw = raw.strip().strip('"').strip("'")
-            if not raw:
-                continue
-            try:
-                values.append(json.loads(raw))
-            except (ValueError, json.JSONDecodeError):
-                values.append(raw)
-        if values:
-            return values
-    return []
-
-
 def _candidates(meta: dict, current) -> list:
-    allowed = _allowed_values(meta)
+    allowed = hclq.allowed_values(meta)
     if allowed:
         return [v for v in allowed if v != current][:_MAX_SWEEP_VALUES]
     if isinstance(current, bool):

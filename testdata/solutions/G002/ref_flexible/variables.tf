@@ -43,6 +43,17 @@ variable "disk_autoresize_limit_gb" {
   default     = 0
 }
 
+variable "ssl_mode" {
+  description = "Connection encryption: ENCRYPTED_ONLY, or TRUSTED_CLIENT_CERTIFICATE_REQUIRED to also require client certificates."
+  type        = string
+  default     = "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"
+
+  validation {
+    condition     = contains(["ENCRYPTED_ONLY", "TRUSTED_CLIENT_CERTIFICATE_REQUIRED"], var.ssl_mode)
+    error_message = "ssl_mode must be ENCRYPTED_ONLY or TRUSTED_CLIENT_CERTIFICATE_REQUIRED."
+  }
+}
+
 variable "database_flags" {
   description = "PostgreSQL flags as name => value."
   type        = map(string)
