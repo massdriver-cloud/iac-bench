@@ -47,7 +47,7 @@ variable "database_flags" {
 }
 
 variable "databases" {
-  description = "Databases to create on the instance."
+  description = "Databases to create on the instance. While deletion protection is on, removing one leaves its data in place."
   type        = set(string)
   default     = []
 }

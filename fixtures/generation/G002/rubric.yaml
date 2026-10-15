@@ -139,22 +139,14 @@ items:
 
   - id: H8
     weight: 2
-    posture: ladder
     description: >
-      Consumers can add their own labels through an optional input. Full
-      credit when that input feeds both the provider's default_labels (one
-      setting labels every resource that supports it) and the instance's
-      user_labels (Cloud SQL instances do not inherit default_labels); half
-      credit for user_labels alone. default_labels alone never reaches the
-      instance and earns nothing.
-    ladder:
-      - score: 1.0
-        check:
-          all_of:
-            - var_feeds_provider_attr: {provider: google, attr: default_labels, has_default: true}
-            - var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}
-      - score: 0.5
-        check: {var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}}
+      Consumers can add their own labels through an optional input that
+      reaches the instance's user_labels. Cloud SQL instances keep labels
+      inside settings and do not inherit the provider's default_labels, and
+      nothing else this module creates carries labels, so user_labels is the
+      setting that labels anything.
+    check:
+      var_feeds_attr: {type: google_sql_database_instance, attr: user_labels, has_default: true}
 
   - id: H9
     weight: 4
@@ -193,6 +185,31 @@ items:
               attr: root_password
               match: any
               pattern: '^(?!\s*null\s*$)'
+
+  - id: H11
+    weight: 4
+    posture: ladder
+    description: >
+      Removing a database from the module's input does not drop its data by
+      default. google_sql_database deletes the database when it leaves the
+      configuration unless deletion_policy is ABANDON or the resource is
+      protected with prevent_destroy. Full credit for a guard on by default
+      with a real opt-out (deletion_policy chosen through an input); 0.75
+      for an always-on guard; nothing when databases are dropped on removal.
+      A module that creates no databases has nothing to drop and passes.
+    ladder:
+      - score: 1.0
+        check:
+          any_of:
+            - not: {declares: {type: google_sql_database}}
+            - all_of:
+                - expr_matches: {type: google_sql_database, attr: deletion_policy, pattern: ABANDON}
+                - var_feeds_attr: {type: google_sql_database, attr: deletion_policy}
+      - score: 0.75
+        check:
+          any_of:
+            - expr_matches: {type: google_sql_database, attr: deletion_policy, pattern: ABANDON}
+            - expr_matches: {type: google_sql_database, attr: lifecycle, pattern: '"prevent_destroy": true'}
 
   # Audience fit (A*). The audience is a DBA team that "expects to own the
   # decisions that are genuinely theirs" but does not want to re-decide what

@@ -14,15 +14,15 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A4, A5, A6, A7, A8, A9,
-              B1_provider_constraints, B2_descriptions, B3_opentofu_constraint,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, A1, A2, A3, A4, A5, A6, A7, A8, A9,
+              B1_provider_constraints, B2_descriptions,
               E3_iam_database_login, E4_manages_databases, E5_manages_users]
 ref_flexible:
   gate: true
   min_score: 0.95
   # IAM-only authentication: no password exists, so H7 and H10 pass by construction.
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A4, A5, A6, A7, A8, A9,
-              B1_provider_constraints, B2_descriptions, B3_opentofu_constraint,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, A1, A2, A3, A4, A5, A6, A7, A8, A9,
+              B1_provider_constraints, B2_descriptions,
               E2_customer_managed_key, E3_iam_database_login, E4_manages_databases, E5_manages_users]
 bad_passthrough:
   gate: true
@@ -32,7 +32,8 @@ bad_passthrough:
   # credit only. Exposure items pass — a pass-through exposes everything.
   max_score: 0.55
   must_fail: [H1, H2, H4, H5, H7, H9, H10, B2_descriptions]
-  items: {H4: 0.5, H5: 0.5, H8: 0.5}
+  # Its databases input drops data on removal, so H11 grades 0.
+  items: {H4: 0.5, H5: 0.5, H11: 0.0}
 bad_unsafe:
   gate: true
   # One critical defect: allow_public_access feeds ipv4_enabled, so network
@@ -43,7 +44,8 @@ bad_unsafe:
   # hardcoded_on partial credit.
   max_score: 0.85
   must_fail: [H1, H3, H9, H10]
-  items: {H3: 0.0, H4: 0.75, H5: 0.75, H8: 0.5}
+  # Databases are always abandoned on removal: guarded, no opt-out.
+  items: {H3: 0.0, H4: 0.75, H5: 0.75, H11: 0.75}
 bad_minimal:
   gate: true
   # Bare instance: public IP by provider default, no TLS requirement, no
@@ -53,5 +55,5 @@ bad_minimal:
   # (H10) by having nothing to store.
   max_score: 0.25
   must_fail: [H1, H2, H3, H4, H5, H8, H9, A1, A2, A3, A4, A5, A6, A7,
-              B1_provider_constraints, B2_descriptions, B3_opentofu_constraint]
+              B1_provider_constraints, B2_descriptions]
   items: {H3: 0.0, H4: 0.0, H5: 0.0}

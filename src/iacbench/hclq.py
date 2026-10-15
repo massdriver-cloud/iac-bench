@@ -304,17 +304,6 @@ def required_providers(module_dir: Path) -> dict:
     return out
 
 
-def required_versions(module_dir: Path) -> list:
-    """Every terraform.required_version constraint under the module dir
-    (local submodules included)."""
-    out: list = []
-    for doc in _parse_all(module_dir):
-        for block in doc.get("terraform", []) or []:
-            if (block or {}).get("required_version") is not None:
-                out.append(block["required_version"])
-    return out
-
-
 def _parse_all(module_dir: Path) -> list:
     """Parse every *.tf under the module dir (excluding .terraform),
     best-effort like parse_dir."""

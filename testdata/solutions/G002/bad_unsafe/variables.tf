@@ -100,3 +100,9 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "databases" {
+  description = "Databases to create on the instance."
+  type        = set(string)
+  default     = []
+}

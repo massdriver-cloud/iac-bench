@@ -146,12 +146,12 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 |---|---|---|
 | `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, `{exists: true}`, literal equality); `match: any\|every` over instances; `plans: [defaults, sweep]` with `quantifier: any\|all` over plans |
 | `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence). Attribute names may be dotted paths through nested blocks; a `dynamic` block on the path is a knob; `{in: [...]}` accepts any listed literal |
+| `declares` | static | the source declares at least one resource of `type`, gated or not — lets an item pass modules that never create the thing it guards |
 | `expr_matches` | static | every resource's `attr` expression, resolved through locals and data sources, matches `pattern` — or the resource has `or_attr_present` instead |
 | `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals and through `each.key`/`each.value` to the resource's `for_each` (an index such as `x[each.key]` does not carry it); `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
 | `var_domain_closed` | static | the named attribute is fed by at least one variable, and every feeding variable is a bool or carries a `contains([...])` validation short enough for the sweep to plan every value; pair it with a sweep `resource` check so an input limited to safe choices counts as a decision, not a knob |
 | `var_feeds_provider_attr` | static | some declared variable feeds the named attribute of a provider configuration block (nested blocks such as `default_tags` included), transitively through locals; `provider` restricts to one provider; `has_default` as above |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
-| `opentofu_constraint` | static | required_version is declared and every declaration excludes the next major version |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |
 | `output_named` | static | an output exists whose name/value matches |
 | `interface` | static | structural constraints: variable count budget, descriptions required on every variable and output |

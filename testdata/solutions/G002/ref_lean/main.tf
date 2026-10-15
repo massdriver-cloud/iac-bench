@@ -83,6 +83,9 @@ resource "google_sql_database" "this" {
 
   name     = each.value
   instance = google_sql_database_instance.this.name
+  # Removing a name from var.databases keeps the data while the instance is
+  # protected; turn deletion protection off to drop it for real.
+  deletion_policy = var.deletion_protection ? "ABANDON" : "DELETE"
 }
 
 resource "google_sql_user" "iam" {

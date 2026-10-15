@@ -253,6 +253,12 @@ def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
     return False
 
 
+def _verb_declares(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: the source declares at least one resource of `type`,
+    whether or not anything gates its existence."""
+    return bool(hclq.resource_attrs(ctx.module_dir, spec["type"]))
+
+
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     """Static lens over attribute expressions resolved through locals and
     data sources.
@@ -397,13 +403,6 @@ def _verb_provider_constraints(ctx: CheckContext, spec: dict) -> bool:
     return True
 
 
-def _verb_opentofu_constraint(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: required_version is declared and every declaration stays
-    within one major version of OpenTofu."""
-    constraints = hclq.required_versions(ctx.module_dir)
-    return bool(constraints) and all(_constraint_bounded(c) for c in constraints)
-
-
 def strip_comments(text: str) -> str:
     """Remove #, //, and /* */ comments (outside quoted strings), so a
     substring check cannot be satisfied by a comment mentioning the needle."""
@@ -507,10 +506,10 @@ _VERBS = {
     "resource": _verb_resource,
     "hardcoded": _verb_hardcoded,
     "expr_matches": _verb_expr_matches,
+    "declares": _verb_declares,
     "var_feeds_attr": _verb_var_feeds_attr,
     "var_domain_closed": _verb_var_domain_closed,
     "provider_constraints": _verb_provider_constraints,
-    "opentofu_constraint": _verb_opentofu_constraint,
     "provider_config_attr": _verb_provider_config_attr,
     "var_feeds_provider_attr": _verb_var_feeds_provider_attr,
     "source_contains": _verb_source_contains,
