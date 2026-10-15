@@ -44,12 +44,17 @@ is Internal logic.)
   one: format checks on identifiers are optional, and their looseness costs nothing.
 - Validation coverage as a percentage is meaningless.
 - Avoid pairs of variables that can be set to conflict with each other unless necessary.
-- 2: the inputs where a realistic mistake would break the deployment are guarded, and
-  no condition rejects a valid value.
-- 1: some of those guards are missing, a condition rejects a valid value, or inputs
-  can be set to conflict.
-- 0: no validation, though the module has inputs where a realistic mistake would break
-  the deployment.
+- 2: realistic mistakes that would break the deployment are guarded, no condition
+  rejects a valid value, and the module adds no avoidable pair of inputs that can be set
+  to conflict. Two inputs that are both genuinely needed, whose valid combinations the
+  service itself constrains, are not an avoidable pair; a missing cross-check between
+  them is a minor gap and does not cost the grade.
+- 1: the module guards its inputs deliberately, but a guard is missing on an input
+  consumers routinely get wrong, a condition rejects a valid value, or the module adds
+  an avoidable pair of inputs that can be set to conflict.
+- 0: the inputs where a realistic mistake would break the deployment are essentially
+  unguarded: no validation at all, or only incidental checks while the inputs consumers
+  routinely get wrong are left open.
 
 ## Internal logic
 
