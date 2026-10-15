@@ -1,8 +1,19 @@
 locals {
   labels = merge(var.labels, { managed-by = "opentofu" })
+
+  login_members = concat(
+    [for u in var.iam_users : "user:${u}"],
+    [for sa in var.iam_service_accounts : "serviceAccount:${sa}"],
+  )
+  login_grants = {
+    for pair in setproduct(local.login_members, ["roles/cloudsql.instanceUser", "roles/cloudsql.client"]) :
+    "${pair[1]} ${pair[0]}" => { member = pair[0], role = pair[1] }
+  }
 }
 
 # Authentication is IAM-only: no built-in passwords are created or accepted.
+# Identity login and connection logging are applied after the flags input, so
+# no input can turn them off.
 data "google_client_config" "current" {}
 
 resource "google_sql_database_instance" "this" {
@@ -47,8 +58,16 @@ resource "google_sql_database_instance" "this" {
       hour = var.maintenance_hour
     }
 
+    insights_config {
+      query_insights_enabled = true
+    }
+
     dynamic "database_flags" {
-      for_each = merge(var.database_flags, { "cloudsql.iam_authentication" = "on" })
+      for_each = merge(var.database_flags, {
+        "cloudsql.iam_authentication" = "on"
+        log_connections               = "on"
+        log_disconnections            = "on"
+      })
       content {
         name  = database_flags.key
         value = database_flags.value
@@ -67,10 +86,36 @@ resource "google_sql_database" "this" {
   deletion_policy = var.deletion_protection ? "ABANDON" : "DELETE"
 }
 
+# People log in as CLOUD_IAM_USER, workloads as CLOUD_IAM_SERVICE_ACCOUNT
+# (Cloud SQL names a service-account user by its email without the
+# .gserviceaccount.com suffix).
 resource "google_sql_user" "iam" {
   for_each = var.iam_users
 
   name     = each.value
   instance = google_sql_database_instance.this.name
   type     = "CLOUD_IAM_USER"
+}
+
+resource "google_sql_user" "iam_service_account" {
+  for_each = var.iam_service_accounts
+
+  name     = trimsuffix(each.value, ".gserviceaccount.com")
+  instance = google_sql_database_instance.this.name
+  type     = "CLOUD_IAM_SERVICE_ACCOUNT"
+}
+
+# A database user alone cannot log in: IAM login needs instanceUser, and the
+# Cloud SQL connectors need client. Both are scoped to this instance.
+resource "google_project_iam_member" "sql_login" {
+  for_each = local.login_grants
+
+  project = google_sql_database_instance.this.project
+  role    = each.value.role
+  member  = each.value.member
+
+  condition {
+    title      = "cloudsql-${google_sql_database_instance.this.name}"
+    expression = "resource.name == 'projects/${google_sql_database_instance.this.project}/instances/${google_sql_database_instance.this.name}'"
+  }
 }

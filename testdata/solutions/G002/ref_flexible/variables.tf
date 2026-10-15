@@ -116,9 +116,20 @@ variable "databases" {
 }
 
 variable "iam_users" {
-  description = "IAM principals (user emails) granted database login through IAM authentication."
+  description = "Email addresses of people granted database login through IAM authentication."
   type        = set(string)
   default     = []
+}
+
+variable "iam_service_accounts" {
+  description = "Workload service-account emails granted database login through IAM authentication."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for sa in var.iam_service_accounts : endswith(sa, ".gserviceaccount.com")])
+    error_message = "iam_service_accounts takes service-account emails ending in .gserviceaccount.com; put people in iam_users."
+  }
 }
 
 variable "labels" {

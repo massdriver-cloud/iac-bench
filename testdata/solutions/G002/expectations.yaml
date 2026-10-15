@@ -16,14 +16,16 @@ ref_lean:
   min_score: 0.95
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, A1, A2, A3, A4, A5, A6, A7, A8, A9,
               B1_provider_constraints, B2_descriptions,
-              E3_iam_database_login, E4_manages_databases, E5_manages_users]
+              E3_iam_database_login, E4_manages_databases, E5_manages_users,
+              E6_iam_login_granted, E7_workload_identities, E8_connection_audit_trail, E9_query_insights]
 ref_flexible:
   gate: true
   min_score: 0.95
   # IAM-only authentication: no password exists, so H7 and H10 pass by construction.
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, A1, A2, A3, A4, A5, A6, A7, A8, A9,
               B1_provider_constraints, B2_descriptions,
-              E2_customer_managed_key, E3_iam_database_login, E4_manages_databases, E5_manages_users]
+              E2_customer_managed_key, E3_iam_database_login, E4_manages_databases, E5_manages_users,
+              E6_iam_login_granted, E7_workload_identities, E8_connection_audit_trail, E9_query_insights]
 bad_passthrough:
   gate: true
   # Security posture is a set of knobs (ipv4_enabled, ssl_mode), the root

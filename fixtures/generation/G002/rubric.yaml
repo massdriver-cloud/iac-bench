@@ -374,3 +374,58 @@ expertise:
     discovered_via: doctrine owner, 2026-10-14
     check:
       var_feeds_attr: {type: google_sql_user, attr: name}
+  - id: E6_iam_login_granted
+    description: >
+      The IAM principals given database users are also granted
+      roles/cloudsql.instanceUser. Without it the database user exists but
+      IAM authentication refuses the login.
+    discovered_via: doctrine owner, 2026-10-15
+    check:
+      all_of:
+        - any_of:
+            - declares: {type: google_project_iam_member}
+            - declares: {type: google_project_iam_binding}
+        - source_contains: roles/cloudsql.instanceUser
+  - id: E7_workload_identities
+    description: >
+      Workload service accounts can be given database logins
+      (CLOUD_IAM_SERVICE_ACCOUNT users), not only people. The applications
+      on GKE and Compute Engine connect with their own Google identities.
+    discovered_via: doctrine owner, 2026-10-15
+    check:
+      source_contains: CLOUD_IAM_SERVICE_ACCOUNT
+  - id: E8_connection_audit_trail
+    description: >
+      Connections and disconnections are logged (log_connections and
+      log_disconnections), so every session is recorded under the identity
+      that opened it for the security team's audit.
+    discovered_via: doctrine owner, 2026-10-15
+    check:
+      all_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: google_sql_database_instance
+            where:
+              settings:
+                database_flags: {name: log_connections, value: "on"}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: google_sql_database_instance
+            where:
+              settings:
+                database_flags: {name: log_disconnections, value: "on"}
+  - id: E9_query_insights
+    description: >
+      Query Insights is enabled, giving the DBAs per-query load, latency and
+      plan history in the console without running their own tooling.
+    discovered_via: doctrine owner, 2026-10-15
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: google_sql_database_instance
+        where:
+          settings:
+            insights_config: {query_insights_enabled: true}
