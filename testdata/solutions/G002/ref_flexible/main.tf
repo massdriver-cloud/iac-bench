@@ -48,7 +48,7 @@ resource "google_sql_database_instance" "this" {
     }
 
     dynamic "database_flags" {
-      for_each = merge({ "cloudsql.iam_authentication" = "on" }, var.database_flags)
+      for_each = merge(var.database_flags, { "cloudsql.iam_authentication" = "on" })
       content {
         name  = database_flags.key
         value = database_flags.value

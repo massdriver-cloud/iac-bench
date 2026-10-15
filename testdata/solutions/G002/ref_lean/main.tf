@@ -8,17 +8,18 @@ locals {
   is_prod          = var.environment == "prod"
   retained_backups = local.is_prod ? 30 : 7
 
-  # Connection and slow-query logging are the same on every instance; DBA
-  # flags layer on top and win on conflict. People and workloads log in with
-  # their Google identity, so the module never creates or stores a password.
+  # DBA flags may tune the slow-query threshold, but identity login and
+  # connection logging are applied last so no input can turn them off. People
+  # and workloads log in with their Google identity, so the module never
+  # creates or stores a password.
   database_flags = merge(
+    { log_min_duration_statement = "1000" },
+    var.database_flags,
     {
       "cloudsql.iam_authentication" = "on"
       log_connections               = "on"
       log_disconnections            = "on"
-      log_min_duration_statement    = "1000"
     },
-    var.database_flags,
   )
 }
 
