@@ -16,6 +16,7 @@ import hcl2
 _VAR_REF = re.compile(r"\bvar\.([A-Za-z0-9_-]+)")
 _LOCAL_REF = re.compile(r"\blocal\.([A-Za-z0-9_-]+)")
 _DATA_REF = re.compile(r"\bdata\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)")
+_EACH_REF = re.compile(r"\beach\.(key|value)\b")
 
 
 def _unquote(value):
@@ -73,6 +74,29 @@ def variables(module_dir: Path) -> dict:
                     ],
                 }
     return out
+
+
+_CONTAINS_RE = re.compile(r"contains\(\s*\[([^\]]*)\]")
+
+
+def allowed_values(meta: dict) -> list:
+    """Candidate values harvested from `contains([...], var.x)` validations."""
+    for condition in meta.get("validation_conditions", []):
+        m = _CONTAINS_RE.search(condition)
+        if not m:
+            continue
+        values = []
+        for raw in m.group(1).split(","):
+            raw = raw.strip().strip('"').strip("'")
+            if not raw:
+                continue
+            try:
+                values.append(json.loads(raw))
+            except (ValueError, json.JSONDecodeError):
+                values.append(raw)
+        if values:
+            return values
+    return []
 
 
 def parse_tfvars(path: Path) -> dict:
@@ -188,13 +212,24 @@ def _attr_values(node, attr_name: str):
             yield from _attr_values(item, attr_name)
 
 
+def _strip_indexes(text: str) -> str:
+    """Drop bracketed index expressions: `x[each.key]` selects an instance of
+    something else, it does not pass the for_each value through."""
+    prev = None
+    while prev != text:
+        prev, text = text, re.sub(r"\[[^\[\]]*\]", "", text)
+    return text
+
+
 def vars_feeding_attr(
     module_dir: Path, attr_name: str, rtype: str | None = None, through_data: bool = False
 ) -> set:
     """Variables that (transitively) feed any resource attribute with this
     name, including attributes inside nested and dynamic blocks. `rtype`
     restricts the search to one resource type; `through_data` also follows
-    data-source lookups keyed by a variable."""
+    data-source lookups keyed by a variable. A value built from `each.key`
+    or `each.value` carries the variables feeding the resource's for_each,
+    unless it only uses them as an index into something else."""
     loc = locals_map(module_dir)
     data = data_map(module_dir) if through_data else None
     out: set = set()
@@ -204,8 +239,26 @@ def vars_feeding_attr(
                 if rtype is not None and found_type != rtype:
                     continue
                 for _name, attrs in instances.items():
-                    for value in _attr_values(attrs or {}, attr_name):
+                    attrs = attrs or {}
+                    each_vars = _var_closure(loc, attrs["for_each"], data) if "for_each" in attrs else set()
+                    for value in _attr_values(attrs, attr_name):
                         out |= _var_closure(loc, value, data)
+                        if each_vars and _EACH_REF.search(_strip_indexes(json.dumps(value, default=str))):
+                            out |= each_vars
+    return out
+
+
+def vars_feeding_provider_attr(module_dir: Path, attr_name: str, provider: str | None = None) -> set:
+    """Variables that (transitively) feed a provider configuration attribute
+    with this name, including attributes inside nested blocks such as
+    default_tags. `provider` restricts the search to one provider."""
+    loc = locals_map(module_dir)
+    out: set = set()
+    for name, attrs in provider_blocks(module_dir):
+        if provider is not None and name != provider:
+            continue
+        for value in _attr_values(attrs, attr_name):
+            out |= _var_closure(loc, value)
     return out
 
 

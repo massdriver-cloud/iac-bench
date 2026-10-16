@@ -1,28 +1,31 @@
 # What we consider good OpenTofu
 
 **Owner: Chris.** The authoritative definition of module quality for the judge:
-each section below is graded 0–4. Grade what the module does, not what it says.
+each section below is graded 0 (no credit), 1 (partial) or 2 (full), except the sections listed under *Scored by the
+rubric*. A section with nothing in the module to apply to has nothing to fault and
+earns 2. Grade what the module does, not what it says.
 The human-facing rationale for these preferences lives in
 `good-opentofu-rationale.md` and is not part of this definition.
 
 ## Interface design
 
-- The interface is sized to the audience the prompt describes. Expose what *that*
-  audience knows, cares about, and legitimately needs to vary; have opinions about
-  everything else. Consumers new to the service get a handful of plain-language inputs
-  and no service jargon. A specialist team gets the controls its discipline expects to
-  own. There is no universal variable count. Judge the interface against the stated
-  audience: settings that audience would not understand or care about are
-  overconfiguration, and missing controls it would expect to own are overprescription.
+Grade the module's inputs against what the prompt asks the module to do and who will
+use it. (Which resources the module creates is Scope; how it computes values internally
+is Internal logic.)
+
+- Start from the use case. The inputs cover the decisions that genuinely differ between
+  deployments of this module for that use case, and the module makes every decision the
+  use case already settles. An input the use case gives no reason to vary is
+  overconfiguration however friendly its form; a decision the use case leaves open,
+  hardcoded, is overprescription.
+- Then check each of those inputs against the audience: the consumer can choose its
+  value from their own requirements and knowledge. A specialist team can own the
+  controls its discipline expects; for a consumer new to the service, a decision that
+  takes service expertise is raised to a level they can decide on, or made by the
+  module. There is no universal variable count.
 - Variablize *concepts*, not resource attributes, wherever the audience thinks in
-  concepts. An `environment` input that drives versioning, logging, and retention beats
-  three boolean toggles.
-- Expose a core capability at the audience's level of abstraction. Offering a capability
-  is good; *how* it is offered must fit the consumer. For an audience new to the service,
-  a single switch or plain-language choice that the module expands into a sound
-  configuration is the reward-worthy form, and exposing the capability's raw internals
-  (rule structures, thresholds, service-specific class names) is overconfiguration. A
-  specialist audience may warrant the internals.
+  concepts. Abstraction serves the consumer and is not a goal in itself: an input the
+  use case calls for and the consumer can decide on needs no further wrapping.
 - Anti-pattern, for every audience: the pass-through module — one variable per resource
   attribute, defaults mirroring provider defaults, no judgment encoded anywhere. A
   specialist audience earns more controls, not an absence of opinions; security posture
@@ -30,18 +33,41 @@ The human-facing rationale for these preferences lives in
 
 ## Variables and validation
 
-- The variables that *should* be guarded are guarded, with error messages that teach.
-  Validation coverage as a percentage is meaningless; validation on the input that can
-  silently break prod is everything.
+- Validation earns its place by catching a mistake a consumer could realistically
+  make that would otherwise break the deployment or behave in a way they would not
+  expect, or by making an input with non-obvious valid values self-explanatory, with
+  an error message that teaches.
+- An input is only a validation gap if a rule could tell a good value from a bad one.
+  Whether a value names the right existing resource is something only the provider
+  can answer; leaving it to the provider is correct.
+- Conditions never reject a valid value. They do not need to catch every invalid
+  one: format checks on identifiers are optional, and their looseness costs nothing.
+- Validation coverage as a percentage is meaningless.
+- Avoid pairs of variables that can be set to conflict with each other unless necessary.
+- 2: realistic mistakes that would break the deployment are guarded, no condition
+  rejects a valid value, and the module adds no avoidable pair of inputs that can be set
+  to conflict. Two inputs that are both genuinely needed, whose valid combinations the
+  service itself constrains, are not an avoidable pair; a missing cross-check between
+  them is a minor gap and does not cost the grade.
+- 1: the module guards its inputs deliberately, but a guard is missing on an input
+  consumers routinely get wrong, a condition rejects a valid value, or the module adds
+  an avoidable pair of inputs that can be set to conflict.
+- 0: the inputs where a realistic mistake would break the deployment are essentially
+  unguarded: no validation at all, or only incidental checks while the inputs consumers
+  routinely get wrong are left open.
 
-## Structure
+## Internal logic
+
+Grade how the module computes what it needs internally: its locals and expressions,
+not its file organization (File layout) or its inputs (Interface design).
 
 - Use locals to compute inferred values from concept inputs rather than demanding more
   inputs. Deep chains of clever expressions are their own anti-pattern; locals should make
-  the module *more* readable, not show off. Avoid pairs of variables that can be set to
-  conflict with each other unless necessary.
+  the module *more* readable, not show off.
 
 ## Scope
+
+Grade which resources the module creates for the job it was given.
 
 - Include the resources a competent operator would consider part of the job (access
   posture, encryption, cost and data hygiene) — proportionate to the use case, without
@@ -67,10 +93,11 @@ The human-facing rationale for these preferences lives in
 
 ## Outputs
 
-- Minimal outputs, mirroring the variables philosophy: output the values that are relevant
-  to *using* the module's resources from outside (ids, ARNs, endpoints, computed names).
-  Exporting everything because you can is the output-side version of the pass-through
-  module.
+- Output the values a consumer needs to *use* the module's resources from outside
+  (ids, ARNs, endpoints, computed names). Covering those needs matters more than
+  keeping the list short.
+- Exporting every attribute of every resource because you can is the output-side
+  version of the pass-through module.
 
 ## Tagging
 
@@ -80,9 +107,11 @@ The human-facing rationale for these preferences lives in
   every taggable resource. A module with no way to add tags is bad.
 - Calculated tags applied by the module (e.g. `managed-by`) are a plus. Never tag with
   values that change on every run (timestamps): they turn every plan into a diff.
-- Provider-level `default_tags` is the right mechanism when the module is designed to run
-  standalone and the provider offers it; the optional tags variable is the portable
-  mechanism when the module may be consumed as a child.
+- When the module runs standalone and the provider offers provider-level default tags,
+  the consumer's tags input should feed them: one setting tags every resource, including
+  ones added later. Repeating tags on each resource works but is a maintenance burden.
+  The optional tags variable applied per resource is the portable mechanism when the
+  module may be consumed as a child.
 - A `Name` tag (or equivalent) matters on resources that are effectively nameless
   without one.
 - **Requiring** a new input purely to feed tags is scope invention — judge it under
@@ -103,10 +132,14 @@ The human-facing rationale for these preferences lives in
 
 ## File layout
 
-- `variables.tf` and `outputs.tf` when they're needed; a `main.tf` is good, especially
-  when the resources fit comfortably in one file. Beyond roughly 150–200 lines of
-  resources, or more than one clear concern, split conceptually (`bucket.tf`,
-  `logging.tf`) for readability. (Cutoff is a suggested default, not a hard line.)
+- Variables, outputs and resources each have their place: `variables.tf` and
+  `outputs.tf` when the module has them. A single file holding everything has no
+  layout and earns no credit.
+- A `main.tf` is fine for the core resources of the bundle.
+- Split conceptually into separate files when the module has more than one clear
+  concern, such as a supporting resource with its own configuration alongside the main
+  one, whatever the file length. Beyond roughly 150–200 lines of resources, split for
+  readability. (The line count is a suggested default, not a hard line.)
 
 ## Destructive defaults
 
@@ -170,9 +203,12 @@ The human-facing rationale for these preferences lives in
 
 ## Documentation
 
-- Every variable and output has a `description`. A README is positive. Some documentation
-  is good; excessive documentation is not good; no documentation is bad; incorrect or
-  out-of-date documentation is really bad.
+- Every variable and output has a `description`. Comments explain what is complex or
+  unintuitive; a README can carry what comments leave out. Comments, a README, or
+  both can make a module understandable.
+- 2: accurate, and the amount fits the module.
+- 1: accurate, but too sparse or so heavy it becomes noise.
+- 0: none, or any of it is wrong or out of date.
 
 ## Deprecated and escape-hatch patterns
 
@@ -188,6 +224,10 @@ The human-facing rationale for these preferences lives in
   Versions). A module with no provider requirements is at the mercy of whatever the root
   module happens to use, with no guarantee it was written for compatibility with that
   version — treat this as broken, not as a style choice.
+- A module built to run standalone declares its provider configuration explicitly
+  rather than relying on the implicit default configuration. Settings the deployment
+  should control, such as the region or location, are inputs (a sensible default is
+  fine), not whatever the executing environment happens to set.
 - Modules designed to be executed as independent deployable units are preferred over
   modules built purely to be composed into a terralith. Terraliths are an anti-pattern;
   a module that can stand alone (and carries its own provider configuration in that
@@ -211,14 +251,23 @@ The human-facing rationale for these preferences lives in
 
 ## Grading weights
 
-The judge grades each section above 0–4; the overall grade is the weighted mean of
-applicable sections. Sections not listed here weigh 1.
+The judge grades each section above 0–2, except those scored by the rubric; the
+overall grade is the weighted mean of the graded sections. Sections not listed here weigh 1.
 
-- Insecure Configurations: 3
 - Sensitive values: 3
-- Destructive defaults: 3
 - Interface design: 2
 - Variables and validation: 2
 - Scope: 2
-- Unstated assumptions: 2
-- Provider declarations and module independence: 2
+
+## Scored by the rubric
+
+The benchmark's mechanical rubric scores these sections, so the judge does not grade
+them: a defect here must not cost a module twice. They remain part of the definition
+and are context for the sections the judge does grade.
+
+- Insecure Configurations
+- Destructive defaults
+- Unstated assumptions
+- Tagging
+- Versions
+- Provider declarations and module independence

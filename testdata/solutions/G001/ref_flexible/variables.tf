@@ -9,7 +9,7 @@ variable "purpose" {
 }
 
 variable "environment" {
-  description = "Deployment environment; drives versioning, logging, and deletion safety."
+  description = "Deployment environment; drives access logging and deletion safety."
   type        = string
 
   validation {
@@ -24,8 +24,8 @@ variable "transition_days" {
   default     = 30
 
   validation {
-    condition     = var.transition_days == 0 || var.transition_days >= 30
-    error_message = "transition_days must be 0 (disabled) or at least 30 (S3 minimum)."
+    condition     = var.transition_days == 0 || (var.transition_days >= 30 && floor(var.transition_days) == var.transition_days)
+    error_message = "transition_days must be 0 (disabled) or a whole number of at least 30 (the S3 minimum for infrequent-access storage)."
   }
 }
 
@@ -35,8 +35,8 @@ variable "transition_storage_class" {
   default     = "STANDARD_IA"
 
   validation {
-    condition     = contains(["STANDARD_IA", "ONEZONE_IA", "GLACIER_IR"], var.transition_storage_class)
-    error_message = "transition_storage_class must be STANDARD_IA, ONEZONE_IA, or GLACIER_IR."
+    condition     = contains(["STANDARD_IA", "ONEZONE_IA"], var.transition_storage_class)
+    error_message = "transition_storage_class must be STANDARD_IA or ONEZONE_IA."
   }
 }
 
@@ -46,8 +46,8 @@ variable "noncurrent_expiration_days" {
   default     = 90
 
   validation {
-    condition     = var.noncurrent_expiration_days >= 0
-    error_message = "noncurrent_expiration_days must be 0 (disabled) or a positive number of days."
+    condition     = var.noncurrent_expiration_days >= 0 && floor(var.noncurrent_expiration_days) == var.noncurrent_expiration_days
+    error_message = "noncurrent_expiration_days must be 0 (disabled) or a whole number of days."
   }
 }
 
@@ -64,8 +64,8 @@ variable "extra_tags" {
   default     = {}
 }
 
-variable "log_prefix" {
-  description = "Key prefix for server access logs (prod)."
+variable "region" {
+  description = "AWS region the bucket lives in."
   type        = string
-  default     = "s3-access/"
+  default     = "us-east-1"
 }

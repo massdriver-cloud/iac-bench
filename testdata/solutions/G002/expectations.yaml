@@ -3,7 +3,9 @@
 # references are asserted by WHICH items fail, with score bounds as sanity
 # checks on true, uncapped values.
 #
-# Engine coverage: H1/H2 exercise dotted-path `hardcoded` (H2 with `in:`);
+# Engine coverage: H1/H2 exercise dotted-path `hardcoded` (H2 with `in:`;
+# ref_flexible earns H2 instead through var_domain_closed, an ssl_mode input
+# limited to the secure modes);
 # H3 exercises multi-behavior default_on (ref_lean earns it through the
 # native settings flag, ref_flexible through the provider-level guard only);
 # the A* items exercise nested, type-scoped var_feeds_attr; A7 exercises
@@ -12,23 +14,28 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7,
-              B1_provider_constraints, B2_descriptions]
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, A1, A2, A3, A4, A5, A6, A7, A8, A9,
+              B1_provider_constraints, B2_descriptions,
+              E3_iam_database_login, E4_manages_databases, E5_manages_users,
+              E6_iam_login_granted, E7_workload_identities, E8_connection_audit_trail, E9_query_insights]
 ref_flexible:
   gate: true
   min_score: 0.95
-  # IAM-only authentication: no password exists, so H7 passes by construction.
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7,
-              B1_provider_constraints, B2_descriptions]
+  # IAM-only authentication: no password exists, so H7 and H10 pass by construction.
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, A1, A2, A3, A4, A5, A6, A7, A8, A9,
+              B1_provider_constraints, B2_descriptions,
+              E2_customer_managed_key, E3_iam_database_login, E4_manages_databases, E5_manages_users,
+              E6_iam_login_granted, E7_workload_identities, E8_connection_audit_trail, E9_query_insights]
 bad_passthrough:
   gate: true
   # Security posture is a set of knobs (ipv4_enabled, ssl_mode), the root
-  # password is a raw input, and nothing is described.
+  # password is a raw input (and so stored in state), and nothing is described.
   # Backups and PITR default off but stay reachable, so they earn partial
   # credit only. Exposure items pass — a pass-through exposes everything.
   max_score: 0.55
-  must_fail: [H1, H2, H4, H5, H7, B2_descriptions]
-  items: {H4: 0.5, H5: 0.5}
+  must_fail: [H1, H2, H4, H5, H7, H9, H10, B2_descriptions]
+  # Its databases input drops data on removal, so H11 grades 0.
+  items: {H4: 0.5, H5: 0.5, H11: 0.0}
 bad_unsafe:
   gate: true
   # One critical defect: allow_public_access feeds ipv4_enabled, so network
@@ -38,15 +45,17 @@ bad_unsafe:
   # frontier model produced): safe but no opt-out, so H4/H5 earn the
   # hardcoded_on partial credit.
   max_score: 0.85
-  must_fail: [H1, H3]
-  items: {H3: 0.0, H4: 0.75, H5: 0.75}
+  must_fail: [H1, H3, H9, H10]
+  # Databases are always abandoned on removal: guarded, no opt-out.
+  items: {H3: 0.0, H4: 0.75, H5: 0.75, H11: 0.75}
 bad_minimal:
   gate: true
   # Bare instance: public IP by provider default, no TLS requirement, no
   # backups, no labels, nothing exposed, unbounded provider, no descriptions.
   # The provider-level deletion guard is on only by provider default with no
-  # opt-out, so H3 grades 0.
-  max_score: 0.20
-  must_fail: [H1, H2, H3, H4, H5, H8, A1, A2, A3, A4, A5, A6, A7,
+  # opt-out, so H3 grades 0. It creates no users, so it stores no password
+  # (H10) by having nothing to store.
+  max_score: 0.25
+  must_fail: [H1, H2, H3, H4, H5, H8, H9, A1, A2, A3, A4, A5, A6, A7,
               B1_provider_constraints, B2_descriptions]
   items: {H3: 0.0, H4: 0.0, H5: 0.0}

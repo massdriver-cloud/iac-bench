@@ -1,2 +1,2 @@
 instance_name = "billing-db"
-network       = "default"
+network       = "apps-dev"

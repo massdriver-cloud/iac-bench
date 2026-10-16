@@ -259,6 +259,9 @@ def _load_grade_data(judge_dirs: list) -> list:
         if not path.is_file():
             continue
         data = json.loads(path.read_text())
+        if data.get("author_label"):
+            # Bias-experiment grades: the judge was told an author. Never scored.
+            continue
         entries.append({
             "fixture": data.get("fixture"),
             "judge_model": data.get("judge_model", "?"),
@@ -518,8 +521,8 @@ def render_grade_sections(judge_dirs: list) -> str:
     if not blocks:
         return ""
     footer = (
-        "\nEach row is scored 0–4 against one section of the published doctrine "
-        "(median of independent samples; NA sections drop out of the weighted mean). "
+        "\nEach row is scored 0–2 against one section of the published doctrine "
+        "(median of independent samples). "
         "The sections are our documented preferences — disagree with one, ignore its "
         "row; the mechanical rubric above is judge-free."
     )

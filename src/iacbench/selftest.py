@@ -243,11 +243,13 @@ def _selftest_generation(fixture_dir: Path, work_root: Path) -> list:
         if "max_score" in expect and result.semantic_score > expect["max_score"]:
             failures.append(Failure(fixture.id, name, f"score above {expect['max_score']}: {summary}"))
         # Graded (default_on) items report floats; full credit means >= 1.
+        # Expertise items are asserted by the same lists.
+        outcomes = {**result.items, **result.expertise}
         for item_id in expect.get("must_pass", []) or []:
-            if float(result.items.get(item_id, 0.0)) < 1.0:
+            if float(outcomes.get(item_id, 0.0)) < 1.0:
                 failures.append(Failure(fixture.id, name, f"expected {item_id} to pass: {summary} details={result.details}"))
         for item_id in expect.get("must_fail", []) or []:
-            if float(result.items.get(item_id, 0.0)) >= 1.0:
+            if float(outcomes.get(item_id, 0.0)) >= 1.0:
                 failures.append(Failure(fixture.id, name, f"expected {item_id} to fail: {summary}"))
         # Exact values pin graded (default_on) ladder rungs.
         for item_id, want in (expect.get("items") or {}).items():

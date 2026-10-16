@@ -28,10 +28,28 @@ from .artifacts import module_sha
 from .paths import PROVIDER_CACHE
 from .tofu import Tofu
 
+# Provider credential failures. A plan that fails on these says nothing about
+# the module: the run must end as an infrastructure error, never be scored as
+# a gate failure or a missed sweep plan.
+_CLOUD_AUTH_ERRORS = re.compile(
+    r"could not find default credentials|oauth2: cannot fetch token|invalid_grant"
+    r"|Request had invalid authentication credentials|UNAUTHENTICATED"
+    r"|No valid credential sources found|ExpiredToken|InvalidClientTokenId"
+    r"|UnrecognizedClientException|failed to refresh cached credentials"
+    r"|AADSTS\d+|unable to build authorizer|building AzureRM Client"
+    r"|obtaining Authorization Token|Please run 'az login'",
+    re.IGNORECASE,
+)
+
+
+class CloudAuthError(RuntimeError):
+    """The cloud provider rejected our credentials; not the module's fault."""
+
+
 # Harvested allowed-value lists (and fixture perturb hints) keep up to this
 # many candidates so distant values like a "prod" tier stay reachable;
 # type-derived perturbation stays at one candidate per variable.
-_MAX_SWEEP_VALUES = 5
+_MAX_SWEEP_VALUES = checks.SWEEP_ALTERNATIVES
 _TFVARS_NAMES = ("minimal.tfvars.json", "minimal.tfvars")
 
 
@@ -145,6 +163,11 @@ class RootProbeHarness:
             res = self.tofu.plan(out_file=plan_file, var_file=var_file)
             self.plans_run += 1
             if res.exit_code != 0:
+                if _CLOUD_AUTH_ERRORS.search(res.stderr or ""):
+                    raise CloudAuthError(
+                        "cloud credentials rejected during plan (infrastructure, not the "
+                        f"module): {res.stderr.strip()[-300:]}"
+                    )
                 return False, None, res.stderr
             return True, self.tofu.show_json(plan_file), ""
         finally:
@@ -157,31 +180,8 @@ class RootProbeHarness:
 
 # ---------------------------------------------------------------- sweep
 
-_CONTAINS_RE = re.compile(r"contains\(\s*\[([^\]]*)\]")
-
-
-def _allowed_values(meta: dict) -> list:
-    """Candidate values harvested from `contains([...], var.x)` validations."""
-    for condition in meta.get("validation_conditions", []):
-        m = _CONTAINS_RE.search(condition)
-        if not m:
-            continue
-        values = []
-        for raw in m.group(1).split(","):
-            raw = raw.strip().strip('"').strip("'")
-            if not raw:
-                continue
-            try:
-                values.append(json.loads(raw))
-            except (ValueError, json.JSONDecodeError):
-                values.append(raw)
-        if values:
-            return values
-    return []
-
-
 def _candidates(meta: dict, current) -> list:
-    allowed = _allowed_values(meta)
+    allowed = hclq.allowed_values(meta)
     if allowed:
         return [v for v in allowed if v != current][:_MAX_SWEEP_VALUES]
     if isinstance(current, bool):
@@ -359,7 +359,11 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     passed_weight = 0.0
     for item in fixture.items:
         try:
-            if item.get("posture") == "default_on":
+            if item.get("posture") == "budget":
+                value = checks.grade_budget(ctx, item["budget"])
+            elif item.get("posture") == "ladder":
+                value = checks.grade_ladder(ctx, item["ladder"])
+            elif item.get("posture") == "default_on":
                 value = checks.grade_default_on(
                     ctx, item["behavior"], item.get("partial", 0.5), item.get("hardcoded_on", 0.0)
                 )

@@ -173,16 +173,15 @@ items:
         - var_feeds_attr: {attr: bucket_prefix}
 
   - id: A2
-    weight: 3
+    weight: 2
     description: >
-      Restraint — encryption is not consumer-configurable: no input selects
-      the key or the algorithm, directly or by deriving one from the other.
-      The module owns encryption for this audience.
+      Restraint — no encryption key is demanded. Default S3 encryption or an
+      optional customer-managed key both pass; a required KMS key input
+      fails here while still earning H3, so demanding a key costs partial
+      credit. Disabling encryption is H3's failure, not this item's.
     check:
       not:
-        any_of:
-          - var_feeds_attr: {attr: kms_master_key_id}
-          - var_feeds_attr: {attr: sse_algorithm}
+        var_feeds_attr: {attr: kms_master_key_id, has_default: false}
 
   - id: A3
     weight: 1
@@ -222,18 +221,41 @@ items:
               pattern: 'cloudfront\.amazonaws\.com'
               match: any
 
+  - id: A5
+    weight: 8
+    posture: budget
+    description: >
+      Interface budget — full credit at 8 or fewer inputs, falling
+      linearly to zero at 16. This audience fills in "a couple of obvious inputs". A race to expose every setting in
+      order to satisfy exposure checks is the failure this guards against:
+      pass-through modules encode less expertise than tuned ones.
+    budget: {soft: 8, hard: 16}
+
   - id: H12
     weight: 2
+    posture: ladder
     description: >
-      Tagging support is table stakes — consumers can add their own tags
-      through an optional input, or the module applies provider default_tags
-      (the doctrine-endorsed mechanism for standalone modules). Influence is
+      Consumers can add their own tags through an optional input. Full credit
+      when that input feeds the provider's default_tags, so every resource is
+      tagged by one setting; half credit when it is applied resource by
+      resource, which every new resource must remember to repeat. Influence is
       detected syntactically (taint through locals). Demanding a required
       input for tags is scope invention, judged under Unstated assumptions.
+    ladder:
+      - score: 1.0
+        check: {var_feeds_provider_attr: {provider: aws, attr: tags, has_default: true}}
+      - score: 0.5
+        check: {var_feeds_attr: {attr: tags, has_default: true}}
+
+  - id: H15
+    weight: 4
+    description: >
+      Explicit provider configuration with a configurable region — the module
+      declares its aws provider block and an input feeds its region (a
+      default is fine). A standalone module that relies on the implicit
+      provider leaves the region to whatever environment runs it.
     check:
-      any_of:
-        - var_feeds_attr: {attr: tags, has_default: true}
-        - provider_config_attr: {attr: default_tags}
+      var_feeds_provider_attr: {provider: aws, attr: region}
 
   - id: H13
     weight: 4
@@ -264,7 +286,7 @@ items:
 # Input guarding (are the *right* variables validated) is deliberately NOT a
 # mechanical item — with no stated org policies there is no ground truth for
 # correct bounds. It is judged in layer 3.
-# Recorded but unweighted: variable count, % typed, % validated, locals count,
+# Recorded but unweighted beyond A5's budget: variable count, % typed, % validated, locals count,
 # resource count, SLOC, comment ratio.
 
 # Expertise checklist — discovered service-specific touches, mechanically
@@ -334,3 +356,16 @@ expertise:
         attr: bucket
         pattern: 'random_(id|string|pet|uuid|integer)\.|aws_caller_identity\.'
         or_attr_present: bucket_prefix
+  - id: E9_consumer_access_policies
+    description: >
+      Ships ready-to-attach access policies for the bucket's consumers
+      (read-only and/or read-write), as managed IAM policies or as policy
+      documents exposed through outputs.
+    discovered_via: owner calibration review, 2026-10-06
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_iam_policy
+        - output_named: {value_contains: aws_iam_policy_document}

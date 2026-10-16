@@ -16,7 +16,7 @@ index") are SLOC-like proxies — they describe the population, not the instance
 |-------|------|--------|----------------------|
 | 1 | Functional gate: the module plans as a root module with its own `minimal.tfvars`, filtered to required variables | mechanical, boolean | prerequisite — quality layers only run if this passes |
 | 2 | Brief-specific semantic checks (the rubric), declared in each fixture's `rubric.yaml` and evaluated by the check engine — see `generation-check-engine.md` | mechanical, itemized, weighted | yes — the main mechanical score |
-| 3 | LLM judge, validated against human ranking: absolute 0–100 grading against `good-opentofu.md`, with blind pairwise comparison as a discovery/audit tool | LLM-judge, gated | yes — separate column, never silently merged |
+| 3 | LLM judge, validated against human verdicts: absolute 0–100 grading on the `good-opentofu.md` sections the rubric does not score, with blind pairwise comparison as a discovery tool | LLM-judge, gated | yes — separate column, never silently merged |
 | 4 | Generic stats (var counts, validation %, locals depth, SLOC, cost) | mechanical, scalar | no — descriptive columns only |
 
 The composite grade is 70% mechanical / 30% judged, per
@@ -57,10 +57,14 @@ variable budget. Each rubric carries hidden audience-fit items (`A*`):
 - **Restraint:** settings this audience would not understand or care about (an app
   developer is not asked to choose an encryption key).
 
-There is no variable-count ceiling anywhere: a specialist interface legitimately carries many
-more inputs than a beginner one. Pass-through shapes are punished per fixture, by restraint
-items naming the settings that audience should never be handed and by the hardcoded security
-items. Exposure and restraint are checked by what inputs feed (taint through locals), never by
+- **Budget:** a graded interface budget per fixture — full credit at or under a soft input
+  count, falling linearly to zero at a hard count — set from the brief's audience (narrow for
+  developers new to the service, wide for a specialist team).
+
+The budget is what keeps the benchmark from rewarding a race to expose every setting in order
+to satisfy exposure checks: pass-through modules encode less expertise than modules tuned to a
+use case. Restraint items naming settings the audience should never be handed, and the
+hardcoded security items, punish pass-through shapes alongside it. Exposure and restraint are checked by what inputs feed (taint through locals), never by
 variable names. Security posture is not an audience question: hardcoded security items
 apply to specialist fixtures exactly as they do to beginner ones.
 
@@ -126,31 +130,65 @@ that each bad reference fails the *specific* items it was built to fail (see the
 ## Judge layer
 
 The judge is anchored to `docs/good-opentofu.md` — the org's living definition of module
-quality, owned by a human. It is appended to the judge's system prompt and its sha256 is
+quality, owned by a human. It is appended to the judge's prompt and its sha256 is
 recorded in every judgment, so verdicts are attributable to a specific edition of taste.
 Like the rubric, it is never shown to candidate models. The iteration loop: recurring judge
 findings → new principles in the doc; principles that turn out mechanically checkable →
 migrate down into rubric items; editing the doc re-anchors the judge (re-judging stored
 candidates is cheap, re-generation is not needed).
 
+**The judge grades only what the rubric cannot.** The doctrine's *Scored by the rubric*
+section lists the sections the mechanical layer already scores (insecure configurations,
+destructive defaults, unstated assumptions, tagging, versions, provider declarations). The
+judge reads them as context but does not grade them, so a defect never costs a module in
+both components. The judged 30% is design and craft: interface shape, variables,
+structure, scope, outputs, documentation, and the like.
+
+**Blind to authorship.** The judge sees the brief, the doctrine, and the module files —
+never the model that wrote them.
+
 Two modes, implemented in `src/iacbench/judge.py`:
 
-- **Absolute grading** (`iacbench judge --grade`): each candidate scored 0–4 per
-  good-opentofu.md section independently (multiple samples, medians, evidence required),
-  normalized to 0–100. Roster-independent, so it is the judged component of the composite.
-  Section scores are reported as their own table — one row per doctrine section, one
-  column per candidate — so a reader who disagrees with a specific documented preference
-  can discount exactly that row. Calibration (`--grade --human`) compares the judge's
-  grades to human grades of the same candidates by rank (Spearman ≥ 0.8); the report
-  folds grades into the composite only once that gate is cleared.
+- **Absolute grading** (`iacbench judge --grade`): each candidate scored per graded
+  doctrine section independently — 0 no credit, 1 partial, 2 full; a section with nothing to
+  apply to earns 2 (multiple samples, medians, one sentence of evidence per score) — and the weighted mean is
+  normalized to 0–100. The scale is coarse on purpose: three levels are hard to blur
+  together, and a human can check each grade at a glance. Roster-independent, so it is the judged component of the
+  composite. Section scores are reported as their own table — one row per doctrine
+  section, one column per candidate — so a reader who disagrees with a specific documented
+  preference can discount exactly that row.
 - **Blind pairwise** ("which module would you rather inherit?"), each pair judged in both
-  presentation orders, aggregated Bradley–Terry. Used for discovery and audit — its
-  rationales feed the expertise checklist — not for the composite.
+  presentation orders, aggregated Bradley–Terry. A discovery tool: its rationales feed the
+  expertise checklist. It neither enters the composite nor takes part in calibration.
 
-Activation gate: a human ranks the same pairs (`iacbench judge --human <yaml>`); the judge
-earns a report column only at ≥0.8 agreement. Until then `scores.json` is stamped
-`experimental`. Known validity risks, mitigated by the gate rather than assumed away:
-self-preference when the judge model authored a candidate, and verbosity/style bias.
+Every judge model grades every candidate. The judged component of the composite is the
+median of the calibrated judges' grades; uncalibrated grades are shown, never folded in.
+
+## Calibration
+
+A grade joins the composite only after its judge is calibrated against the doctrine
+owner (`iacbench calibrate`, one fixture at a time). The check is per cell — one module,
+one doctrine section — because that is what the judge produces and what a person can
+answer reliably: "are these variable descriptions good?" is quick; ranking two modules
+across fourteen sections at once is not.
+
+1. **Review sheets.** One sheet per module, under a blind label. It lists every graded
+   section with each judge's grade and evidence side by side, then the module source.
+   The human records their own grade (0, 1 or 2) for every cell. Recording a grade
+   rather than agree/disagree keeps the judges' answers from becoming the default, and a
+   miss records how far off the judge was.
+2. **Agreement.** Per judge: the share of cells where its grade equals the human's
+   exactly, per section. A judge is calibrated for the fixture when every
+   section reaches ≥ 0.75 agreement (6 of 8 modules) over at least 40 cells; each judge
+   is gated on its own. The gate is per section because sections every module aces
+   would otherwise carry a judge through the sections that discriminate. A section the
+   judges keep getting wrong is reworded in `good-opentofu.md` or dropped from the
+   judged component.
+
+Until a judge clears the gate, its grades are stamped `experimental` and stay out of the
+composite. Known validity risks, mitigated by the gate rather than assumed away:
+self-preference toward a judge's own vendor's models (which blinding does not remove when
+a judge recognizes its own style), and verbosity or style bias.
 
 **Why this layer exists:** the mechanical layers verify competence but saturate at the
 frontier — strong models routinely pass every consequence check. Judgment against the

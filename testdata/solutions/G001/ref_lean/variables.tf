@@ -9,7 +9,7 @@ variable "purpose" {
 }
 
 variable "environment" {
-  description = "Deployment environment; drives versioning, logging, and deletion safety."
+  description = "Deployment environment; drives access logging and deletion safety."
   type        = string
 
   validation {
@@ -44,4 +44,10 @@ variable "extra_tags" {
   description = "Additional tags merged onto every resource. Optional."
   type        = map(string)
   default     = {}
+}
+
+variable "region" {
+  description = "AWS region the bucket lives in."
+  type        = string
+  default     = "us-east-1"
 }

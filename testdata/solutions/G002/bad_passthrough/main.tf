@@ -174,3 +174,14 @@ resource "google_sql_database_instance" "this" {
 output "connection_name" {
   value = google_sql_database_instance.this.connection_name
 }
+
+variable "databases" {
+  type    = set(string)
+  default = []
+}
+
+resource "google_sql_database" "this" {
+  for_each = var.databases
+  name     = each.value
+  instance = google_sql_database_instance.this.name
+}

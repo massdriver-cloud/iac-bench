@@ -84,3 +84,11 @@ resource "google_sql_database_instance" "this" {
     }
   }
 }
+
+resource "google_sql_database" "this" {
+  for_each = var.databases
+
+  name            = each.value
+  instance        = google_sql_database_instance.this.name
+  deletion_policy = "ABANDON"
+}

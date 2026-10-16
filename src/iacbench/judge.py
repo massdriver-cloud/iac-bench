@@ -250,30 +250,56 @@ def bradley_terry(labels: list, judgments: list, iterations: int = 500) -> dict:
 
 _SECTION_RE = re.compile(r"^## (.+)$", re.MULTILINE)
 _GRADE_LINE_RE = re.compile(
-    r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*(NA|[0-4])(?![\d.])", re.IGNORECASE
+    r"SECTION:\s*(.+?)\s*\|\s*SCORE:\s*([0-2])(?![\d.])(?:\s*\|\s*EVIDENCE:\s*(.*))?",
+    re.IGNORECASE,
 )
 
 
 def _norm_heading(text: str) -> str:
     """Normalize a section heading for keying: judges reformat headings
     (bold, trailing colons, case), and an exact-string mismatch must never
-    silently turn a graded section into an NA."""
+    silently drop a graded section."""
     return re.sub(r"[\s*_`:.]+", " ", text).strip().casefold()
 # The doctrine's own weighting section — parsed for the weighted mean, never
 # graded itself. Lines: "- <Section name>: <weight>". Unlisted sections weigh 1.
+# Per-section scale: 0 no credit, 1 partial, 2 full — coarse on purpose, so a
+# human can check each grade at a glance.
+MAX_SECTION_SCORE = 2
 WEIGHTS_SECTION = "Grading weights"
 _WEIGHT_LINE_RE = re.compile(r"^-\s*(.+?):\s*(\d+(?:\.\d+)?)\s*$", re.MULTILINE)
 
 
-def _section_weights(doc: str) -> dict:
-    marker = f"## {WEIGHTS_SECTION}"
+# Sections the mechanical rubric scores — part of the doctrine, never graded by
+# the judge, so a defect cannot cost a module in both components. Lines: "- <Section name>".
+RUBRIC_SECTION = "Scored by the rubric"
+_LIST_LINE_RE = re.compile(r"^-\s*(.+?)\s*$", re.MULTILINE)
+
+
+def _section_body(doc: str, heading: str) -> str:
+    marker = f"## {heading}"
     if marker not in doc:
-        return {}
+        return ""
     body = doc.split(marker, 1)[1]
     next_section = _SECTION_RE.search(body)
-    if next_section:
-        body = body[: next_section.start()]
+    return body[: next_section.start()] if next_section else body
+
+
+def _section_weights(doc: str) -> dict:
+    body = _section_body(doc, WEIGHTS_SECTION)
     return {name.strip(): float(w) for name, w in _WEIGHT_LINE_RE.findall(body)}
+
+
+def graded_sections(doc: str) -> list:
+    """Doctrine sections the judge grades: every section except the two
+    meta-sections and those the rubric scores. Raises on a rubric-scored name
+    that matches no section, so a typo can never silently widen the judge."""
+    meta = {WEIGHTS_SECTION, RUBRIC_SECTION}
+    sections = [s for s in _SECTION_RE.findall(doc) if s not in meta]
+    rubric = [n.strip() for n in _LIST_LINE_RE.findall(_section_body(doc, RUBRIC_SECTION))]
+    unknown = set(rubric) - set(sections)
+    if unknown:
+        raise ValueError(f"'{RUBRIC_SECTION}' names unknown sections: {sorted(unknown)}")
+    return [s for s in sections if s not in rubric]
 
 
 def _median(values: list) -> float:
@@ -283,21 +309,29 @@ def _median(values: list) -> float:
     return values[mid] if n % 2 else (values[mid - 1] + values[mid]) / 2
 
 
-async def _grade_once(model, system_prompt: str, doc: str, brief: str, module_text: str) -> dict:
+async def _grade_once(
+    model, system_prompt: str, doc: str, sections: list, brief: str, module_text: str,
+    author: str | None = None,
+) -> dict:
+    """{normalized section: (score, evidence)} for one sample. `author` names
+    the module's author to the judge — only for the authorship-bias
+    experiment; scored grading is always blind."""
     from inspect_ai.model import ChatMessageSystem, ChatMessageUser
 
+    section_list = "\n".join(f"- {s}" for s in sections)
     user = (
         f"# The organization's standards document\n\n{doc}\n\n"
+        f"# The sections to grade\n\n{section_list}\n\n"
         f"# The brief this module was built against\n\n{brief}\n\n"
-        f"# The module to grade\n\n{module_text}"
+        + (f"# The module's author\n\nThis module was written by {author}.\n\n" if author else "")
+        + f"# The module to grade\n\n{module_text}"
     )
     output = await model.generate(
         [ChatMessageSystem(content=system_prompt), ChatMessageUser(content=user)]
     )
     scores: dict = {}
     for match in _GRADE_LINE_RE.finditer(output.completion or ""):
-        section, raw = _norm_heading(match.group(1)), match.group(2).upper()
-        scores[section] = None if raw == "NA" else int(raw)
+        scores[_norm_heading(match.group(1))] = (int(match.group(2)), (match.group(3) or "").strip())
     return scores
 
 
@@ -308,10 +342,11 @@ async def run_grade(
     judge_model: str,
     out_dir: Path,
     samples: int = 3,
+    author: str | None = None,
 ) -> dict:
-    """Absolute grading: each candidate scored 0-4 per standards-doc section,
+    """Absolute grading: each candidate scored 0-2 per graded doctrine section,
     independently of every other candidate. Medians across samples; overall
-    grade = mean of applicable section medians, scaled to 0-100.
+    grade = weighted mean of section medians, scaled to 0-100.
 
     UNTRUSTED BY DEFAULT, like the pairwise judge — experimental until it
     demonstrates agreement with human absolute grades.
@@ -323,47 +358,43 @@ async def run_grade(
     doc = DEFAULT_PRINCIPLES.read_text()
     doc_sha = hashlib.sha256(doc.encode()).hexdigest()[:16]
     system_prompt = (PROMPTS_DIR / "judge-grade.md").read_text()
-    sections = [s for s in _SECTION_RE.findall(doc) if s != WEIGHTS_SECTION]
+    sections = graded_sections(doc)
     weights = _section_weights(doc)
     unknown = set(weights) - set(sections)
     if unknown:
-        raise ValueError(f"Grading weights name unknown sections: {sorted(unknown)}")
+        raise ValueError(f"Grading weights name sections the judge does not grade: {sorted(unknown)}")
     model = get_model(judge_model)
 
     results: dict = {}
     for label, module_dir in sorted(candidates.items()):
         module_text = render_module(module_dir)
         sample_scores = await asyncio.gather(
-            *[_grade_once(model, system_prompt, doc, brief, module_text) for _ in range(samples)],
+            *[_grade_once(model, system_prompt, doc, sections, brief, module_text, author) for _ in range(samples)],
             return_exceptions=True,
         )
         per_section: dict = {}
+        evidence: dict = {}
         unparsed_sections: list = []
         for section in sections:
             key = _norm_heading(section)
-            votes = [
-                s[key] for s in sample_scores
-                if isinstance(s, dict) and s.get(key) is not None
-            ]
-            explicit_na = any(
-                isinstance(s, dict) and key in s and s[key] is None for s in sample_scores
-            )
+            graded = [s[key] for s in sample_scores if isinstance(s, dict) and key in s]
+            votes = [score for score, _ in graded]
             per_section[section] = _median(votes) if votes else None
-            if not votes and not explicit_na:
-                # Zero votes without an explicit NA means parsing loss, not
-                # inapplicability — the overall would be computed on a
-                # different denominator than other candidates. Refuse it.
+            evidence[section] = [f"[{score}] {text}" for score, text in graded]
+            if not votes:
+                # Parsing loss: the overall would be computed over different
+                # sections than other candidates'. Refuse it.
                 unparsed_sections.append(section)
-        applicable = {s: v for s, v in per_section.items() if v is not None}
-        total_w = sum(weights.get(s, 1.0) for s in applicable)
+        total_w = sum(weights.get(s, 1.0) for s in sections)
         overall = (
-            round(sum(v * weights.get(s, 1.0) for s, v in applicable.items()) / total_w / 4 * 100, 1)
-            if applicable and not unparsed_sections else None
+            round(sum(per_section[s] * weights.get(s, 1.0) for s in sections) / total_w / MAX_SECTION_SCORE * 100, 1)
+            if not unparsed_sections else None
         )
         from . import hclq
         results[label] = {
             "overall": overall,
             "sections": per_section,
+            "evidence": evidence,
             "unparsed_sections": unparsed_sections,
             "module_sha": module_sha(module_dir),
             "tf_sloc": hclq.stats(module_dir).get("tf_sloc"),
@@ -375,8 +406,10 @@ async def run_grade(
         "judge_model": judge_model,
         "principles_sha256": doc_sha,
         "samples_per_candidate": samples,
+        "graded_sections": sections,
         "section_weights": weights,
         "status": "experimental (not calibrated against human absolute grades)",
+        "author_label": author,
         "grades": {label: r["overall"] for label, r in sorted(results.items(), key=lambda kv: -(kv[1]["overall"] or 0))},
         "detail": results,
     }

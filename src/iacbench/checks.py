@@ -253,6 +253,12 @@ def _verb_hardcoded(ctx: CheckContext, spec: dict) -> bool:
     return False
 
 
+def _verb_declares(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: the source declares at least one resource of `type`,
+    whether or not anything gates its existence."""
+    return bool(hclq.resource_attrs(ctx.module_dir, spec["type"]))
+
+
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     """Static lens over attribute expressions resolved through locals and
     data sources.
@@ -290,9 +296,46 @@ def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
     feeding = hclq.vars_feeding_attr(
         ctx.module_dir, spec["attr"], spec.get("type"), bool(spec.get("through_data"))
     )
+    return _any_declared(ctx, feeding, spec.get("has_default"))
+
+
+# Alternatives the perturbation sweep tries per input, beyond its current value.
+SWEEP_ALTERNATIVES = 5
+
+
+def _verb_var_domain_closed(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: the named attribute is fed by at least one variable, and
+    every variable feeding it has a domain the sweep enumerates in full — a
+    bool, or a `contains([...])` validation listing few enough values. Pair
+    it with a sweep `resource` check to prove that no reachable value is
+    unsafe: an input limited to secure choices is then a decision, not a hole."""
+    feeding = hclq.vars_feeding_attr(ctx.module_dir, spec["attr"], spec.get("type"))
     declared = hclq.variables(ctx.module_dir)
-    want_default = spec.get("has_default")
-    for name in feeding:
+    names = [n for n in feeding if n in declared]
+    if not names:
+        return False
+    for name in names:
+        meta = declared[name]
+        if meta["type"].strip() == "bool":
+            continue
+        allowed = hclq.allowed_values(meta)
+        if not allowed or len(allowed) > SWEEP_ALTERNATIVES + 1:
+            return False
+    return True
+
+
+def _verb_var_feeds_provider_attr(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: some declared variable (transitively through locals) feeds
+    the named attribute of a provider configuration block — e.g. a region
+    input, or a tags input feeding default_tags. `provider` restricts the
+    search to one provider; `has_default` as for var_feeds_attr."""
+    feeding = hclq.vars_feeding_provider_attr(ctx.module_dir, spec["attr"], spec.get("provider"))
+    return _any_declared(ctx, feeding, spec.get("has_default"))
+
+
+def _any_declared(ctx: CheckContext, names: set, want_default) -> bool:
+    declared = hclq.variables(ctx.module_dir)
+    for name in names:
         meta = declared.get(name)
         if meta is None:
             continue
@@ -463,9 +506,12 @@ _VERBS = {
     "resource": _verb_resource,
     "hardcoded": _verb_hardcoded,
     "expr_matches": _verb_expr_matches,
+    "declares": _verb_declares,
     "var_feeds_attr": _verb_var_feeds_attr,
+    "var_domain_closed": _verb_var_domain_closed,
     "provider_constraints": _verb_provider_constraints,
     "provider_config_attr": _verb_provider_config_attr,
+    "var_feeds_provider_attr": _verb_var_feeds_provider_attr,
     "source_contains": _verb_source_contains,
     "output_named": _verb_output_named,
     "interface": _verb_interface,
@@ -488,6 +534,25 @@ def evaluate(ctx: CheckContext, spec: dict) -> bool:
     if verb is None:
         raise ValueError(f"unknown check verb {name!r}")
     return verb(ctx, body)
+
+
+def grade_ladder(ctx, rungs: list) -> float:
+    """Graded alternatives: the score of the best rung whose check passes, 0
+    when none does. Rungs: [{score: 1.0, check: ...}, {score: 0.5, check: ...}]."""
+    return max((float(r["score"]) for r in rungs if evaluate(ctx, r["check"])), default=0.0)
+
+
+def grade_budget(ctx: CheckContext, spec: dict) -> float:
+    """The graded `budget` posture: full credit at or under `soft` declared
+    variables, falling linearly to zero at `hard` (soft 10 / hard 15 loses
+    20% per variable past 10)."""
+    soft, hard = spec["soft"], spec["hard"]
+    n = len(hclq.variables(ctx.module_dir))
+    if n <= soft:
+        return 1.0
+    if n >= hard:
+        return 0.0
+    return 1.0 - (n - soft) / (hard - soft)
 
 
 def grade_default_on(

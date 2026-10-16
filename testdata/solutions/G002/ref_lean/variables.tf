@@ -8,12 +8,6 @@ variable "name" {
   }
 }
 
-variable "network" {
-  description = "Name of the VPC network the instance attaches to over private IP. The network must have private services access configured."
-  type        = string
-  default     = "default"
-}
-
 variable "environment" {
   description = "Deployment environment. prod runs a regional (high-availability) instance with longer backup retention; dev and staging run zonal."
   type        = string
@@ -45,6 +39,29 @@ variable "database_flags" {
   description = "PostgreSQL flags to set on the instance, as name => value."
   type        = map(string)
   default     = {}
+}
+
+variable "databases" {
+  description = "Databases to create on the instance. While deletion protection is on, removing one leaves its data in place."
+  type        = set(string)
+  default     = []
+}
+
+variable "iam_users" {
+  description = "Email addresses of people granted database login through IAM authentication."
+  type        = set(string)
+  default     = []
+}
+
+variable "iam_service_accounts" {
+  description = "Workload service-account emails granted database login through IAM authentication."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for sa in var.iam_service_accounts : endswith(sa, ".gserviceaccount.com")])
+    error_message = "iam_service_accounts takes service-account emails ending in .gserviceaccount.com; put people in iam_users."
+  }
 }
 
 variable "maintenance_window" {
@@ -99,4 +116,10 @@ variable "labels" {
   description = "Extra labels to apply to the instance."
   type        = map(string)
   default     = {}
+}
+
+variable "region" {
+  description = "GCP region the instance runs in."
+  type        = string
+  default     = "us-central1"
 }

@@ -17,7 +17,6 @@ resource "aws_s3_bucket" "assets" {
   # Deletion convenience is inferred from the environment concept, never
   # hardcoded: prod buckets refuse destroy while holding objects.
   force_destroy = !local.is_prod
-  tags          = local.tags
 }
 
 resource "aws_s3_bucket_ownership_controls" "assets" {
@@ -47,8 +46,9 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "assets" {
   }
 }
 
+# Versioning everywhere: an overwritten or deleted asset is recoverable in
+# every environment, and old-version expiry always has versions to act on.
 resource "aws_s3_bucket_versioning" "assets" {
-  count  = local.is_prod ? 1 : 0
   bucket = aws_s3_bucket.assets.id
 
   versioning_configuration {
@@ -110,7 +110,6 @@ resource "aws_s3_bucket" "logs" {
   count         = local.is_prod ? 1 : 0
   bucket        = "assets-${var.purpose}-logs-${random_id.suffix.hex}"
   force_destroy = false
-  tags          = local.tags
 }
 
 resource "aws_s3_bucket_public_access_block" "logs" {

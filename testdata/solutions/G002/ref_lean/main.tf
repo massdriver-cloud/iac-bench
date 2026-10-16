@@ -1,32 +1,32 @@
+# Each environment has its own VPC, owned by the network team.
 data "google_compute_network" "this" {
-  name = var.network
+  name = "apps-${var.environment}"
 }
 
 locals {
+  labels = merge(var.labels, { environment = var.environment, managed-by = "opentofu" })
+
   is_prod          = var.environment == "prod"
   retained_backups = local.is_prod ? 30 : 7
 
-  # Connection and slow-query logging are the same on every instance; DBA
-  # flags layer on top and win on conflict.
+  # DBA flags may tune the slow-query threshold, but identity login and
+  # connection logging are applied last so no input can turn them off. People
+  # and workloads log in with their Google identity, so the module never
+  # creates or stores a password.
   database_flags = merge(
-    {
-      log_connections            = "on"
-      log_disconnections         = "on"
-      log_min_duration_statement = "1000"
-    },
+    { log_min_duration_statement = "1000" },
     var.database_flags,
+    {
+      "cloudsql.iam_authentication" = "on"
+      log_connections               = "on"
+      log_disconnections            = "on"
+    },
   )
-}
-
-resource "random_password" "postgres" {
-  length  = 32
-  special = false
 }
 
 resource "google_sql_database_instance" "this" {
   name                = var.name
   database_version    = "POSTGRES_${var.postgres_version}"
-  root_password       = random_password.postgres.result
   deletion_protection = var.deletion_protection
 
   settings {
@@ -37,8 +37,11 @@ resource "google_sql_database_instance" "this" {
     disk_size                   = var.disk_size_gb
     disk_autoresize             = true
     deletion_protection_enabled = var.deletion_protection
+    # Backups outlive the instance, so retiring one never loses its history.
+    retain_backups_on_delete = true
 
-    user_labels = merge(var.labels, { environment = var.environment })
+    # Cloud SQL instances do not inherit the provider's default_labels.
+    user_labels = local.labels
 
     ip_configuration {
       ipv4_enabled    = false
@@ -75,4 +78,14 @@ resource "google_sql_database_instance" "this" {
       }
     }
   }
+}
+
+resource "google_sql_database" "this" {
+  for_each = var.databases
+
+  name     = each.value
+  instance = google_sql_database_instance.this.name
+  # Removing a name from var.databases keeps the data while the instance is
+  # protected; turn deletion protection off to drop it for real.
+  deletion_policy = var.deletion_protection ? "ABANDON" : "DELETE"
 }
