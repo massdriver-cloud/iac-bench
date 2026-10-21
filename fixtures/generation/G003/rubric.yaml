@@ -134,13 +134,29 @@ items:
     posture: reachable
     description: >
       Redundancy is offered — zone balancing on the service plan appears at
-      defaults or under some documented input.
+      defaults or under some documented input. An input that feeds it counts
+      even when turning it on alone fails the module's own guard (zone
+      balancing needs several instances), which a one-input sweep cannot
+      satisfy.
     check:
-      resource:
-        plans: [defaults, sweep]
-        quantifier: any
-        type: azurerm_service_plan
-        where: {zone_balancing_enabled: true}
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: azurerm_service_plan
+            where: {zone_balancing_enabled: true}
+        - var_feeds_attr: {type: azurerm_service_plan, attr: zone_balancing_enabled}
+
+  - id: H9
+    weight: 4
+    posture: reachable
+    description: >
+      Rollouts are offered — a deployment slot (azurerm_linux_web_app_slot)
+      is declared, at defaults or behind an input, so a release can be
+      staged, warmed and swapped into production instead of replacing the
+      running app in place.
+    check:
+      declares: {type: azurerm_linux_web_app_slot}
 
   - id: H8
     weight: 2
@@ -221,4 +237,49 @@ items:
 # to watch for (not yet items): health-check eviction time, a staging slot,
 # ACR pull via managed identity, always_on, Key Vault references for app
 # settings, SCM IP restriction parity, client affinity off for stateless APIs.
-expertise: []
+expertise:
+  - id: E1_autoscale_rules
+    description: >
+      Capacity follows load: an autoscale setting scales the plan between
+      bounds instead of a fixed instance count.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      declares: {type: azurerm_monitor_autoscale_setting}
+  - id: E2_container_port
+    description: >
+      The container's listening port reaches App Service (WEBSITES_PORT), so
+      images that don't listen on port 80 receive traffic and pass health
+      checks.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      source_contains: WEBSITES_PORT
+  - id: E3_metric_alerts
+    description: >
+      Metric alerts are defined (for example 5xx rate, response time or
+      health-check status), so the SREs are paged on symptoms rather than
+      discovering them in dashboards.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      declares: {type: azurerm_monitor_metric_alert}
+  - id: E4_registry_pull_identity
+    description: >
+      Images are pulled from the container registry with the app's managed
+      identity (container_registry_use_managed_identity), so no registry
+      password is stored in app settings.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: azurerm_linux_web_app
+            where: {site_config: {container_registry_use_managed_identity: true}}
+        - var_feeds_attr: {type: azurerm_linux_web_app, attr: container_registry_use_managed_identity}
+  - id: E5_key_vault_references
+    description: >
+      Secrets reach the app as Key Vault references in app settings
+      (@Microsoft.KeyVault(...)), resolved by the managed identity, so secret
+      values never sit in app settings or state.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      source_contains: "@Microsoft.KeyVault"

@@ -10,12 +10,12 @@
 ref_lean:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7,
               B1_provider_constraints, B2_descriptions]
 ref_flexible:
   gate: true
   min_score: 0.95
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, A1, A2, A3, A4, A5, A6, A7,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7,
               B1_provider_constraints, B2_descriptions]
 bad_passthrough:
   gate: true
@@ -30,13 +30,13 @@ bad_minimal:
   gate: true
   # Bare plan + app: provider defaults leave HTTPS off and basic-auth
   # publishing on (H1, H2), no identity, health check, observability, or
-  # redundancy, and almost no exposure. Its >= 3.0, < 5.0 window spans two
+  # redundancy, no deployment slot, and almost no exposure. Its >= 3.0, < 5.0 window spans two
   # majors (B1). H3 passes: provider defaults are already strong transport
   # and nothing weakens them.
   # Few inputs earn the full A7 budget; exposure items carry the penalty.
   max_score: 0.30
   must_pass: [H3, A6]
-  must_fail: [H1, H2, H4, H5, H6, H7, H8, A1, A2, A3, A5, B1_provider_constraints, B2_descriptions]
+  must_fail: [H1, H2, H4, H5, H6, H7, H8, H9, A1, A2, A3, A5, B1_provider_constraints, B2_descriptions]
 bad_unsafe:
   gate: true
   # ref_lean with one critical defect: https_only is a knob (defaulting
