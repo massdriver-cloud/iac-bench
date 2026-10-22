@@ -8,8 +8,9 @@ locals {
     large  = "P2v3"
   }
 
-  # Zone balancing needs at least two instances; production gets three.
-  instance_count = local.is_prod ? 3 : (var.environment == "staging" ? 2 : 1)
+  # Production gets three instances across zones; the SREs can size any
+  # environment themselves. Zone balancing needs at least two instances.
+  instance_count = coalesce(var.instance_count, local.is_prod ? 3 : (var.environment == "staging" ? 2 : 1))
 
   tags = merge(var.extra_tags, {
     service     = var.service
@@ -33,6 +34,13 @@ resource "azurerm_service_plan" "this" {
   worker_count           = local.instance_count
   zone_balancing_enabled = local.is_prod
   tags                   = local.tags
+
+  lifecycle {
+    precondition {
+      condition     = !local.is_prod || local.instance_count >= 2
+      error_message = "prod spreads instances across availability zones, so instance_count must be at least 2."
+    }
+  }
 }
 
 resource "azurerm_log_analytics_workspace" "this" {

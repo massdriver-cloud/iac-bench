@@ -3,10 +3,10 @@
 # references are asserted by WHICH items fail, with score bounds as sanity
 # checks on true, uncapped values.
 #
-# ref_lean infers instance count, zone balancing, and retention from an
-# environment concept and maps a plain size to a SKU; ref_flexible exposes
-# the SKU, autoscale bounds, and a zone-redundancy switch directly. Both are
-# good designs for an SRE audience.
+# ref_lean infers zone balancing, retention, and a default instance count
+# (which the SREs can override) from an environment concept and maps a plain
+# size to a SKU; ref_flexible exposes the SKU, autoscale bounds, and a
+# zone-redundancy switch directly. Both are good designs for an SRE audience.
 ref_lean:
   gate: true
   min_score: 0.95

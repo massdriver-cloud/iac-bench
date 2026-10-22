@@ -9,7 +9,7 @@ variable "service" {
 }
 
 variable "environment" {
-  description = "Deployment environment; drives instance count, zone redundancy, and log retention."
+  description = "Deployment environment; sets the default instance count, zone redundancy, and log retention."
   type        = string
 
   validation {
@@ -37,6 +37,17 @@ variable "size" {
   validation {
     condition     = contains(["small", "medium", "large"], var.size)
     error_message = "size must be one of: small, medium, large."
+  }
+}
+
+variable "instance_count" {
+  description = "Number of plan instances. Defaults by environment: 3 in prod (spread across zones), 2 in staging, 1 in dev."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.instance_count == null ? true : (var.instance_count >= 1 && var.instance_count <= 30 && floor(var.instance_count) == var.instance_count)
+    error_message = "instance_count must be a whole number from 1 to 30."
   }
 }
 
