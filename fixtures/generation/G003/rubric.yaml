@@ -1,8 +1,13 @@
 # G003 rubric — declarative check engine (docs/generation-check-engine.md).
 #
 # HIDDEN CRITERIA: none of these appear in the brief. The brief names the
-# audience (an SRE team that knows Azure and thinks in capacity, health,
-# rollouts, and observability, but won't hand-tune App Service internals).
+# audience (an SRE team that knows Azure and thinks in capacity,
+# availability, health, rollouts, and observability, but won't hand-tune App
+# Service internals).
+#
+# Deployment slots are full, publicly reachable apps: whenever one is
+# planned, it is held to the same HTTPS, publishing and transport posture as
+# the production app.
 #
 # Provider defaults matter here: azurerm ships https_only = false and both
 # basic-auth publishing paths ON, so those items require the module to
@@ -25,7 +30,8 @@ items:
     posture: hardcoded
     description: >
       HTTPS only — plain-HTTP requests are redirected, hardcoded on every
-      web app and present across the sweep. The provider default is off.
+      web app and deployment slot and present across the sweep. The provider
+      default is off.
     check:
       all_of:
         - hardcoded:
@@ -37,13 +43,23 @@ items:
             type: azurerm_linux_web_app
             match: every
             where: {https_only: true}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_linux_web_app_slot
+            match: every
+            if_present: true
+            where: {https_only: true}
+        - not:
+            var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: https_only}
 
   - id: H2
     weight: 8
     posture: hardcoded
     description: >
-      Basic-auth publishing is disabled — neither FTP nor Web Deploy accepts
-      the shared publishing credentials. Both default to ON in the provider.
+      Basic-auth publishing is disabled on every web app and deployment
+      slot — neither FTP nor Web Deploy accepts the shared publishing
+      credentials. Both default to ON in the provider.
     check:
       all_of:
         - hardcoded:
@@ -59,14 +75,27 @@ items:
             where:
               ftp_publish_basic_authentication_enabled: false
               webdeploy_publish_basic_authentication_enabled: false
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_linux_web_app_slot
+            match: every
+            if_present: true
+            where:
+              ftp_publish_basic_authentication_enabled: false
+              webdeploy_publish_basic_authentication_enabled: false
+        - not:
+            any_of:
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: ftp_publish_basic_authentication_enabled}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: webdeploy_publish_basic_authentication_enabled}
 
   - id: H3
     weight: 6
     description: >
       Transport stays strong — TLS for the site and the deployment (SCM)
       endpoint is 1.2 or newer, FTP is disabled or FTPS-only, and remote
-      debugging is off, on every planned app, and none of these is fed by
-      an input.
+      debugging is off, on every planned app and deployment slot, and none
+      of these is fed by an input.
     check:
       all_of:
         - resource:
@@ -80,12 +109,28 @@ items:
                 scm_minimum_tls_version: {in: ["1.2", "1.3"]}
                 ftps_state: {in: [Disabled, FtpsOnly]}
                 remote_debugging_enabled: false
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_linux_web_app_slot
+            match: every
+            if_present: true
+            where:
+              site_config:
+                minimum_tls_version: {in: ["1.2", "1.3"]}
+                scm_minimum_tls_version: {in: ["1.2", "1.3"]}
+                ftps_state: {in: [Disabled, FtpsOnly]}
+                remote_debugging_enabled: false
         - not:
             any_of:
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: minimum_tls_version}
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: scm_minimum_tls_version}
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: ftps_state}
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: remote_debugging_enabled}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: minimum_tls_version}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: scm_minimum_tls_version}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: ftps_state}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: remote_debugging_enabled}
 
   - id: H4
     weight: 4
@@ -134,13 +179,29 @@ items:
     posture: reachable
     description: >
       Redundancy is offered — zone balancing on the service plan appears at
-      defaults or under some documented input.
+      defaults or under some documented input. An input that feeds it counts
+      even when turning it on alone fails the module's own guard (zone
+      balancing needs several instances), which a one-input sweep cannot
+      satisfy.
     check:
-      resource:
-        plans: [defaults, sweep]
-        quantifier: any
-        type: azurerm_service_plan
-        where: {zone_balancing_enabled: true}
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: azurerm_service_plan
+            where: {zone_balancing_enabled: true}
+        - var_feeds_attr: {type: azurerm_service_plan, attr: zone_balancing_enabled}
+
+  - id: H9
+    weight: 4
+    posture: reachable
+    description: >
+      Rollouts are offered — a deployment slot (azurerm_linux_web_app_slot)
+      is declared, at defaults or behind an input, so a release can be
+      staged, warmed and swapped into production instead of replacing the
+      running app in place.
+    check:
+      declares: {type: azurerm_linux_web_app_slot}
 
   - id: H8
     weight: 2
@@ -204,11 +265,12 @@ items:
     weight: 8
     posture: budget
     description: >
-      Interface budget — full credit at 22 or fewer inputs, falling
-      linearly to zero at 35. An SRE team owns capacity, health, rollout, and observability controls. A race to expose every setting in
+      Interface budget — full credit at 20 or fewer inputs, falling
+      linearly to zero at 30. An SRE team owns capacity, availability,
+      health, rollout, and observability controls. A race to expose every setting in
       order to satisfy exposure checks is the failure this guards against:
       pass-through modules encode less expertise than tuned ones.
-    budget: {soft: 22, hard: 35}
+    budget: {soft: 20, hard: 30}
 
 # Recorded but unweighted beyond A7's budget: variable count, % typed,
 # % validated, locals count, resource count, SLOC, comment ratio.
@@ -221,4 +283,49 @@ items:
 # to watch for (not yet items): health-check eviction time, a staging slot,
 # ACR pull via managed identity, always_on, Key Vault references for app
 # settings, SCM IP restriction parity, client affinity off for stateless APIs.
-expertise: []
+expertise:
+  - id: E1_autoscale_rules
+    description: >
+      Capacity follows load: an autoscale setting scales the plan between
+      bounds instead of a fixed instance count.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      declares: {type: azurerm_monitor_autoscale_setting}
+  - id: E2_container_port
+    description: >
+      The container's listening port reaches App Service (WEBSITES_PORT), so
+      images that don't listen on port 80 receive traffic and pass health
+      checks.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      source_contains: WEBSITES_PORT
+  - id: E3_metric_alerts
+    description: >
+      Metric alerts are defined (for example 5xx rate, response time or
+      health-check status), so the SREs are paged on symptoms rather than
+      discovering them in dashboards.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      declares: {type: azurerm_monitor_metric_alert}
+  - id: E4_registry_pull_identity
+    description: >
+      Images are pulled from the container registry with the app's managed
+      identity (container_registry_use_managed_identity), so no registry
+      password is stored in app settings.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      any_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: azurerm_linux_web_app
+            where: {site_config: {container_registry_use_managed_identity: true}}
+        - var_feeds_attr: {type: azurerm_linux_web_app, attr: container_registry_use_managed_identity}
+  - id: E5_key_vault_references
+    description: >
+      Secrets reach the app as Key Vault references in app settings
+      (@Microsoft.KeyVault(...)), resolved by the managed identity, so secret
+      values never sit in app settings or state.
+    discovered_via: doctrine owner, 2026-10-21
+    check:
+      source_contains: "@Microsoft.KeyVault"

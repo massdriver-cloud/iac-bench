@@ -152,18 +152,21 @@ def _target_plans(ctx: CheckContext, on) -> list:
 
 def _verb_resource(ctx: CheckContext, spec: dict) -> bool:
     """Plan lens: resources of `type` exist / match `where` across the target
-    plans. quantifier: all|any over plans; match: any|every over instances."""
+    plans. quantifier: all|any over plans; match: any|every over instances.
+    if_present: a plan without the type passes — for optional resources whose
+    instances, when planned, must still match."""
     plans = _target_plans(ctx, spec.get("plans", "defaults"))
     if not plans:
         return False
     exists = spec.get("exists", True)
     where = spec.get("where")
     match = spec.get("match", "any")
+    if_present = spec.get("if_present", False)
 
     def plan_ok(plan: dict) -> bool:
         insts = of_type(plan, spec["type"])
         if not insts:
-            return not exists
+            return if_present or not exists
         if not exists:
             return False
         if where is None:
