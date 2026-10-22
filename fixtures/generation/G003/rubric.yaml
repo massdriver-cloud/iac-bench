@@ -1,8 +1,13 @@
 # G003 rubric — declarative check engine (docs/generation-check-engine.md).
 #
 # HIDDEN CRITERIA: none of these appear in the brief. The brief names the
-# audience (an SRE team that knows Azure and thinks in capacity, health,
-# rollouts, and observability, but won't hand-tune App Service internals).
+# audience (an SRE team that knows Azure and thinks in capacity,
+# availability, health, rollouts, and observability, but won't hand-tune App
+# Service internals).
+#
+# Deployment slots are full, publicly reachable apps: whenever one is
+# planned, it is held to the same HTTPS, publishing and transport posture as
+# the production app.
 #
 # Provider defaults matter here: azurerm ships https_only = false and both
 # basic-auth publishing paths ON, so those items require the module to
@@ -25,7 +30,8 @@ items:
     posture: hardcoded
     description: >
       HTTPS only — plain-HTTP requests are redirected, hardcoded on every
-      web app and present across the sweep. The provider default is off.
+      web app and deployment slot and present across the sweep. The provider
+      default is off.
     check:
       all_of:
         - hardcoded:
@@ -37,13 +43,23 @@ items:
             type: azurerm_linux_web_app
             match: every
             where: {https_only: true}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_linux_web_app_slot
+            match: every
+            if_present: true
+            where: {https_only: true}
+        - not:
+            var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: https_only}
 
   - id: H2
     weight: 8
     posture: hardcoded
     description: >
-      Basic-auth publishing is disabled — neither FTP nor Web Deploy accepts
-      the shared publishing credentials. Both default to ON in the provider.
+      Basic-auth publishing is disabled on every web app and deployment
+      slot — neither FTP nor Web Deploy accepts the shared publishing
+      credentials. Both default to ON in the provider.
     check:
       all_of:
         - hardcoded:
@@ -59,14 +75,27 @@ items:
             where:
               ftp_publish_basic_authentication_enabled: false
               webdeploy_publish_basic_authentication_enabled: false
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_linux_web_app_slot
+            match: every
+            if_present: true
+            where:
+              ftp_publish_basic_authentication_enabled: false
+              webdeploy_publish_basic_authentication_enabled: false
+        - not:
+            any_of:
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: ftp_publish_basic_authentication_enabled}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: webdeploy_publish_basic_authentication_enabled}
 
   - id: H3
     weight: 6
     description: >
       Transport stays strong — TLS for the site and the deployment (SCM)
       endpoint is 1.2 or newer, FTP is disabled or FTPS-only, and remote
-      debugging is off, on every planned app, and none of these is fed by
-      an input.
+      debugging is off, on every planned app and deployment slot, and none
+      of these is fed by an input.
     check:
       all_of:
         - resource:
@@ -80,12 +109,28 @@ items:
                 scm_minimum_tls_version: {in: ["1.2", "1.3"]}
                 ftps_state: {in: [Disabled, FtpsOnly]}
                 remote_debugging_enabled: false
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_linux_web_app_slot
+            match: every
+            if_present: true
+            where:
+              site_config:
+                minimum_tls_version: {in: ["1.2", "1.3"]}
+                scm_minimum_tls_version: {in: ["1.2", "1.3"]}
+                ftps_state: {in: [Disabled, FtpsOnly]}
+                remote_debugging_enabled: false
         - not:
             any_of:
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: minimum_tls_version}
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: scm_minimum_tls_version}
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: ftps_state}
               - var_feeds_attr: {type: azurerm_linux_web_app, attr: remote_debugging_enabled}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: minimum_tls_version}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: scm_minimum_tls_version}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: ftps_state}
+              - var_feeds_attr: {type: azurerm_linux_web_app_slot, attr: remote_debugging_enabled}
 
   - id: H4
     weight: 4

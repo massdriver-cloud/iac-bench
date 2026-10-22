@@ -44,3 +44,12 @@ bad_unsafe:
   max_score: 0.90
   must_pass: [H2, H3, H4]
   must_fail: [H1]
+bad_open_slot:
+  gate: true
+  # ref_lean with the staging slot left at provider defaults: plain HTTP is
+  # served and basic-auth publishing is on for the slot, though the
+  # production app is locked down. A slot is a second public endpoint, so
+  # H1 and H2 fail; its transport defaults are already strong (H3).
+  max_score: 0.80
+  must_pass: [H3, H4, H9]
+  must_fail: [H1, H2]
