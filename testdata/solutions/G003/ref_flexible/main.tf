@@ -1,5 +1,21 @@
 locals {
   tags = merge(var.tags, { managed-by = "opentofu" })
+
+  # Scale out quickly on sustained CPU, back in slowly.
+  scale_rules = {
+    out = { operator = "GreaterThan", threshold = 70, window = "PT5M", direction = "Increase", cooldown = "PT5M" }
+    in  = { operator = "LessThan", threshold = 30, window = "PT10M", direction = "Decrease", cooldown = "PT10M" }
+  }
+}
+
+# Capacity inputs are checked together before anything is planned.
+resource "terraform_data" "capacity_guard" {
+  lifecycle {
+    precondition {
+      condition     = var.max_instances >= var.min_instances
+      error_message = "max_instances must be >= min_instances."
+    }
+  }
 }
 
 resource "azurerm_resource_group" "this" {
@@ -23,10 +39,6 @@ resource "azurerm_service_plan" "this" {
       condition     = !var.zone_redundant || var.min_instances >= 2
       error_message = "zone_redundant requires min_instances >= 2."
     }
-    precondition {
-      condition     = var.max_instances >= var.min_instances
-      error_message = "max_instances must be >= min_instances."
-    }
   }
 }
 
@@ -46,43 +58,26 @@ resource "azurerm_monitor_autoscale_setting" "this" {
       maximum = var.max_instances
     }
 
-    rule {
-      metric_trigger {
-        metric_name        = "CpuPercentage"
-        metric_resource_id = azurerm_service_plan.this.id
-        time_grain         = "PT1M"
-        statistic          = "Average"
-        time_window        = "PT5M"
-        time_aggregation   = "Average"
-        operator           = "GreaterThan"
-        threshold          = 70
-      }
+    dynamic "rule" {
+      for_each = local.scale_rules
+      content {
+        metric_trigger {
+          metric_name        = "CpuPercentage"
+          metric_resource_id = azurerm_service_plan.this.id
+          time_grain         = "PT1M"
+          statistic          = "Average"
+          time_window        = rule.value.window
+          time_aggregation   = "Average"
+          operator           = rule.value.operator
+          threshold          = rule.value.threshold
+        }
 
-      scale_action {
-        direction = "Increase"
-        type      = "ChangeCount"
-        value     = "1"
-        cooldown  = "PT5M"
-      }
-    }
-
-    rule {
-      metric_trigger {
-        metric_name        = "CpuPercentage"
-        metric_resource_id = azurerm_service_plan.this.id
-        time_grain         = "PT1M"
-        statistic          = "Average"
-        time_window        = "PT10M"
-        time_aggregation   = "Average"
-        operator           = "LessThan"
-        threshold          = 30
-      }
-
-      scale_action {
-        direction = "Decrease"
-        type      = "ChangeCount"
-        value     = "1"
-        cooldown  = "PT10M"
+        scale_action {
+          direction = rule.value.direction
+          type      = "ChangeCount"
+          value     = "1"
+          cooldown  = rule.value.cooldown
+        }
       }
     }
   }

@@ -36,15 +36,25 @@ def _clean(value):
     return _unquote(value)
 
 
-def parse_dir(module_dir: Path) -> list:
-    docs = []
-    for tf in sorted(Path(module_dir).glob("*.tf")):
+# HCL reserved words are legal object keys (`{ in = ..., out = ... }`), but
+# python-hcl2 rejects them bare. Quoting such a key does not change its meaning.
+_KEYWORD_KEY = re.compile(r"(?m)^(\s*)(in|for|if|else|endif|endfor)(\s*=)(?!=)")
+
+
+def _parse_file(tf: Path) -> dict | None:
+    """One .tf file, parsed and cleaned; None when the parser cannot read it."""
+    text = tf.read_text(errors="replace")
+    for candidate in (text, _KEYWORD_KEY.sub(r'\1"\2"\3', text)):
         try:
-            with open(tf) as f:
-                docs.append(_clean(hcl2.load(f)))
+            return _clean(hcl2.loads(candidate))
         except Exception:
             continue
-    return docs
+    return None
+
+
+def parse_dir(module_dir: Path) -> list:
+    docs = [_parse_file(tf) for tf in sorted(Path(module_dir).glob("*.tf"))]
+    return [d for d in docs if d is not None]
 
 
 def variables(module_dir: Path) -> dict:
@@ -367,14 +377,7 @@ def module_sources(module_dir: Path) -> list:
 def unparsed_files(module_dir: Path) -> list:
     """*.tf files in the module root that python-hcl2 cannot parse. Static
     checks are blind to these — callers must surface them, never hide them."""
-    failed = []
-    for tf in sorted(Path(module_dir).glob("*.tf")):
-        try:
-            with open(tf) as f:
-                hcl2.load(f)
-        except Exception:
-            failed.append(tf.name)
-    return failed
+    return [tf.name for tf in sorted(Path(module_dir).glob("*.tf")) if _parse_file(tf) is None]
 
 
 def _line_counts(module_dir: Path) -> tuple:
