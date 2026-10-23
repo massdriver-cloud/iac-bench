@@ -11,6 +11,7 @@ wrong, and the interval is the point — 4/5 is not a measurement.
 from __future__ import annotations
 
 import random
+import re
 import statistics
 from dataclasses import dataclass
 from pathlib import Path
@@ -55,6 +56,7 @@ class Attempt:
     semantic_score: float | None = None
     mechanical_score: float | None = None
     mandatory_failures: list | None = None
+    gate: bool | None = None
     module_sha: str | None = None
     rubric_sha: str | None = None
     kind: str = "fix"  # "fix" (binary invariants) or "generation" (fractional rubric)
@@ -122,6 +124,7 @@ def collect_attempts(log_dir: Path) -> list:
                     semantic_score=meta.get("semantic_score", score.value if score else None),
                     mechanical_score=meta.get("mechanical_score"),
                     mandatory_failures=meta.get("mandatory_failures"),
+                    gate=meta.get("gate"),
                     module_sha=meta.get("module_sha"),
                     rubric_sha=meta.get("rubric_sha"),
                     kind=kind,
@@ -286,33 +289,38 @@ def _grade_for_model(model: str, detail: dict) -> dict | None:
     return None
 
 
-def _matched_grades(model: str, fixture: str, group: list, grade_entries: list) -> tuple:
-    """(calibrated sha-matched grades, notes). A grade joins only when its
-    judge file is calibrated AND it was computed over one of this group's
-    artifacts (module_sha match, when both sides carry hashes)."""
-    grades: list = []
-    notes: list = []
-    attempt_shas = {a.module_sha for a in group if a.module_sha}
+def _attempt_grade(a, grade_entries: list) -> tuple:
+    """(overall grade, calibrated, judge_model) for one attempt: the judge
+    entry that graded exactly this module (module_sha match). A candidate
+    label is only a fallback for grades recorded without hashes."""
+    fallback = None
     for entry in grade_entries:
-        if entry["fixture"] not in (None, fixture):
+        if entry["fixture"] not in (None, a.fixture):
             continue
-        hit = _grade_for_model(model, entry["detail"])
-        if hit is None:
+        for label, e in entry["detail"].items():
+            if e.get("overall") is None:
+                continue
+            sha = e.get("module_sha")
+            if sha and a.module_sha and sha == a.module_sha:
+                return e["overall"], entry["calibrated"], entry["judge_model"]
+            if not sha and fallback is None and _grade_for_model(a.model, {label: e}):
+                fallback = (e["overall"], entry["calibrated"], entry["judge_model"])
+    return fallback or (None, False, None)
+
+
+def _matched_grades(model: str, fixture: str, group: list, grade_entries: list) -> tuple:
+    """([(attempt, grade, calibrated)], notes): each attempt paired with the
+    grade of its own module. Uncalibrated grades are shown, never folded in."""
+    pairs: list = []
+    notes: list = []
+    for a in group:
+        grade, calibrated, judge = _attempt_grade(a, grade_entries)
+        if grade is None:
             continue
-        graded_sha = hit.get("module_sha")
-        if graded_sha and attempt_shas and graded_sha not in attempt_shas:
-            notes.append(
-                f"{model}: {entry['judge_model']} grade computed over a different module snapshot — excluded"
-            )
-            continue
-        if not entry["calibrated"]:
-            notes.append(
-                f"{model}: {entry['judge_model']} grade is {entry['status']!r} — shown, not folded in"
-            )
-            grades.append((hit["overall"], False))
-            continue
-        grades.append((hit["overall"], True))
-    return grades, notes
+        if not calibrated:
+            notes.append(f"{model}: {judge} grade is not calibrated — shown, not folded in")
+        pairs.append((a, grade, calibrated))
+    return pairs, notes
 
 
 def render_leaderboard(attempts: list, judge_dirs: list) -> str:
@@ -347,10 +355,11 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
             sum(a.expertise.values()) / len(a.expertise)
             for a in group if a.expertise
         ]
-        grades, g_notes = _matched_grades(model, fixture, group, grade_entries)
+        pairs, g_notes = _matched_grades(model, fixture, group, grade_entries)
         notes.extend(g_notes)
-        calibrated_grades = [g for g, ok in grades if ok]
-        shown_grades = [g for g, _ in grades]
+        calibrated_pairs = [(a, g) for a, g, ok in pairs if ok]
+        calibrated_grades = [g for _, g in calibrated_pairs]
+        shown_grades = [g for _, g, _ in pairs]
         grade = statistics.median(calibrated_grades) if calibrated_grades else None
         grade_cell = (
             f"{grade:.0f}" if grade is not None
@@ -361,20 +370,28 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
         for a in group:
             for item in a.mandatory_failures or []:
                 findings[item] = findings.get(item, 0) + 1
-        flag = (
-            " ".join(f"⚠{item}({c}/{len(group)})" for item, c in sorted(findings.items()))
-            if findings else "—"
-        )
+        gate_failures = sum(1 for a in group if a.gate is False)
+        marks = [f"✗gate({gate_failures}/{len(group)})"] if gate_failures else []
+        marks += [f"⚠{item}({c}/{len(group)})" for item, c in sorted(findings.items())]
+        flag = " ".join(marks) or "—"
         base = {
             "model": model, "fixture": fixture, "n": len(group),
             "rubric": statistics.median(rubrics),
             "exp": statistics.median(exps) if exps else None,
             "mech": statistics.median(mechs),
             "grade_cell": grade_cell, "flag": flag, "findings": findings,
+            "gate_failures": gate_failures,
+            "insecure_attempts": sum(1 for a in group if a.mandatory_failures),
         }
+        if calibrated_pairs and len(calibrated_pairs) < len(group):
+            notes.append(
+                f"{model} ({fixture}): {len(group) - len(calibrated_pairs)} attempt(s) without a "
+                "calibrated grade of their own module — composite covers the graded attempts only"
+            )
         if grade is not None:
             composites = sorted(
-                100 * (w["mechanical"] * m + w["grade"] * grade / 100) for m in mechs
+                100 * (w["mechanical"] * a.mechanical_score + w["grade"] * g / 100)
+                for a, g in calibrated_pairs
             )
             base["composite"] = statistics.median(composites)
             base["range"] = (
@@ -429,6 +446,35 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
             "Mechanical-only rows sit on a different scale than composites and are "
             "deliberately not ranked against graded rows."
         )
+    fixtures = sorted({r["fixture"] for r in graded_rows})
+    by_model: dict = {}
+    for r in graded_rows:
+        by_model.setdefault(r["model"], {})[r["fixture"]] = r
+    overall = [
+        (statistics.mean(rows[f]["composite"] for f in fixtures), model, rows)
+        for model, rows in by_model.items() if set(rows) == set(fixtures)
+    ]
+    if len(fixtures) > 1 and overall:
+        lines += [
+            "",
+            "### Overall — mean of the per-fixture composite medians",
+            "",
+            "| rank | model | " + " | ".join(fixtures) + " | **overall** | failed gates | security findings |",
+            "|------|-------|" + "---|" * len(fixtures) + "-------------|--------------|-------------------|",
+        ]
+        for rank, (score, model, rows) in enumerate(sorted(overall, key=lambda o: -o[0]), 1):
+            n = sum(rows[f]["n"] for f in fixtures)
+            gates = sum(rows[f]["gate_failures"] for f in fixtures)
+            security = sum(rows[f]["insecure_attempts"] for f in fixtures)
+            lines.append(
+                f"| {rank} | {model} | " + " | ".join(f"{rows[f]['composite']:.0f}" for f in fixtures)
+                + f" | **{score:.1f}** | {gates}/{n} | {security}/{n} |"
+            )
+        lines.append("")
+        lines.append(
+            "Failed gates and security findings count attempts (a module that failed the "
+            "gate, or failed at least one mandatory security item). Neither caps the score."
+        )
     lines.append("")
     lines.append(
         "Composites aggregate every current-edition attempt (median; range = min–max). "
@@ -440,17 +486,23 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
 
     findings_lines = []
     for r in sorted(graded_rows + ungraded_rows, key=lambda r: r["model"]):
+        if r["gate_failures"]:
+            findings_lines.append(
+                f"- **{r['model']}** ({r['fixture']}): failed the gate (module did not plan) "
+                f"in {r['gate_failures']}/{r['n']} attempt(s)"
+            )
         for item, c in sorted(r["findings"].items()):
             findings_lines.append(
                 f"- **{r['model']}** ({r['fixture']}): failed mandatory item `{item}` in {c}/{r['n']} attempt(s)"
             )
     if findings_lines:
-        lines += ["", "### Security findings", ""]
+        lines += ["", "### Findings: failed gates and security items", ""]
         lines += findings_lines
         lines.append("")
         lines.append(
             "Findings fail the verdict but do not cap scores — the composite above is "
-            "the true measured value; treat any ⚠ row as unshippable regardless of grade."
+            "the true measured value, and a module that failed the gate keeps its judge "
+            "grade. Treat any ✗ or ⚠ attempt as unshippable regardless of score."
         )
     return "\n".join(lines)
 
@@ -467,12 +519,21 @@ def render_grade_sections(judge_dirs: list) -> str:
         detail = entry["detail"]
         if not detail:
             continue
-        labels = sorted(detail)
+        # Samples of one model (label-e1, label-e2, ...) collapse into one
+        # column: the median grade per section across that model's samples.
+        groups: dict = {}
+        for label in sorted(detail):
+            groups.setdefault(re.sub(r"-e\d+$", "", label), []).append(label)
+        labels = sorted(groups)
         sections: list = []
         for e in detail.values():
             for s in e.get("sections") or {}:
                 if s not in sections:
                     sections.append(s)
+
+        def median_of(values: list):
+            values = [v for v in values if v is not None]
+            return statistics.median(values) if values else None
         lines = [
             "",
             f"## Judged grades by doctrine section — {entry['judge_model']} "
@@ -485,19 +546,19 @@ def render_grade_sections(judge_dirs: list) -> str:
         for section in sections:
             cells = []
             for label in labels:
-                v = (detail[label].get("sections") or {}).get(section)
+                v = median_of([(detail[m].get("sections") or {}).get(section) for m in groups[label]])
                 cells.append("—" if v is None else f"{v:g}")
             w = weights.get(section, 1)
             name = section if w == 1 else f"{section} (w{w:g})"
             lines.append(f"| {name} | " + " | ".join(cells) + " |")
-        overall = [
-            f"**{detail[label]['overall']:.0f}**" if detail[label].get("overall") is not None else "—"
-            for label in labels
-        ]
+        overall = []
+        for label in labels:
+            v = median_of([detail[m].get("overall") for m in groups[label]])
+            overall.append("—" if v is None else f"**{v:.0f}**")
         lines.append("| **overall (0–100)** | " + " | ".join(overall) + " |")
         pairs = [
             (detail[label]["overall"], detail[label]["tf_sloc"])
-            for label in labels
+            for label in sorted(detail)
             if detail[label].get("overall") is not None and detail[label].get("tf_sloc")
         ]
         if len(pairs) >= 4:
@@ -522,7 +583,7 @@ def render_grade_sections(judge_dirs: list) -> str:
         return ""
     footer = (
         "\nEach row is scored 0–2 against one section of the published doctrine "
-        "(median of independent samples). "
+        "(median of independent judge samples, then of the model's generation samples). "
         "The sections are our documented preferences — disagree with one, ignore its "
         "row; the mechanical rubric above is judge-free."
     )
@@ -716,14 +777,15 @@ def render_stats_section(attempts: list) -> str:
 
 def render_report(attempts: list) -> str:
     fix_attempts = [a for a in attempts if a.kind == "fix"]
-    lines = [
-        "# iacbench report",
-        "",
-        "## Fix fixtures",
-        "",
-        "| model | fixture | pass | Wilson 95% | med turns | med out tokens | med diff lines | failed invariants | terminal states |",
-        "|-------|---------|------|------------|-----------|----------------|----------------|-------------------|-----------------|",
-    ]
+    lines = ["# iacbench report"]
+    if fix_attempts:
+        lines += [
+            "",
+            "## Fix fixtures",
+            "",
+            "| model | fixture | pass | Wilson 95% | med turns | med out tokens | med diff lines | failed invariants | terminal states |",
+            "|-------|---------|------|------------|-----------|----------------|----------------|-------------------|-----------------|",
+        ]
     groups: dict = {}
     for a in fix_attempts:
         groups.setdefault((a.model, a.fixture), []).append(a)
@@ -746,8 +808,9 @@ def render_report(attempts: list) -> str:
         f"tofu: {', '.join(tofu_versions) or 'unknown'} · "
         f"runs: {dates[0][:10]} → {dates[-1][:10]}" if dates else "runs: none",
         "",
-        f"Attempts: {len(attempts)}. Intervals are Wilson 95%; at small n they are wide on purpose — "
-        "a 4/5 is not a measurement.",
+        f"Attempts: {len(attempts)}."
+        + (" Intervals are Wilson 95%; at small n they are wide on purpose — a 4/5 is not a measurement."
+           if fix_attempts else ""),
     ]
     return "\n".join(lines) + "\n"
 
@@ -811,7 +874,7 @@ def run_report(log_dir: Path, out: Path | None, judge_dirs: list | None = None) 
     stats_section = render_stats_section(attempts)
     if stats_section:
         text += stats_section + "\n"
-    if judge_dirs:
+    if judge_dirs and any((Path(d) / "scores.json").is_file() for d in judge_dirs):
         text += render_judge_section(judge_dirs) + "\n"
     if out:
         Path(out).write_text(text)
