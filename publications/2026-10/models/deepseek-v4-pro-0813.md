@@ -1,5 +1,5 @@
 ---
-title: "DeepSeek V4 Pro — iac-bench 2026-10"
+title: "DeepSeek V4 Pro: iac-bench 2026-10"
 release: "2026-10"
 ---
 

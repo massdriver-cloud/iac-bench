@@ -88,6 +88,6 @@ for m, d in M.items():
         ex += [f"`{path}` lines {a}–{b}", "", f"```{lang}", *lines, "```", ""]
     ex.append(CAPTION[m])
     page = open(TPL / f"{m}.md").read().replace("{{FACTS}}", facts).replace("{{SCORES}}", scores).replace("{{EXCERPT}}", "\n".join(ex))
-    page = "---\ntitle: \"" + name + " — iac-bench 2026-10\"\nrelease: \"2026-10\"\n---\n\n" + page + "\n\n---\n\n[Results](../index.md) · [Methodology](../methodology.md) · [Scoring criteria](../scoring-criteria.md)\n"
+    page = "---\ntitle: \"" + name + ": iac-bench 2026-10\"\nrelease: \"2026-10\"\n---\n\n" + page + "\n\n---\n\n[Results](../index.md) · [Methodology](../methodology.md) · [Scoring criteria](../scoring-criteria.md)\n"
     (PUB / "models" / f"{m}.md").write_text(page)
 print("ok")

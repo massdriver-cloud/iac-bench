@@ -1,5 +1,5 @@
 ---
-title: "Kimi K3 — iac-bench 2026-10"
+title: "Kimi K3: iac-bench 2026-10"
 release: "2026-10"
 ---
 

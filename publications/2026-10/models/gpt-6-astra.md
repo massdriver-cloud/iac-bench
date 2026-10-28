@@ -1,5 +1,5 @@
 ---
-title: "GPT-6 Astra — iac-bench 2026-10"
+title: "GPT-6 Astra: iac-bench 2026-10"
 release: "2026-10"
 ---
 

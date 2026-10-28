@@ -155,7 +155,7 @@ The data release contains:
 - the calibration reviews;
 - the computed statistics.
 
-It is licensed CC BY 4.0. The harness, fixtures, rubrics, reference modules and doctrine
+It is licensed CC BY 4.0. The evaluation code, fixtures, rubrics, reference modules and doctrine
 are in the repository. Two scorer defects were found and fixed before publication; see
 [Methodology §7](./methodology.md#7-errata-and-re-scoring).
 

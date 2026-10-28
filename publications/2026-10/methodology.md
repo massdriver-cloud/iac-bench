@@ -62,7 +62,7 @@ brief or from practice that is universal for the service. A model is never penal
 failing to guess a preference the brief leaves open. Service-specific touches that go
 beyond universal practice are scored separately as *expertise* (§4.3).
 
-### 2.3 Harness
+### 2.3 Evaluation setup
 
 Each model works as a tool-using agent in an isolated working directory, using the
 [Inspect](https://inspect.aisi.org.uk/) framework. Every model gets the same system prompt
@@ -130,7 +130,7 @@ Each attempt passes through four layers.
 
 ### 4.1 The gate
 
-The harness keeps only the variables that have no default from the model's own
+The runner keeps only the variables that have no default from the model's own
 `minimal.tfvars`, then runs `tofu plan` on the module as a root module. A module that does
 not plan **fails the gate**:
 
@@ -149,7 +149,7 @@ evaluates outcomes in two places:
 - **The source.** Whether a value is a literal or flows from an input, traced through
   locals, `count`/`for_each`, dynamic blocks and `each.*`.
 
-**The perturbation sweep.** For every documented input, the harness plans the module once
+**The perturbation sweep.** For every documented input, the runner plans the module once
 more with that one input changed: booleans flipped, and enumerated values from `contains()`
 validations tried (up to five alternatives). The sweep reveals what an input actually
 controls without the engine knowing what the model named it. A setting reached through a
@@ -361,8 +361,8 @@ corrected ones.
   work, and results should not be generalized beyond these fixtures.
 - **Small samples.** Three attempts per model and fixture. Neighboring models in the
   results frequently cannot be told apart, and the tables say so.
-- **One harness.** Scores measure a model inside this scaffold and prompt. A different agent
-  harness could produce different results.
+- **One scaffold.** Scores measure a model inside this scaffold and prompt. A different agent
+  scaffold could produce different results.
 - **Sweep coverage.** The sweep changes one input at a time and does not perturb
   collections or free-form strings. A capability reachable only by supplying a resource ID
   (for example, an existing log workspace), or by setting a list, can go undetected. A
@@ -385,7 +385,7 @@ the briefs, rubrics, references and doctrine, and its staff acted as the calibra
 
 The repository contains everything needed to reproduce or audit a score:
 
-- **Harness:** `src/iacbench/`.
+- **Evaluation code:** `src/iacbench/`.
 - **Prompt:** `prompts/generate-module.md`.
 - **Fixtures, rubrics and references:** `fixtures/` and `testdata/`.
 - **Doctrine:** `docs/good-opentofu.md`.

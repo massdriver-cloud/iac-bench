@@ -1,5 +1,5 @@
 ---
-title: "Gemini 3.6 Flash — iac-bench 2026-10"
+title: "Gemini 3.6 Flash: iac-bench 2026-10"
 release: "2026-10"
 ---
 

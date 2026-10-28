@@ -36,7 +36,7 @@ criteria. Always read an ID together with its fixture.
 | Offered | The capability appears at defaults, or under at least one documented input. |
 | Graded | Credit for the best of several working mechanisms. |
 | Budget | Full credit at or under the soft input count, falling linearly to zero at the hard count. |
-| — | A direct check described in the item text. |
+| Direct | A direct check described in the item text. |
 
 **Mandatory** items are each fixture's most severe security failures. Failing one is
 reported as a *security finding* (⚠). It does not cap the score, but it marks the attempt

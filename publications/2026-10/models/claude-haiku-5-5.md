@@ -1,5 +1,5 @@
 ---
-title: "Claude Haiku 5.5 — iac-bench 2026-10"
+title: "Claude Haiku 5.5: iac-bench 2026-10"
 release: "2026-10"
 ---
 

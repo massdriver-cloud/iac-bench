@@ -1,5 +1,5 @@
 ---
-title: "Claude Fable 5.1 — iac-bench 2026-10"
+title: "Claude Fable 5.1: iac-bench 2026-10"
 release: "2026-10"
 ---
 
