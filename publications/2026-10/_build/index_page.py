@@ -116,7 +116,7 @@ The habit looks provider-specific rather than model-specific: the same models th
 | **Insecure provider default left in place** | 10 | The module never sets the attribute, and the provider's default is insecure. On Azure, basic-auth publishing for FTP and Web Deploy is on unless disabled. | Gemini 3.1 Pro, Claude Sonnet 5.5, Claude Haiku 5.5, plus some attempts by DeepSeek V4 Pro and Gemini 3.6 Flash |
 
 **Secure default, open override.** The doctrine treats this as a defect even when the
-default is safe. A module's security posture is a property, not a preference, and an input
+default is safe. A module's security posture has to hold for every consumer, and an input
 that can silently weaken it will eventually be used to do so. Models in this pattern often
 document the risk in the same breath: one description reads "Do not weaken this without a
 security review" above a validation list that allows exactly that.
@@ -185,11 +185,10 @@ Claude Fable 5.1 costs about four times as much as Claude Opus 5.5 for a slightl
 score. Claude Haiku 5.5 is the second-cheapest model and would sit near the frontier, but
 for its two failed Cloud SQL attempts.
 
-Costs are list-price estimates from token counts, not invoices. They exclude judging and any
+Costs are estimates: token counts multiplied by list prices. They exclude judging and any
 provider-specific caching discounts beyond a flat cache-read and cache-write multiplier.""",
-"DOCS": """*Documentation* is the judged section most often scored 0: in 26 of 90 attempts. The usual
-cause is not missing documentation, which nearly every module has. It is **documentation
-that is wrong**:
+"DOCS": """*Documentation* is the judged section most often scored 0: in 26 of 90 attempts. Nearly every
+module has documentation. The zeros come from **documentation that is wrong**:
 - a description that promises behavior the code does not implement;
 - a stated limit that disagrees with the service;
 - a comment contradicted by the line below it.

@@ -100,7 +100,7 @@ model can verify that its module plans before submitting.
 All models ran with their providers' default sampling and reasoning settings. No
 temperature, reasoning-effort, or token-budget overrides were set. The GPT-6 models were
 called through OpenAI's Responses API, because its Chat Completions API rejects tool use
-combined with reasoning for these models. That is a transport difference, not a setting.
+combined with reasoning for these models. It changes only the API used, and no model setting.
 
 **Pinning.** Except for DeepSeek V4 Pro (`-0813`), the providers' APIs returned these
 identifiers as undated aliases, and none reported a dated snapshot. Results are therefore
@@ -185,7 +185,7 @@ or IAM database authentication on Cloud SQL. They are checked mechanically and p
 the mechanical score at weight 1 each, against rubric weights of 2–18. The rubric therefore
 decides whether a module meets the bar, and expertise separates modules that do.
 
-Expertise items are found, not invented. Candidates come from differences between models
+Expertise items come from observation. Candidates come from differences between models
 and from the judge's rationales. Each is approved by the doctrine owner and records where
 it came from. An item must not reward inventing requirements the brief never stated.
 
@@ -299,8 +299,8 @@ not re-review the final modules. Each grade file records where its calibration c
    the minimum–maximum range.
 3. **Overall:** the mean of the three fixture medians, so each fixture counts equally.
 
-The median, not the mean, is used within a fixture: one broken attempt out of three is
-reported as one broken attempt, without being averaged into a result that hides it.
+Within a fixture the median is used, so one broken attempt out of three is reported as
+one broken attempt instead of being averaged into a result that hides it.
 
 ### 6.2 Uncertainty
 
