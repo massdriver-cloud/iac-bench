@@ -400,7 +400,10 @@ def _verb_provider_constraints(ctx: CheckContext, spec: dict) -> bool:
     if ctx.defaults_plan:
         declared = set(providers)
         for res in planned(ctx.defaults_plan):
-            name = str(res.get("provider_name") or "").rsplit("/", 1)[-1]
+            full = str(res.get("provider_name") or "")
+            if "/builtin/" in full:
+                continue  # terraform_data and friends: built in, never declarable
+            name = full.rsplit("/", 1)[-1]
             if name and name not in declared:
                 return False
     return True

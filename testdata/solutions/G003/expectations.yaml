@@ -7,6 +7,11 @@
 # (which the SREs can override) from an environment concept and maps a plain
 # size to a SKU; ref_flexible exposes the SKU, autoscale bounds, and a
 # zone-redundancy switch directly. Both are good designs for an SRE audience.
+#
+# Engine coverage: ref_flexible keys its autoscale rules by the HCL keyword
+# `in` (a legal object key the parser must accept) and guards its capacity
+# inputs with terraform_data, whose built-in provider is never declared in
+# required_providers (B1 must still pass).
 ref_lean:
   gate: true
   min_score: 0.95
