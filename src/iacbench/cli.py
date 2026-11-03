@@ -43,6 +43,9 @@ def main(argv=None) -> int:
     p_rescore.add_argument("--candidates", required=True, help="directory with one module subdirectory per candidate")
     p_rescore.add_argument("--log-dir", required=True, help="eval logs holding the candidates' scores")
     p_rescore.add_argument("--workers", type=int, default=8, help="candidates scored in parallel")
+    p_rescore.add_argument(
+        "--redactions", help="a data release's redactions.json: maps redacted modules to their logged hashes"
+    )
 
     p_judge = sub.add_parser("judge", help="pairwise LLM judging of generation candidates (experimental layer)")
     p_judge.add_argument("--fixture", default="G001")
@@ -105,11 +108,14 @@ def main(argv=None) -> int:
         return run_sweep(args.region or os.environ.get("AWS_REGION", "us-east-1"), args.delete)
 
     if args.command == "rescore":
+        import json
+
         from .generation import GenerationFixture
         from .rescore import run_rescore
 
         fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
-        return run_rescore(fixture, Path(args.candidates), Path(args.log_dir), args.workers)
+        sha_map = json.loads(Path(args.redactions).read_text())["module_sha"] if args.redactions else None
+        return run_rescore(fixture, Path(args.candidates), Path(args.log_dir), args.workers, sha_map)
 
     if args.command == "calibrate":
         import json

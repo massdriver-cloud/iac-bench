@@ -8,6 +8,7 @@ literals as values, other expressions as `${...}` text.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -29,11 +30,17 @@ _SOURCES = [REPO_ROOT / "tools" / "hclast" / n for n in ("main.go", "go.mod", "g
 
 
 def _check_binary() -> None:
+    """The binary must exist and, unless IACBENCH_HCLAST names one, have been
+    built from the current source: `make` records the source's sha256 beside
+    it, so a branch switch that rewrites identical files is not a rebuild."""
     if not _BINARY.is_file():
         raise HclastUnavailable(f"{_BINARY} not found; build it with `make -C tools/hclast`")
-    built = _BINARY.stat().st_mtime_ns
-    if "IACBENCH_HCLAST" not in os.environ and any(s.stat().st_mtime_ns > built for s in _SOURCES if s.is_file()):
-        raise HclastUnavailable(f"{_BINARY} is older than its source; rebuild it with `make -C tools/hclast`")
+    if "IACBENCH_HCLAST" in os.environ:
+        return
+    stamp = _BINARY.with_name(_BINARY.name + ".sha256")
+    source = hashlib.sha256(b"".join(s.read_bytes() for s in _SOURCES)).hexdigest()
+    if not stamp.is_file() or stamp.read_text().strip() != source:
+        raise HclastUnavailable(f"{_BINARY} was not built from the current source; rebuild it with `make -C tools/hclast`")
 
 
 def _run(module_dir: Path) -> dict:
