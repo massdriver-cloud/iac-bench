@@ -48,7 +48,7 @@ runs/, logs/                  output; gitignored
 
 ## Getting started
 
-Open the repo in the dev container. It installs pinned OpenTofu, Go and uv, runs `uv sync`, and
+Open the repo in the dev container. It installs the latest OpenTofu, Go and uv, runs `uv sync`, and
 builds `tools/hclast`, the Go helper the static lens uses to parse HCL with HashiCorp's library.
 The engine refuses a helper older than its source; rebuild it with `make -C tools/hclast`.
 
