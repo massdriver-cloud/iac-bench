@@ -48,13 +48,9 @@ runs/, logs/                  output; gitignored
 
 ## Getting started
 
-Open the repo in the dev container (installs pinned OpenTofu + uv, runs `uv sync`). The static
-lens parses HCL with a small Go helper on HashiCorp's HCL library; build it once (Go 1.23+, or
-`docker run --rm -v "$PWD/tools/hclast":/src -w /src golang:1.23 make`):
-
-```bash
-make -C tools/hclast
-```
+Open the repo in the dev container. It installs pinned OpenTofu, Go and uv, runs `uv sync`, and
+builds `tools/hclast`, the Go helper the static lens uses to parse HCL with HashiCorp's library.
+The engine refuses a helper older than its source; rebuild it with `make -C tools/hclast`.
 
 Then:
 

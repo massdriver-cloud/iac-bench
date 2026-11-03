@@ -9,6 +9,10 @@
 	"features": {
 		"ghcr.io/alertbox/opentofu/tofu:1": {
 			"version": "1.10.6"
+		},
+		"ghcr.io/devcontainers/features/go:1": {
+			"version": "1.23",
+			"installGoTools": false
 		}
 	},
 
@@ -20,7 +24,7 @@
 		"GOOGLE_API_KEY": "${localEnv:GEMINI_API_KEY}"
 	},
 
-	"postCreateCommand": "pip install --user uv && uv sync",
+	"postCreateCommand": "pip install --user uv && uv sync && make -C tools/hclast",
 
 	"customizations": {
 		"vscode": {
