@@ -31,7 +31,7 @@ jobs:
       - name: Lint
         run: uv run ruff check src tests
 
-      - name: Unit tests (static analysis: solver and value proofs)
+      - name: Unit tests (solver and value proofs)
         run: uv run pytest -q tests
 
       - name: Selftest (hermetic tier)
