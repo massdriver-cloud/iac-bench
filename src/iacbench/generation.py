@@ -58,7 +58,6 @@ class GenerationFixture:
     id: str
     domain: str
     suite_version: str
-    tier: int
     cloud: str  # aws | gcp | azure — whose credentials the plans need
     scoring_policy: str
     mandatory: list
@@ -88,7 +87,6 @@ class GenerationFixture:
             id=data["id"],
             domain=data["domain"],
             suite_version=data["suite_version"],
-            tier=data.get("tier", 2),
             cloud=data["cloud"],
             scoring_policy=data.get("scoring_policy", "v1"),
             mandatory=data.get("mandatory", []),

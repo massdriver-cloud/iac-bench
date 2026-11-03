@@ -17,7 +17,6 @@
 id: G001
 domain: generation
 suite_version: v0.1.0
-tier: 2
 cloud: aws
 scoring_policy: v1  # pinned pre-publication; see docs/generation-check-engine.md
 

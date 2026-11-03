@@ -31,6 +31,6 @@ def all_fixture_ids() -> list[str]:
             if not domain_dir.is_dir():
                 continue
             for fixture_dir in sorted(domain_dir.iterdir()):
-                if (fixture_dir / "fixture.yaml").is_file() or (fixture_dir / "rubric.yaml").is_file():
+                if (fixture_dir / "rubric.yaml").is_file():
                     ids.append(fixture_dir.name)
     return ids

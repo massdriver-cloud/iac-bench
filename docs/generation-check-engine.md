@@ -13,12 +13,13 @@ a knob is insecure-by-design even if every example sets it safely, so
 security is judged on the static source, and behavior is judged at the
 module's own defaults.
 
-**Versioning:** until the benchmark is published, scoring carries no version
-history — all version fields (`scoring_policy` in rubric.yaml,
-`SCAFFOLD_CONTRACT_VERSION`, `CHECK_DSL_VERSION`) are pinned at "v1", and a
-scoring change simply invalidates older runs (stored candidates re-score for
-free). Bump discipline — a change invalidates comparisons — begins at
-publication.
+**Versioning:** every score records its fixture's rubric edition
+(`rubric_sha`, a hash of `rubric.yaml` and `baseline.yaml`), and the report
+aggregates only attempts scored under the current edition. A scoring change
+creates a new edition; stored candidates re-score under it with
+`iacbench rescore`. `scoring_policy`, `SCAFFOLD_CONTRACT_VERSION` and
+`CHECK_DSL_VERSION` version the composite formula, the agent scaffold and the
+check vocabulary.
 
 ## Execution model: root module + model-supplied tfvars
 
@@ -220,7 +221,7 @@ Rules that keep this from rotting:
 - **No per-fixture Python.** A check the vocabulary cannot express is a
   signal to design one new generic verb, with selftest coverage — a
   deliberate, rare event. The invariant: adding or activating a fixture
-  touches only its own `fixtures/<domain>/<ID>/` directory.
+  touches only its own `fixtures/generation/<ID>/` directory.
 - Expertise items use the same verbs: each `expertise:` entry in
   `rubric.yaml` carries a `check:` block, scored as a separate unweighted
   subscore.

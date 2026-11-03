@@ -1,16 +1,8 @@
-"""Markdown report from Inspect eval logs.
-
-One row per (model, fixture): pass rate as k/n with a Wilson 95% interval,
-median assistant turns, median output tokens, median diff lines, and terminal
-state counts. Models are sorted alphabetically — no ranking at this stage.
-
-Wilson, not normal approximation: at n=5..10 the normal interval is badly
-wrong, and the interval is the point — 4/5 is not a measurement.
-"""
+"""Markdown report from Inspect eval logs: composite leaderboard, per-fixture
+rubric tables, judged grades by doctrine section, and run statistics."""
 
 from __future__ import annotations
 
-import random
 import re
 import statistics
 from dataclasses import dataclass
@@ -21,17 +13,6 @@ from inspect_ai.log import read_eval_log
 from . import SCAFFOLD_CONTRACT_VERSION, SUITE_VERSION
 
 
-def wilson_interval(k: int, n: int, z: float = 1.96) -> tuple:
-    """Wilson score interval for k successes in n trials."""
-    if n == 0:
-        return (0.0, 1.0)
-    p = k / n
-    denom = 1 + z * z / n
-    center = (p + z * z / (2 * n)) / denom
-    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
-    return (max(0.0, center - half), min(1.0, center + half))
-
-
 @dataclass
 class Attempt:
     model: str
@@ -40,11 +21,8 @@ class Attempt:
     terminal_state: str
     turns: int | None = None
     output_tokens: int | None = None
-    diff_lines: int | None = None
     tofu_version: str | None = None
     created: str | None = None
-    seed: int | None = None
-    invariants: dict | None = None
     # descriptive-statistics fields (informational, never scored)
     input_tokens: int | None = None
     cache_read_tokens: int | None = None
@@ -60,7 +38,6 @@ class Attempt:
     gate: bool | None = None
     module_sha: str | None = None
     rubric_sha: str | None = None
-    kind: str = "fix"  # "fix" (binary invariants) or "generation" (fractional rubric)
 
 
 def _terminal_state(sample) -> str:
@@ -88,8 +65,9 @@ def collect_attempts(log_dir: Path) -> list:
         for sample in log.samples or []:
             scores = sample.scores or {}
             scorer_name = next(iter(scores.keys()), "")
+            if "generation" not in scorer_name:
+                continue
             score = next(iter(scores.values()), None)
-            kind = "generation" if "generation" in scorer_name else "fix"
             meta = (score.metadata if score else None) or {}
             fixture = meta.get("fixture") or (sample.metadata or {}).get("fixture", "?")
             usage = sample.model_usage or {}
@@ -106,15 +84,8 @@ def collect_attempts(log_dir: Path) -> list:
                     terminal_state=_terminal_state(sample),
                     turns=sum(1 for m in (sample.messages or []) if m.role == "assistant") or None,
                     output_tokens=output_tokens,
-                    diff_lines=(
-                        meta["efficiency"]["diff_lines_added"] + meta["efficiency"]["diff_lines_removed"]
-                        if "efficiency" in meta
-                        else None
-                    ),
                     tofu_version=meta.get("tofu_version"),
                     created=str(created) if created else None,
-                    seed=meta.get("seed", (sample.metadata or {}).get("seed")),
-                    invariants=meta.get("invariants"),
                     input_tokens=sum(u.input_tokens or 0 for u in usage.values()) or None,
                     cache_read_tokens=sum(getattr(u, "input_tokens_cache_read", None) or 0 for u in usage.values()) or None,
                     cache_write_tokens=sum(getattr(u, "input_tokens_cache_write", None) or 0 for u in usage.values()) or None,
@@ -129,7 +100,6 @@ def collect_attempts(log_dir: Path) -> list:
                     gate=meta.get("gate"),
                     module_sha=meta.get("module_sha"),
                     rubric_sha=meta.get("rubric_sha"),
-                    kind=kind,
                 )
             )
     return attempts
@@ -166,41 +136,6 @@ def estimate_cost(a: Attempt, prices: dict) -> float | None:
 def _median(values: list) -> str:
     vals = [v for v in values if v is not None]
     return str(round(statistics.median(vals), 1)) if vals else "—"
-
-
-def _states(group: list) -> str:
-    counts: dict = {}
-    for a in group:
-        counts[a.terminal_state] = counts.get(a.terminal_state, 0) + 1
-    if set(counts) == {"completed"}:
-        return "all completed"
-    return ", ".join(f"{k}:{v}" for k, v in sorted(counts.items()))
-
-
-def _failed_invariants(group: list) -> str:
-    """Per-invariant failure attribution across a group's attempts."""
-    counts: dict = {}
-    for a in group:
-        for name, ok in (a.invariants or {}).items():
-            if not ok:
-                counts[name] = counts.get(name, 0) + 1
-    if not counts:
-        return "—"
-    return ", ".join(f"{k}:{v}" for k, v in sorted(counts.items()))
-
-
-def _row(label: tuple, group: list) -> str:
-    n = len(group)
-    k = sum(1 for a in group if a.passed)
-    lo, hi = wilson_interval(k, n)
-    return (
-        f"| {label[0]} | {label[1]} | {k}/{n} | [{lo:.2f}, {hi:.2f}] "
-        f"| {_median([a.turns for a in group])} "
-        f"| {_median([a.output_tokens for a in group])} "
-        f"| {_median([a.diff_lines for a in group])} "
-        f"| {_failed_invariants(group)} "
-        f"| {_states(group)} |"
-    )
 
 
 def _latest_per_model(attempts: list) -> dict:
@@ -332,7 +267,7 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
     NEVER ranked against graded rows — a mechanical-only composite sits on a
     different scale, and falling back to it would reward dodging the judge."""
     policy = _load_policy()
-    gen = [a for a in attempts if a.kind == "generation"]
+    gen = attempts
     if not policy or not gen:
         return ""
     gen, stale = _filter_current_edition(gen)
@@ -594,7 +529,7 @@ def render_grade_sections(judge_dirs: list) -> str:
 
 def render_generation_sections(attempts: list) -> str:
     """Generation fixture sections: rubric scores + expertise differential."""
-    gen = [a for a in attempts if a.kind == "generation"]
+    gen = attempts
     if not gen:
         return ""
     gen, _ = _filter_current_edition(gen)
@@ -667,66 +602,6 @@ def _expertise_labels(fixture_id: str) -> dict:
         return {}
 
 
-def render_paired_differences(attempts: list, min_shared: int = 5) -> str:
-    """Fix-domain paired model comparisons: per-task pass-rate differences
-    over the tasks (fixture, seed) both models attempted, with a paired
-    bootstrap CI over tasks. The pairing removes shared task difficulty —
-    far tighter than comparing two marginal pass rates — and a delta whose
-    CI spans zero is printed as not resolvable, never as a ranking."""
-    fix = [a for a in attempts if a.kind == "fix" and a.seed is not None]
-    per_task: dict = {}
-    for a in fix:
-        per_task.setdefault(a.model, {}).setdefault((a.fixture, a.seed), []).append(a.passed)
-    models = sorted(per_task)
-    if len(models) < 2:
-        return ""
-    rng = random.Random(0)
-    lines = [
-        "",
-        "## Paired model differences (fix domain)",
-        "",
-        "| pair | shared tasks | Δ pass (pp) | 95% CI (paired bootstrap) | resolvable? |",
-        "|------|--------------|-------------|---------------------------|-------------|",
-    ]
-    emitted = False
-    for i, a_model in enumerate(models):
-        for b_model in models[i + 1:]:
-            shared = sorted(set(per_task[a_model]) & set(per_task[b_model]))
-            if len(shared) < min_shared:
-                continue
-            diffs = [
-                statistics.mean(per_task[a_model][t]) - statistics.mean(per_task[b_model][t])
-                for t in shared
-            ]
-            point = statistics.mean(diffs) * 100
-            resamples = sorted(
-                statistics.mean(rng.choices(diffs, k=len(diffs))) * 100
-                for _ in range(2000)
-            )
-            lo, hi = resamples[49], resamples[1949]
-            resolvable = "yes" if lo > 0 or hi < 0 else "no (n.s.)"
-            lines.append(
-                f"| {a_model} − {b_model} | {len(shared)} | {point:+.1f} "
-                f"| [{lo:+.1f}, {hi:+.1f}] | {resolvable} |"
-            )
-            emitted = True
-    if not emitted:
-        return ""
-    n = max(
-        len(set(per_task[a]) & set(per_task[b]))
-        for i, a in enumerate(models) for b in models[i + 1:]
-    )
-    mdd = 2.8 * (0.5 / n) ** 0.5 * 100
-    lines.append("")
-    lines.append(
-        f"Minimum detectable difference at n={n} shared tasks: ~{mdd:.0f} pp "
-        "(worst case p=0.5, 80% power, two-sided α=0.05, unpaired approximation — "
-        "the paired design above is tighter). Deltas below this are not resolvable "
-        "by this benchmark; adding tasks, not epochs, is what shrinks it."
-    )
-    return "\n".join(lines)
-
-
 def render_stats_section(attempts: list) -> str:
     """Descriptive statistics: duration, tokens, estimated cost, SLOC. Never scored."""
     latest = _latest_per_model(attempts)
@@ -778,41 +653,17 @@ def render_stats_section(attempts: list) -> str:
 
 
 def render_report(attempts: list) -> str:
-    fix_attempts = [a for a in attempts if a.kind == "fix"]
-    lines = ["# iacbench report"]
-    if fix_attempts:
-        lines += [
-            "",
-            "## Fix fixtures",
-            "",
-            "| model | fixture | pass | Wilson 95% | med turns | med out tokens | med diff lines | failed invariants | terminal states |",
-            "|-------|---------|------|------------|-----------|----------------|----------------|-------------------|-----------------|",
-        ]
-    groups: dict = {}
-    for a in fix_attempts:
-        groups.setdefault((a.model, a.fixture), []).append(a)
-    for key in sorted(groups):
-        lines.append(_row(key, groups[key]))
-    if groups and all(all(a.passed for a in g) for g in groups.values()):
-        lines += [
-            "",
-            "All fix fixtures are saturated (every model passes every attempt): they "
-            "verify the harness and anti-cheat invariants but do not discriminate "
-            "between models. Do not rank on this table.",
-        ]
-
     tofu_versions = sorted({a.tofu_version for a in attempts if a.tofu_version})
     dates = sorted(a.created for a in attempts if a.created)
-    lines += [
+    lines = [
+        "# iacbench report",
         "",
         "---",
         f"suite_version: {SUITE_VERSION} · scaffold_contract_version: {SCAFFOLD_CONTRACT_VERSION} · "
         f"tofu: {', '.join(tofu_versions) or 'unknown'} · "
         f"runs: {dates[0][:10]} → {dates[-1][:10]}" if dates else "runs: none",
         "",
-        f"Attempts: {len(attempts)}."
-        + (" Intervals are Wilson 95%; at small n they are wide on purpose — a 4/5 is not a measurement."
-           if fix_attempts else ""),
+        f"Attempts: {len(attempts)}.",
     ]
     return "\n".join(lines) + "\n"
 
@@ -849,7 +700,7 @@ def render_judge_section(judge_dirs: list) -> str:
         )
     lines.append("")
     lines.append(
-        "Judged scores are a separate instrument from the mechanical invariants above "
+        "Judged scores are a separate instrument from the mechanical scores above "
         "and are never folded into them."
     )
     return "\n".join(lines) if found or judge_dirs else ""
@@ -861,9 +712,6 @@ def run_report(log_dir: Path, out: Path | None, judge_dirs: list | None = None) 
         print(f"no scored attempts found in {log_dir}")
         return 1
     text = render_report(attempts)
-    paired = render_paired_differences(attempts)
-    if paired:
-        text += paired + "\n"
     leaderboard = render_leaderboard(attempts, judge_dirs or [])
     if leaderboard:
         text += leaderboard + "\n"

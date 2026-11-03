@@ -1,10 +1,10 @@
 # Generation evaluation design
 
-**Domain:** `generation` (Tier 2, real AWS, GCP, or Azure credentials per fixture, plan-only)
+**Domain:** `generation` (real AWS, GCP, or Azure credentials per fixture, plan-only)
 
-## Why generation is scored differently
+## Why generation is scored this way
 
-Fix-domain fixtures have a binary ground truth. Generation does not: the interesting
+A module has no binary ground truth: the interesting
 qualities are *which* concepts were variablized, *which* inputs are guarded, what expertise
 the module encodes. Generic scalar metrics (validation %, variable counts, "pass-through
 index") are SLOC-like proxies — they describe the population, not the instance — so they are

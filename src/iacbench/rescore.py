@@ -49,7 +49,7 @@ def run_rescore(
     logged = {
         a.module_sha: a
         for a in collect_attempts(log_dir)
-        if a.kind == "generation" and a.fixture == fixture.id and a.module_sha
+        if a.fixture == fixture.id and a.module_sha
     }
     dirs = sorted(d for d in Path(candidates).iterdir() if d.is_dir())
     jobs = []
