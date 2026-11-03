@@ -26,7 +26,7 @@
     "Variables and validation": 2.0,
     "Scope": 2.0
   },
-  "status": "calibrated (carried from G002-r3-opus-5-5: same judge, judge code and doctrine)",
+  "status": "calibrated (carried from calibration/G002: same judge, judge code and doctrine)",
   "author_label": null,
   "grades": {
     "claude-opus-5-5-e2": 100.0,
