@@ -58,6 +58,9 @@ Then:
 # validate the checkers against the known-answer solution matrix — run this first
 uv run iacbench selftest
 
+# unit-test the static analysis (solver, value proofs) without cloud credentials
+uv run pytest tests
+
 # render a fixture to look at it
 uv run iacbench render --fixture F001 --seed 42 --out /tmp/f001
 

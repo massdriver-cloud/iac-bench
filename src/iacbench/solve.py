@@ -123,7 +123,7 @@ def _eq(a, b) -> bool:
     if type(a) is not type(b):
         return False
     if isinstance(a, list):
-        return len(a) == len(b) and all(_eq(x, y) for x, y in zip(a, b))
+        return len(a) == len(b) and all(_eq(x, y) for x, y in zip(a, b, strict=True))
     if isinstance(a, dict):
         return a.keys() == b.keys() and all(_eq(a[k], b[k]) for k in a)
     return a == b
@@ -226,7 +226,7 @@ _FUNCTIONS = {
     "coalesce": _coalesce,
     "coalescelist": lambda *a: next((x for x in a if x), []),
     "compact": lambda v: [x for x in v if x not in (None, "")],
-    "concat": lambda *a: [x for l in a for x in l],
+    "concat": lambda *a: [x for seq in a for x in seq],
     "contains": lambda c, v: any(_eq(x, v) for x in _collection(c)),
     "distinct": lambda v: [x for i, x in enumerate(v) if not any(_eq(x, y) for y in v[:i])],
     "element": lambda v, i: v[int(i) % len(v)],
@@ -234,7 +234,7 @@ _FUNCTIONS = {
     "flatten": _flatten,
     "floor": lambda v: math.floor(v),
     "format": _format,
-    "join": lambda sep, *ls: sep.join(_string(x) for l in ls for x in l),
+    "join": lambda sep, *ls: sep.join(_string(x) for seq in ls for x in seq),
     "jsonencode": lambda v: json.dumps(v, separators=(",", ":")),
     "keys": lambda m: sorted(m),
     "length": len,
@@ -263,7 +263,7 @@ _FUNCTIONS = {
     "trimsuffix": lambda s, p: s[: -len(p)] if p and s.endswith(p) else s,
     "upper": lambda s: s.upper(),
     "values": lambda m: [m[k] for k in sorted(m)],
-    "zipmap": lambda k, v: dict(zip(k, v)),
+    "zipmap": lambda k, v: dict(zip(k, v, strict=True)),
 }
 
 
@@ -553,7 +553,10 @@ def convert(ev: Evaluator, type_node: dict | None, value):
     if fn == "map" and args and isinstance(value, dict):
         return {k: convert(ev, args[0], v) for k, v in value.items()}
     if fn == "tuple" and args and args[0]["t"] == "tuple":
-        return [convert(ev, t, x) for t, x in zip(args[0]["items"], _collection(value))]
+        items = _collection(value)
+        if len(items) != len(args[0]["items"]):
+            raise EvalError("tuple length mismatch")
+        return [convert(ev, t, x) for t, x in zip(args[0]["items"], items, strict=True)]
     if fn == "object" and args and args[0]["t"] == "object":
         if not isinstance(value, dict):
             raise EvalError(f"{value!r} is not an object")
@@ -959,7 +962,7 @@ def solve(m: Module, goal: Goal, base: dict, samples: dict | None = None) -> lis
                 if evaluations > MAX_EVALUATIONS:
                     return witnesses
                 inputs = copy.deepcopy(base)
-                for path, value in zip(combo, values):
+                for path, value in zip(combo, values, strict=True):
                     inputs[path[0]] = _set(inputs.get(path[0]), path[1:], value)
                 ev = Evaluator(m, inputs)
                 try:
@@ -969,7 +972,7 @@ def solve(m: Module, goal: Goal, base: dict, samples: dict | None = None) -> lis
                     continue
                 if any(_fails(r) and label not in baseline for label, r in _guards(ev)):
                     continue
-                witnesses.append(Witness(goal, inputs, {".".join(p): v for p, v in zip(combo, values)}))
+                witnesses.append(Witness(goal, inputs, {".".join(p): v for p, v in zip(combo, values, strict=True)}))
                 if len(witnesses) >= MAX_WITNESSES:
                     return witnesses
     return witnesses
