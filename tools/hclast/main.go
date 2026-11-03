@@ -1,7 +1,8 @@
 // Command hclast prints OpenTofu configuration (a module directory, or one
 // .tf or .tfvars file) as JSON,
 // parsed by HashiCorp's HCL library: for every attribute its source text,
-// its literal value when it has one, and the references it makes.
+// its literal value when it has one, the references it makes, and its
+// expression tree.
 package main
 
 import (
@@ -13,6 +14,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
@@ -23,7 +25,12 @@ type Value struct {
 	Kind    string          `json:"kind"`
 	Items   []Value         `json:"items,omitempty"`
 	Fields  []Field         `json:"fields,omitempty"`
+	Expr    Node            `json:"expr"`
 }
+
+// Node is one expression-tree node: "t" names its kind, the other keys its
+// operands. Kinds the tree does not model are {"t": "unknown"}.
+type Node map[string]any
 
 type Field struct {
 	Key   string `json:"key"`
@@ -127,6 +134,7 @@ func value(src []byte, expr hclsyntax.Expression) Value {
 		Literal: literal(expr),
 		Refs:    refs(expr),
 		Kind:    kind(expr),
+		Expr:    tree(expr),
 	}
 	switch e := expr.(type) {
 	case *hclsyntax.TupleConsExpr:
@@ -139,6 +147,124 @@ func value(src []byte, expr hclsyntax.Expression) Value {
 		}
 	}
 	return v
+}
+
+var binaryOps = map[*hclsyntax.Operation]string{
+	hclsyntax.OpLogicalOr: "||", hclsyntax.OpLogicalAnd: "&&",
+	hclsyntax.OpEqual: "==", hclsyntax.OpNotEqual: "!=",
+	hclsyntax.OpGreaterThan: ">", hclsyntax.OpGreaterThanOrEqual: ">=",
+	hclsyntax.OpLessThan: "<", hclsyntax.OpLessThanOrEqual: "<=",
+	hclsyntax.OpAdd: "+", hclsyntax.OpSubtract: "-", hclsyntax.OpMultiply: "*",
+	hclsyntax.OpDivide: "/", hclsyntax.OpModulo: "%",
+}
+
+func ctyNode(v cty.Value) Node {
+	if !v.IsWhollyKnown() {
+		return Node{"t": "unknown"}
+	}
+	b, err := ctyjson.Marshal(v, v.Type())
+	if err != nil {
+		return Node{"t": "unknown"}
+	}
+	return Node{"t": "lit", "v": json.RawMessage(b)}
+}
+
+func steps(trav hcl.Traversal) []Node {
+	out := []Node{}
+	for _, step := range trav {
+		switch s := step.(type) {
+		case hcl.TraverseRoot:
+			out = append(out, Node{"attr": s.Name})
+		case hcl.TraverseAttr:
+			out = append(out, Node{"attr": s.Name})
+		case hcl.TraverseIndex:
+			out = append(out, Node{"index": ctyNode(s.Key)})
+		case hcl.TraverseSplat:
+			out = append(out, Node{"splat": true})
+		}
+	}
+	return out
+}
+
+func trees(exprs []hclsyntax.Expression) []Node {
+	out := []Node{}
+	for _, e := range exprs {
+		out = append(out, tree(e))
+	}
+	return out
+}
+
+// tree is the expression as nested nodes: enough to evaluate conditions
+// over input values without OpenTofu.
+func tree(expr hclsyntax.Expression) Node {
+	switch e := expr.(type) {
+	case *hclsyntax.LiteralValueExpr:
+		return ctyNode(e.Val)
+	case *hclsyntax.ScopeTraversalExpr:
+		return Node{"t": "ref", "steps": steps(e.Traversal)}
+	case *hclsyntax.RelativeTraversalExpr:
+		return Node{"t": "rel", "src": tree(e.Source), "steps": steps(e.Traversal)}
+	case *hclsyntax.IndexExpr:
+		return Node{"t": "index", "coll": tree(e.Collection), "key": tree(e.Key)}
+	case *hclsyntax.TemplateExpr:
+		if lit := literal(e); lit != nil {
+			return Node{"t": "lit", "v": lit}
+		}
+		return Node{"t": "template", "parts": trees(e.Parts)}
+	case *hclsyntax.TemplateWrapExpr:
+		return tree(e.Wrapped)
+	case *hclsyntax.ParenthesesExpr:
+		return tree(e.Expression)
+	case *hclsyntax.BinaryOpExpr:
+		if op, ok := binaryOps[e.Op]; ok {
+			return Node{"t": "binary", "op": op, "l": tree(e.LHS), "r": tree(e.RHS)}
+		}
+	case *hclsyntax.UnaryOpExpr:
+		op := "-"
+		if e.Op == hclsyntax.OpLogicalNot {
+			op = "!"
+		}
+		return Node{"t": "unary", "op": op, "x": tree(e.Val)}
+	case *hclsyntax.ConditionalExpr:
+		return Node{"t": "cond", "if": tree(e.Condition), "then": tree(e.TrueResult), "else": tree(e.FalseResult)}
+	case *hclsyntax.FunctionCallExpr:
+		return Node{"t": "call", "name": e.Name, "args": trees(e.Args), "expand": e.ExpandFinal}
+	case *hclsyntax.TupleConsExpr:
+		return Node{"t": "tuple", "items": trees(e.Exprs)}
+	case *hclsyntax.ObjectConsExpr:
+		items := []Node{}
+		for _, item := range e.Items {
+			items = append(items, Node{"k": keyTree(item.KeyExpr), "v": tree(item.ValueExpr)})
+		}
+		return Node{"t": "object", "items": items}
+	case *hclsyntax.ForExpr:
+		n := Node{"t": "for", "kvar": e.KeyVar, "vvar": e.ValVar, "coll": tree(e.CollExpr), "val": tree(e.ValExpr), "group": e.Group}
+		if e.KeyExpr != nil {
+			n["key"] = tree(e.KeyExpr)
+		}
+		if e.CondExpr != nil {
+			n["cond"] = tree(e.CondExpr)
+		}
+		return n
+	case *hclsyntax.SplatExpr:
+		return Node{"t": "splat", "src": tree(e.Source), "each": tree(e.Each)}
+	case *hclsyntax.AnonSymbolExpr:
+		return Node{"t": "anon"}
+	}
+	return Node{"t": "unknown"}
+}
+
+// keyTree reads an object key: a bare keyword is its own name, as OpenTofu
+// reads it, unless parenthesized.
+func keyTree(expr hclsyntax.Expression) Node {
+	if k, ok := expr.(*hclsyntax.ObjectConsKeyExpr); ok {
+		if name := hcl.ExprAsKeyword(k.Wrapped); name != "" && !k.ForceNonLiteral {
+			b, _ := json.Marshal(name)
+			return Node{"t": "lit", "v": json.RawMessage(b)}
+		}
+		return tree(k.Wrapped)
+	}
+	return tree(expr)
 }
 
 // withoutComments blanks comment tokens, keeping line structure, so a

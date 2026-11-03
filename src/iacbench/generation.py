@@ -23,7 +23,7 @@ from pathlib import Path
 
 import yaml
 
-from . import checks, hclq
+from . import checks, hclq, solve
 from .artifacts import module_sha
 from .paths import PROVIDER_CACHE
 from .tofu import Tofu
@@ -65,6 +65,7 @@ class GenerationFixture:
     items: list  # [{id, weight, description, check | behavior, posture?, partial?}]
     expertise: list  # [{id, description, discovered_via, check}] — unweighted
     perturb: dict  # optional per-variable candidate hints for the sweep
+    samples: dict  # `type.attr` -> a provider-valid value the solver may try
     path: Path
     rubric_sha: str = ""  # hash of rubric.yaml + baseline.yaml — the scoring edition
 
@@ -94,6 +95,7 @@ class GenerationFixture:
             items=data["items"] + baseline_items,
             expertise=data.get("expertise", []),
             perturb=data.get("perturb", {}) or {},
+            samples=data.get("samples", {}) or {},
             path=fixture_dir,
             rubric_sha=hashlib.sha256(rubric_bytes).hexdigest()[:16],
         )
@@ -338,6 +340,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
             "sweep: no candidates for variable(s) (collection-typed or "
             f"unperturbable): {', '.join(unswept)} — reachable checks may under-report"
         )
+    sweep_plans += _solved_plans(fixture, work, defaults_inputs, defaults_plan, sweep_plans, harness, details)
     unparsed = hclq.unparsed_files(work)
     if unparsed:
         details.append(
@@ -416,6 +419,50 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         probe_plans=harness.plans_run,
         module_sha=sha,
     )
+
+
+def _solved_plans(
+    fixture: GenerationFixture, work: Path, defaults_inputs: dict, defaults_plan: dict,
+    sweep_plans: list, harness: RootProbeHarness, details: list,
+) -> list:
+    """Solve-then-confirm (solve.py): for each sweep goal the defaults and
+    the sweep miss, plan the solver's witnesses until one plans and meets
+    the goal. Confirmed plans are evidence like any sweep plan: an input
+    instantiation the module accepts."""
+    specs = [i["check"] for i in fixture.items if i.get("check")] + [e["check"] for e in fixture.expertise]
+    open_goals = [
+        g for g in solve.goals(specs)
+        if not checks._verb_resource(
+            checks.CheckContext(work, defaults_plan, sweep_plans), {**g.spec, "plans": ["defaults", "sweep"]}
+        )
+    ]
+    if not open_goals:
+        return []
+    try:
+        module = solve.Module.load(work)
+    except Exception as exc:
+        details.append(f"solver: could not load module: {exc}")
+        return []
+    base = solve.base_inputs(module, defaults_inputs)
+    confirmed: list = []
+    for goal in open_goals:
+        if confirmed and checks._verb_resource(checks.CheckContext(work, None, confirmed), goal.spec):
+            continue  # an earlier goal's plan already meets this one
+        try:
+            witnesses = solve.solve(module, goal, base, fixture.samples)
+        except Exception as exc:
+            details.append(f"solver: {goal}: {type(exc).__name__}: {exc}")
+            continue
+        for w in witnesses:
+            ok, plan_json, stderr = harness.plan_with(w.plan_inputs(defaults_inputs))
+            met = ok and plan_json and checks._verb_resource(checks.CheckContext(work, None, [plan_json]), goal.spec)
+            outcome = "confirmed" if met else ("planned, goal not met" if ok else "rejected at plan time")
+            details.append(f"solver: {goal} with {json.dumps(w.changed, sort_keys=True)}: {outcome}")
+            if ok and plan_json:
+                confirmed.append(plan_json)
+            if met:
+                break
+    return confirmed
 
 
 def evaluate_memo(ctx: checks.CheckContext, item_id: str, spec: dict) -> bool:

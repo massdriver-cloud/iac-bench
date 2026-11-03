@@ -58,10 +58,12 @@ leaks no rubric content.
 ## Two evidence lenses
 
 The static lens parses source with HashiCorp's HCL library (`tools/hclast`, the
-parser OpenTofu itself uses), which reports each attribute's literal value and the
-references it makes, but does not evaluate expressions: `local.strict`, ternaries,
-`merge()` calls all arrive as `"${...}"` expression text. Tofu's
-evaluator is the only trustworthy one, and plan JSON is its output. So every
+parser OpenTofu itself uses), which reports each attribute's literal value, the
+references it makes and its expression tree. Static checks never evaluate
+expressions: `local.strict`, ternaries, `merge()` calls all arrive as `"${...}"`
+expression text. Tofu's evaluator is the only trustworthy one, and plan JSON is
+its output; the solver evaluates expression trees only to propose inputs for a
+plan to confirm (see Solve-then-confirm). So every
 check declares which lens it looks through, chosen by what the question is:
 
 - **Static HCL lens** (`hclq`, parsed source) — questions about *how the code
@@ -137,6 +139,43 @@ The sweep serves two symmetric roles:
   the capability appears.
 
 Bounded search is strong evidence, not proof; recorded honestly.
+
+## Solve-then-confirm
+
+A one-variable sweep cannot reach a capability whose input the module
+guards with a second input: zone balancing that a precondition allows only
+with three or more instances, or an observability resource created only
+when a workspace ID is supplied. For every `resource` check that accepts
+*some* sweep plan (`plans` includes `sweep`, `quantifier: any`) and that the
+defaults plan and the sweep both miss, the solver (`solve.py`) searches the
+source for inputs that reach it, and the harness plans what it finds.
+
+- **Evaluation.** The Go helper exports every expression's tree. The solver
+  evaluates variables (with `optional()` object defaults), locals, `count`,
+  `for_each`, `dynamic` blocks and common functions over candidate inputs.
+  Resource attributes, data sources and unmodeled functions are unknown: a
+  goal is never met through an unknown, and an unknown guard does not block
+  a witness.
+- **Candidates.** Each input leaf, including attributes of object-typed
+  inputs, draws values from the module's own source: the literals it is
+  compared against (and their neighbours for ordering comparisons), the
+  values a `contains([...])` lists, the keys of maps it indexes, and both
+  values of a bool. Fixtures supply `samples`, keyed by `type.attr`, for
+  values the source cannot provide, such as a well-formed resource ID; an
+  input that feeds that attribute directly tries the sample.
+- **Search.** Assignments are tried with the fewest changed inputs first (at
+  most three). A witness meets the goal and fails no variable validation
+  and no resource or output precondition. A guard that already fails at
+  defaults is an evaluator blind spot, since that plan succeeded, and is
+  ignored.
+- **Confirmation.** The harness plans up to three witnesses per goal and
+  stops at the first whose plan meets it. Every plan that succeeds joins the
+  sweep plans as evidence of an input the module accepts, so every
+  sweep-quantified check sees it. Each attempt and its outcome is recorded
+  in the result's details.
+
+The source proposes and the plan decides: a witness the solver gets wrong
+costs one rejected plan, never a wrong score.
 
 ## The check engine: generic verbs, YAML parameters
 

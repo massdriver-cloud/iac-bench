@@ -24,6 +24,12 @@ scoring_policy: v1  # pinned pre-publication; see docs/generation-check-engine.m
 
 mandatory: [H1, H2]
 
+# Provider-valid values the solver tries for inputs that feed these
+# attributes directly (docs/generation-check-engine.md, solve-then-confirm).
+samples:
+  azurerm_monitor_diagnostic_setting.log_analytics_workspace_id: &law /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-iacbench/providers/Microsoft.OperationalInsights/workspaces/law-iacbench
+  azurerm_application_insights.workspace_id: *law
+
 items:
   - id: H1
     weight: 10
@@ -179,18 +185,14 @@ items:
     posture: reachable
     description: >
       Redundancy is offered — zone balancing on the service plan appears at
-      defaults or under some documented input. An input that feeds it counts
-      even when turning it on alone fails the module's own guard (zone
-      balancing needs several instances), which a one-input sweep cannot
-      satisfy.
+      defaults or under some documented input, including inputs the module
+      requires together (zone balancing with enough instances).
     check:
-      any_of:
-        - resource:
-            plans: [defaults, sweep]
-            quantifier: any
-            type: azurerm_service_plan
-            where: {zone_balancing_enabled: true}
-        - var_feeds_attr: {type: azurerm_service_plan, attr: zone_balancing_enabled}
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: azurerm_service_plan
+        where: {zone_balancing_enabled: true}
 
   - id: H9
     weight: 4
