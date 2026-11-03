@@ -48,7 +48,15 @@ runs/, logs/                  output; gitignored
 
 ## Getting started
 
-Open the repo in the dev container (installs pinned OpenTofu + uv, runs `uv sync`). Then:
+Open the repo in the dev container (installs pinned OpenTofu + uv, runs `uv sync`). The static
+lens parses HCL with a small Go helper on HashiCorp's HCL library; build it once (Go 1.23+, or
+`docker run --rm -v "$PWD/tools/hclast":/src -w /src golang:1.23 make`):
+
+```bash
+make -C tools/hclast
+```
+
+Then:
 
 ```bash
 # validate the checkers against the known-answer solution matrix — run this first

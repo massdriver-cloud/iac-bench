@@ -57,8 +57,10 @@ leaks no rubric content.
 
 ## Two evidence lenses
 
-python-hcl2 parses syntax but does not evaluate expressions: `local.strict`,
-ternaries, `merge()` calls all arrive as opaque `"${...}"` strings. Tofu's
+The static lens parses source with HashiCorp's HCL library (`tools/hclast`, the
+parser OpenTofu itself uses), which reports each attribute's literal value and the
+references it makes, but does not evaluate expressions: `local.strict`, ternaries,
+`merge()` calls all arrive as `"${...}"` expression text. Tofu's
 evaluator is the only trustworthy one, and plan JSON is its output. So every
 check declares which lens it looks through, chosen by what the question is:
 

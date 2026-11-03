@@ -1,4 +1,5 @@
-"""Static HCL queries over a module directory (python-hcl2 based).
+"""Static HCL queries over a module directory, parsed by HashiCorp's HCL
+library through tools/hclast (see hclast.py).
 
 Used by generation scoring for interface stats and variable-taint checks.
 Parsing is best-effort: files that fail to parse are skipped (the functional
@@ -11,7 +12,7 @@ import json
 import re
 from pathlib import Path
 
-import hcl2
+from . import hclast
 
 _VAR_REF = re.compile(r"\bvar\.([A-Za-z0-9_-]+)")
 _LOCAL_REF = re.compile(r"\blocal\.([A-Za-z0-9_-]+)")
@@ -19,42 +20,8 @@ _DATA_REF = re.compile(r"\bdata\.([A-Za-z0-9_-]+)\.([A-Za-z0-9_-]+)")
 _EACH_REF = re.compile(r"\beach\.(key|value)\b")
 
 
-def _unquote(value):
-    if isinstance(value, str) and len(value) >= 2 and value[0] == '"' and value[-1] == '"':
-        return value[1:-1]
-    return value
-
-
-def _clean(value):
-    """Normalize python-hcl2 8.x output: strip __is_block__ markers and the
-    literal quote characters it keeps on block labels and string values."""
-    if isinstance(value, dict):
-        # __is_block__, __comments__, and any future parser metadata
-        return {_unquote(k): _clean(v) for k, v in value.items() if not k.startswith("__")}
-    if isinstance(value, list):
-        return [_clean(v) for v in value]
-    return _unquote(value)
-
-
-# HCL reserved words are legal object keys (`{ in = ..., out = ... }`), but
-# python-hcl2 rejects them bare. Quoting such a key does not change its meaning.
-_KEYWORD_KEY = re.compile(r"(?m)^(\s*)(in|for|if|else|endif|endfor)(\s*=)(?!=)")
-
-
-def _parse_file(tf: Path) -> dict | None:
-    """One .tf file, parsed and cleaned; None when the parser cannot read it."""
-    text = tf.read_text(errors="replace")
-    for candidate in (text, _KEYWORD_KEY.sub(r'\1"\2"\3', text)):
-        try:
-            return _clean(hcl2.loads(candidate))
-        except Exception:
-            continue
-    return None
-
-
 def parse_dir(module_dir: Path) -> list:
-    docs = [_parse_file(tf) for tf in sorted(Path(module_dir).glob("*.tf"))]
-    return [d for d in docs if d is not None]
+    return hclast.parse_dir(Path(module_dir))
 
 
 def variables(module_dir: Path) -> dict:
@@ -116,8 +83,7 @@ def parse_tfvars(path: Path) -> dict:
     path = Path(path)
     if path.suffix == ".json":
         return json.loads(path.read_text())
-    with open(path) as f:
-        return _clean(hcl2.load(f))
+    return hclast.parse_file(path) or {}
 
 
 def locals_map(module_dir: Path) -> dict:
@@ -314,19 +280,15 @@ def required_providers(module_dir: Path) -> dict:
     return out
 
 
+def _module_dirs(module_dir: Path) -> list:
+    """The module root and every local submodule directory under it."""
+    dirs = {tf.parent for tf in Path(module_dir).rglob("*.tf") if ".terraform" not in tf.parts}
+    return sorted(dirs)
+
+
 def _parse_all(module_dir: Path) -> list:
-    """Parse every *.tf under the module dir (excluding .terraform),
-    best-effort like parse_dir."""
-    docs = []
-    for tf in sorted(Path(module_dir).rglob("*.tf")):
-        if ".terraform" in tf.parts:
-            continue
-        try:
-            with open(tf) as f:
-                docs.append(_clean(hcl2.load(f)))
-        except Exception:
-            continue
-    return docs
+    """Parse every *.tf under the module dir (excluding .terraform)."""
+    return [doc for d in _module_dirs(module_dir) for doc in hclast.parse_dir(d)]
 
 
 def provider_blocks(module_dir: Path) -> list:
@@ -358,14 +320,7 @@ def module_sources(module_dir: Path) -> list:
     """Source strings of every `module` block anywhere under the module dir
     (excluding .terraform) — used to enforce the no-remote-modules contract."""
     sources: list = []
-    for tf in sorted(Path(module_dir).rglob("*.tf")):
-        if ".terraform" in tf.parts:
-            continue
-        try:
-            with open(tf) as f:
-                doc = _clean(hcl2.load(f))
-        except Exception:
-            continue
+    for doc in _parse_all(module_dir):
         for block in doc.get("module", []) or []:
             for _name, attrs in block.items():
                 source = (attrs or {}).get("source")
@@ -375,9 +330,9 @@ def module_sources(module_dir: Path) -> list:
 
 
 def unparsed_files(module_dir: Path) -> list:
-    """*.tf files in the module root that python-hcl2 cannot parse. Static
+    """*.tf files in the module root that the HCL parser rejects. Static
     checks are blind to these — callers must surface them, never hide them."""
-    return [tf.name for tf in sorted(Path(module_dir).glob("*.tf")) if _parse_file(tf) is None]
+    return hclast.unparsed_files(Path(module_dir))
 
 
 def _line_counts(module_dir: Path) -> tuple:
