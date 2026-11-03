@@ -20,3 +20,6 @@ report.md
 .cache/
 .terraform/
 *.tfplan
+
+# Built HCL helper (tools/hclast)
+tools/hclast/hclast

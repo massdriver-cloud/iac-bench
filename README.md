@@ -48,11 +48,18 @@ runs/, logs/                  output; gitignored
 
 ## Getting started
 
-Open the repo in the dev container (installs pinned OpenTofu + uv, runs `uv sync`). Then:
+Open the repo in the dev container. It installs the latest OpenTofu, Go and uv, runs `uv sync`, and
+builds `tools/hclast`, the Go helper the static lens uses to parse HCL with HashiCorp's library.
+The engine refuses a helper older than its source; rebuild it with `make -C tools/hclast`.
+
+Then:
 
 ```bash
 # validate the checkers against the known-answer solution matrix — run this first
 uv run iacbench selftest
+
+# unit-test the static analysis (solver, value proofs) without cloud credentials
+uv run pytest tests
 
 # render a fixture to look at it
 uv run iacbench render --fixture F001 --seed 42 --out /tmp/f001
@@ -100,6 +107,9 @@ uv run inspect eval src/iacbench/task.py@generate_module -T fixture=G001 \
 # generation selftest: scores each fixture's reference matrix (2 good designs,
 # 3 bad) — plan-only, against the cloud the fixture's rubric declares
 IACBENCH_CLOUD=1 AWS_REGION=us-east-1 uv run iacbench selftest --fixture G001
+
+# after an engine change: re-score stored candidates, compare with their logged scores
+uv run iacbench rescore --fixture G001 --candidates runs/candidates/G001 --log-dir logs
 
 # judge layer: absolute grades, experimental until calibrated against human verdicts
 uv run iacbench judge --fixture G001 --candidates runs/candidates/G001 --grade \

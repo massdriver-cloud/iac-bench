@@ -35,6 +35,15 @@ def main(argv=None) -> int:
     p_sweep.add_argument("--region", default=None, help="AWS region (default: AWS_REGION or us-east-1)")
     p_sweep.add_argument("--delete", action="store_true", help="delete what is found (S3 supported)")
 
+    p_rescore = sub.add_parser(
+        "rescore",
+        help="re-score stored candidates with the current engine and compare with their logged scores",
+    )
+    p_rescore.add_argument("--fixture", required=True)
+    p_rescore.add_argument("--candidates", required=True, help="directory with one module subdirectory per candidate")
+    p_rescore.add_argument("--log-dir", required=True, help="eval logs holding the candidates' scores")
+    p_rescore.add_argument("--workers", type=int, default=8, help="candidates scored in parallel")
+
     p_judge = sub.add_parser("judge", help="pairwise LLM judging of generation candidates (experimental layer)")
     p_judge.add_argument("--fixture", default="G001")
     p_judge.add_argument("--candidates", help="directory containing one module subdirectory per candidate")
@@ -94,6 +103,13 @@ def main(argv=None) -> int:
         from .sweep import run_sweep
 
         return run_sweep(args.region or os.environ.get("AWS_REGION", "us-east-1"), args.delete)
+
+    if args.command == "rescore":
+        from .generation import GenerationFixture
+        from .rescore import run_rescore
+
+        fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
+        return run_rescore(fixture, Path(args.candidates), Path(args.log_dir), args.workers)
 
     if args.command == "calibrate":
         import json

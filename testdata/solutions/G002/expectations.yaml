@@ -3,9 +3,9 @@
 # references are asserted by WHICH items fail, with score bounds as sanity
 # checks on true, uncapped values.
 #
-# Engine coverage: H1/H2 exercise dotted-path `hardcoded` (H2 with `in:`;
-# ref_flexible earns H2 instead through var_domain_closed, an ssl_mode input
-# limited to the secure modes);
+# Engine coverage: H1/H2 exercise dotted-path `closed_values` (H2 with `in:`;
+# ref_flexible earns H2 through an ssl_mode input whose validation confines it
+# to the secure modes);
 # H3 exercises multi-behavior default_on (ref_lean earns it through the
 # native settings flag, ref_flexible through the provider-level guard only);
 # the A* items exercise nested, type-scoped var_feeds_attr; A7 exercises
@@ -26,6 +26,18 @@ ref_flexible:
               B1_provider_constraints, B2_descriptions,
               E2_customer_managed_key, E3_iam_database_login, E4_manages_databases, E5_manages_users,
               E6_iam_login_granted, E7_workload_identities, E8_connection_audit_trail, E9_query_insights]
+ref_ssl_choice:
+  # ref_flexible with ssl_mode chosen by a bool between the two secure modes:
+  # an input that cannot produce an insecure value is a decision (H2 passes).
+  gate: true
+  min_score: 0.95
+  must_pass: [H1, H2]
+bad_ssl_weak_choice:
+  # ref_flexible whose ssl_mode validation also admits unencrypted clients.
+  # The default stays secure, but an input can weaken it (H2 fails).
+  gate: true
+  max_score: 0.95
+  must_fail: [H2]
 bad_passthrough:
   gate: true
   # Security posture is a set of knobs (ipv4_enabled, ssl_mode), the root

@@ -57,9 +57,13 @@ leaks no rubric content.
 
 ## Two evidence lenses
 
-python-hcl2 parses syntax but does not evaluate expressions: `local.strict`,
-ternaries, `merge()` calls all arrive as opaque `"${...}"` strings. Tofu's
-evaluator is the only trustworthy one, and plan JSON is its output. So every
+The static lens parses source with HashiCorp's HCL library (`tools/hclast`, the
+parser OpenTofu itself uses), which reports each attribute's literal value, the
+references it makes and its expression tree. Static checks never evaluate
+expressions: `local.strict`, ternaries, `merge()` calls all arrive as `"${...}"`
+expression text. Tofu's evaluator is the only trustworthy one, and plan JSON is
+its output; the solver evaluates expression trees only to propose inputs for a
+plan to confirm (see Solve-then-confirm). So every
 check declares which lens it looks through, chosen by what the question is:
 
 - **Static HCL lens** (`hclq`, parsed source) — questions about *how the code
@@ -78,7 +82,7 @@ A rubric item may declare a posture naming the philosophy its check encodes:
 
 | Posture | Meaning | Evidence |
 |---|---|---|
-| `hardcoded` | Security posture. A knob is the defect, even with a safe default. | Static lens: literal equals the secure value; no variable taint on the value **or on existence** (`count`/`for_each`/`dynamic`). The sweep corroborates (below). |
+| `hardcoded` | Security posture. An input that can weaken it is the defect, even with a safe default; a choice between secure settings is not. | Static lens: every value the source can produce is secure (`closed_values`: a literal, or a conditional or confined input whose every value is secure); no variable taint on existence (`count`/`for_each`/`dynamic`). The sweep corroborates (below). |
 | `default_on` | Safe out of the box, legitimately reversible. The off state is silently harmful and consumers won't know to opt in; hardcoding is wrong because turning it off is sometimes legitimate. | Graded ladder (below). |
 | `budget` | Interface size fits the audience. Graded, never a cliff. | `budget: {soft, hard}` — full credit at or under `soft` declared variables, linear to zero at `hard`. |
 | `ladder` | Ordered alternatives where one mechanism is better than another that still works. | `ladder: [{score, check}, ...]` — the score of the best rung whose check passes, 0 when none does. |
@@ -136,6 +140,44 @@ The sweep serves two symmetric roles:
 
 Bounded search is strong evidence, not proof; recorded honestly.
 
+## Solve-then-confirm
+
+A one-variable sweep cannot reach a capability whose input the module
+guards with a second input: zone balancing that a precondition allows only
+with three or more instances, or an observability resource created only
+when a workspace ID is supplied. For every `resource` check that accepts
+*some* sweep plan (`plans` includes `sweep`, `quantifier: any`), belongs to
+a rubric or expertise item that fails on the defaults plan and the sweep,
+and is itself missed by both, the solver (`solve.py`) searches the source
+for inputs that reach it, and the harness plans what it finds.
+
+- **Evaluation.** The Go helper exports every expression's tree. The solver
+  evaluates variables (with `optional()` object defaults), locals, `count`,
+  `for_each`, `dynamic` blocks and common functions over candidate inputs.
+  Resource attributes, data sources and unmodeled functions are unknown: a
+  goal is never met through an unknown, and an unknown guard does not block
+  a witness.
+- **Candidates.** Each input leaf, including attributes of object-typed
+  inputs, draws values from the module's own source: the literals it is
+  compared against (and their neighbours for ordering comparisons), the
+  values a `contains([...])` lists, the keys of maps it indexes, and both
+  values of a bool. Fixtures supply `samples`, keyed by `type.attr`, for
+  values the source cannot provide, such as a well-formed resource ID; an
+  input that feeds that attribute directly tries the sample.
+- **Search.** Assignments are tried with the fewest changed inputs first (at
+  most three). A witness meets the goal and fails no variable validation
+  and no resource or output precondition. A guard that already fails at
+  defaults is an evaluator blind spot, since that plan succeeded, and is
+  ignored.
+- **Confirmation.** The harness plans up to three witnesses per goal and
+  stops at the first whose plan meets it. Every plan that succeeds joins the
+  sweep plans as evidence of an input the module accepts, so every
+  sweep-quantified check sees it. Each attempt and its outcome is recorded
+  in the result's details.
+
+The source proposes and the plan decides: a witness the solver gets wrong
+costs one rejected plan, never a wrong score.
+
 ## The check engine: generic verbs, YAML parameters
 
 `generation.py` is an engine: fixture loading, the gate, the probe harness,
@@ -149,7 +191,7 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 | `declares` | static | the source declares at least one resource of `type`, gated or not — lets an item pass modules that never create the thing it guards |
 | `expr_matches` | static | every resource's `attr` expression, resolved through locals and data sources, matches `pattern` — or the resource has `or_attr_present` instead |
 | `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals and through `each.key`/`each.value` to the resource's `for_each` (an index such as `x[each.key]` does not carry it); `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
-| `var_domain_closed` | static | the named attribute is fed by at least one variable, and every feeding variable is a bool or carries a `contains([...])` validation short enough for the sweep to plan every value; pair it with a sweep `resource` check so an input limited to safe choices counts as a decision, not a knob |
+| `closed_values` | static | every value the source can produce for each of `attrs` on every instance of `type` equals the required value (or is `{in: [...]}`): a literal, or an expression whose every conditional branch, map value and input domain is one, where an input's domain is both values of a bool or the literal set a validation confines it to (`contains([...], var.x)`, `var.x == lit`, and their `\|\|`/`&&` combinations). A choice between secure settings passes; any other input, function or reference is open and fails, as does a missing attribute or a `dynamic` block on the path. At least one instance must exist unconditionally, as with `hardcoded`. A proof from the source, so it needs no sweep |
 | `var_feeds_provider_attr` | static | some declared variable feeds the named attribute of a provider configuration block (nested blocks such as `default_tags` included), transitively through locals; `provider` restricts to one provider; `has_default` as above |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |

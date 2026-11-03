@@ -51,6 +51,7 @@ class Attempt:
     cache_write_tokens: int | None = None
     duration_s: float | None = None
     stats: dict | None = None
+    items: dict | None = None
     expertise: dict | None = None
     expertise_score: float | None = None
     semantic_score: float | None = None
@@ -119,6 +120,7 @@ def collect_attempts(log_dir: Path) -> list:
                     cache_write_tokens=sum(getattr(u, "input_tokens_cache_write", None) or 0 for u in usage.values()) or None,
                     duration_s=float(duration) if duration else None,
                     stats=meta.get("stats"),
+                    items=meta.get("items"),
                     expertise=meta.get("expertise"),
                     expertise_score=meta.get("expertise_score"),
                     semantic_score=meta.get("semantic_score", score.value if score else None),

@@ -22,6 +22,24 @@ ref_flexible:
   min_score: 0.95
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7,
               B1_provider_constraints, B2_descriptions]
+ref_guarded:
+  # ref_flexible with zone balancing and observability off at defaults, each
+  # reachable only through inputs the sweep cannot set alone: zone_redundant
+  # with min_instances >= 3 (a precondition), and a workspace ID the
+  # validation checks for shape. The solver must find both and the plans
+  # confirm them.
+  gate: true
+  min_score: 0.95
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, A1, A2, A3, A4, A5, A6, A7,
+              B1_provider_constraints, B2_descriptions]
+bad_guard_contradiction:
+  gate: true
+  # ref_guarded whose min_instances validation caps the floor at 2, so the
+  # zone_redundant precondition (min_instances >= 3) can never hold: zone
+  # balancing is declared but unreachable. Observability is still reachable.
+  max_score: 0.98
+  must_pass: [H6]
+  must_fail: [H7]
 bad_passthrough:
   gate: true
   # Every security setting is a variable (H1-H3 fail even though H3's

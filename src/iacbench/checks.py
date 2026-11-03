@@ -306,25 +306,32 @@ def _verb_var_feeds_attr(ctx: CheckContext, spec: dict) -> bool:
 SWEEP_ALTERNATIVES = 5
 
 
-def _verb_var_domain_closed(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens: the named attribute is fed by at least one variable, and
-    every variable feeding it has a domain the sweep enumerates in full — a
-    bool, or a `contains([...])` validation listing few enough values. Pair
-    it with a sweep `resource` check to prove that no reachable value is
-    unsafe: an input limited to secure choices is then a decision, not a hole."""
-    feeding = hclq.vars_feeding_attr(ctx.module_dir, spec["attr"], spec.get("type"))
-    declared = hclq.variables(ctx.module_dir)
-    names = [n for n in feeding if n in declared]
-    if not names:
+def _verb_closed_values(ctx: CheckContext, spec: dict) -> bool:
+    """Static lens: no input can weaken the setting. Every value the source
+    can produce for each of `attrs`, on every instance of `type`, equals the
+    required value (or is in `{in: [...]}`): a literal, or an expression
+    whose every branch, input domain (a bool, or a validation confining the
+    input to listed values) and map value is one — a choice between secure
+    settings is a decision, not a knob. Any open value, a missing attribute
+    or a `dynamic` block on the path fails it. As with `hardcoded`, at least
+    one instance must exist unconditionally. Proven from the source by
+    solve.possible_values, so it needs no sweep."""
+    from . import solve
+
+    module = solve.Module.load(ctx.module_dir)
+    instances = [r for r in module.resources if r.mode == "resource" and r.type == spec["type"]]
+    if not instances:
         return False
-    for name in names:
-        meta = declared[name]
-        if meta["type"].strip() == "bool":
-            continue
-        allowed = hclq.allowed_values(meta)
-        if not allowed or len(allowed) > SWEEP_ALTERNATIVES + 1:
-            return False
-    return True
+    for res in instances:
+        for name, expected in (spec.get("attrs") or {}).items():
+            for node in solve.attr_nodes(res.body, name.split(".")):
+                if node is None or node is solve._MISSING_ATTR:
+                    return False
+                values = solve.possible_values(module, node)
+                allowed = expected["in"] if isinstance(expected, dict) and "in" in expected else [expected]
+                if values is None or not all(any(solve._eq(v, a) for a in allowed) for v in values):
+                    return False
+    return any(not solve.existence_open(module, res) for res in instances)
 
 
 def _verb_var_feeds_provider_attr(ctx: CheckContext, spec: dict) -> bool:
@@ -514,7 +521,7 @@ _VERBS = {
     "expr_matches": _verb_expr_matches,
     "declares": _verb_declares,
     "var_feeds_attr": _verb_var_feeds_attr,
-    "var_domain_closed": _verb_var_domain_closed,
+    "closed_values": _verb_closed_values,
     "provider_constraints": _verb_provider_constraints,
     "provider_config_attr": _verb_provider_config_attr,
     "var_feeds_provider_attr": _verb_var_feeds_provider_attr,

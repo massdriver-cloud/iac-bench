@@ -29,7 +29,7 @@ items:
       the audience is.
     check:
       all_of:
-        - hardcoded:
+        - closed_values:
             type: google_sql_database_instance
             attrs:
               settings.ip_configuration.ipv4_enabled: false
@@ -45,23 +45,19 @@ items:
     weight: 10
     posture: hardcoded
     description: >
-      Encrypted connections are required on every planned instance. ssl_mode
-      is either hardcoded to a mode that rejects unencrypted clients, or fed
-      by an input whose every value the sweep plans (a bool, or a validation
-      listing the allowed modes) with no plan accepting unencrypted clients.
-      Choosing between encrypted-only and client certificates is a DBA
-      decision; offering unencrypted connections is not.
+      Encrypted connections are required on every planned instance. Every
+      ssl_mode value the source can produce rejects unencrypted clients: a
+      literal, or an input confined to such modes (a bool choosing between
+      them, or a validation listing them), and no plan across the sweep
+      accepts unencrypted clients. Choosing between encrypted-only and client
+      certificates is a DBA decision; offering unencrypted connections is not.
     check:
       all_of:
-        - any_of:
-            - hardcoded:
-                type: google_sql_database_instance
-                attrs:
-                  settings.ip_configuration.ssl_mode:
-                    in: [ENCRYPTED_ONLY, TRUSTED_CLIENT_CERTIFICATE_REQUIRED]
-            - var_domain_closed:
-                type: google_sql_database_instance
-                attr: ssl_mode
+        - closed_values:
+            type: google_sql_database_instance
+            attrs:
+              settings.ip_configuration.ssl_mode:
+                in: [ENCRYPTED_ONLY, TRUSTED_CLIENT_CERTIFICATE_REQUIRED]
         - resource:
             plans: [defaults, sweep]
             quantifier: all
