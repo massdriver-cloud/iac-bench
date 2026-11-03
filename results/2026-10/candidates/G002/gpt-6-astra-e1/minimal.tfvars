@@ -1,0 +1,6 @@
+project_id       = "dba-platform-dev"
+name             = "postgres-dev"
+region           = "us-central1"
+private_network  = "projects/dba-platform-dev/global/networks/apps-dev"
+postgres_version = "POSTGRES_16"
+tier             = "db-custom-2-7680"

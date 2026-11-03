@@ -1,0 +1,464 @@
+{
+ "G001": {
+  "brief": "# Request: a standard bucket module for our app teams\n\nOur application teams keep hand-rolling S3 buckets for the assets their applications store and work with \u2014 user uploads, images and videos, generated files, logs \u2014 and every one comes out slightly different and usually wrong somewhere. Build the reusable OpenTofu module that will become the standard way an app team gets a bucket for its application's assets. The people who will use it are application developers who don't know S3 well and shouldn't have to: they'll copy an example, fill in a couple of obvious inputs, and trust the module's judgment for everything else. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H3"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 18,
+    "posture": "hardcoded",
+    "description": "Privacy is a property, not a knob \u2014 a public access block exists with all four settings hardcoded true, its existence unconditional, and every planned instance stays fully enabled across the entire sweep."
+   },
+   {
+    "id": "H3",
+    "weight": 14,
+    "posture": "hardcoded",
+    "description": "Encryption at rest is a property, not a knob \u2014 configured unconditionally in the source (dedicated resource or inline), present in every reachable plan. Which algorithm is a design choice; whether to encrypt is not."
+   },
+   {
+    "id": "H6",
+    "weight": 6,
+    "posture": "reachable",
+    "description": "Lifecycle cost management volunteered \u2014 transition and/or expiration rules appear at defaults or under some documented input."
+   },
+   {
+    "id": "H7",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Noncurrent-version handling \u2014 expiration or transition for old object versions. (Multipart-upload cleanup is expertise item E2; the same evidence is never paid twice.)"
+   },
+   {
+    "id": "H8",
+    "weight": 5,
+    "posture": "reachable",
+    "description": "Versioning offered \u2014 enabled at defaults or under some input."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Server access logging offered \u2014 the mechanism (direct toggle or inferred from a generalized setting) is a design choice and not scored."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 consumers can influence the bucket's name (directly, as a prefix, or through a concept such as purpose). Naming is the one input every app team obviously has."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no encryption key is demanded. Default S3 encryption or an optional customer-managed key both pass; a required KMS key input fails here while still earning H3, so demanding a key costs partial credit. Disabling encryption is H3's failure, not this item's."
+   },
+   {
+    "id": "A3",
+    "weight": 1,
+    "posture": null,
+    "description": "Restraint \u2014 no input controls object ownership or ACLs."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no CDN or static-website architecture: no distribution, origin access control, or website configuration at defaults or under any documented input, and no bucket policy granting the CloudFront service. Distribution was never part of the request."
+   },
+   {
+    "id": "A5",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 8 or fewer inputs, falling linearly to zero at 16. This audience fills in \"a couple of obvious inputs\". A race to expose every setting in order to satisfy exposure checks is the failure this guards against: pass-through modules encode less expertise than tuned ones."
+   },
+   {
+    "id": "H12",
+    "weight": 2,
+    "posture": "ladder",
+    "description": "Consumers can add their own tags through an optional input. Full credit when that input feeds the provider's default_tags, so every resource is tagged by one setting; half credit when it is applied resource by resource, which every new resource must remember to repeat. Influence is detected syntactically (taint through locals). Demanding a required input for tags is scope invention, judged under Unstated assumptions."
+   },
+   {
+    "id": "H15",
+    "weight": 4,
+    "posture": null,
+    "description": "Explicit provider configuration with a configurable region \u2014 the module declares its aws provider block and an input feeds its region (a default is fine). A standalone module that relies on the implicit provider leaves the region to whatever environment runs it."
+   },
+   {
+    "id": "H13",
+    "weight": 4,
+    "posture": null,
+    "description": "Access logging actually works: some bucket policy's document grants the logging service permission to deliver. Checked in the policy expression (resolved through locals), not plan JSON \u2014 ARN-interpolating policies are unknown at plan time."
+   },
+   {
+    "id": "H14",
+    "weight": 3,
+    "posture": null,
+    "description": "force_destroy is accessible (per Destructive defaults) \u2014 some documented input influences it, directly or inferred from a concept such as environment. Hardcoded either way, or absent entirely, leaves the consumer no way out. Influence is detected syntactically (taint through locals) \u2014 a strong signal, not a semantics proof."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_ownership_controls",
+    "description": "BucketOwnerEnforced ownership controls (ACLs disabled)."
+   },
+   {
+    "id": "E2_multipart_cleanup",
+    "description": "Aborts incomplete multipart uploads (storage garbage collection)."
+   },
+   {
+    "id": "E4_tls_enforcement",
+    "description": "Bucket policy denies non-TLS (aws:SecureTransport) access."
+   },
+   {
+    "id": "E5_regional_domain_output",
+    "description": "Outputs bucket_regional_domain_name for downstream wiring."
+   },
+   {
+    "id": "E6_intelligent_tiering",
+    "description": "Uses or offers Intelligent-Tiering storage class awareness."
+   },
+   {
+    "id": "E7_name_uniqueness",
+    "description": "Bucket names include a uniqueness mechanism (random suffix, account id) seen through locals, or delegate to bucket_prefix \u2014 S3's namespace is global. Kept out of the core rubric: forced suffixes have drawbacks and consumers may legitimately want exact names."
+   },
+   {
+    "id": "E9_consumer_access_policies",
+    "description": "Ships ready-to-attach access policies for the bucket's consumers (read-only and/or read-write), as managed IAM policies or as policy documents exposed through outputs."
+   }
+  ],
+  "total_weight": 86
+ },
+ "G002": {
+  "brief": "# Request: a standard PostgreSQL module for the DBA team\n\nOur DBA team runs every PostgreSQL database on Cloud SQL, and today each instance is clicked together in the console, so no two are configured alike and nobody can say with confidence how any of them is set up. Build the reusable OpenTofu module the DBAs will use to stand up and manage those instances from now on. They know PostgreSQL and Cloud SQL deeply and expect to own the decisions that are genuinely theirs to make, but they don't want to re-decide, instance by instance, the things that should be the same everywhere. The applications that connect run on GKE and Compute Engine in our custom VPC networks, one per environment (`apps-dev`, `apps-staging` and `apps-prod`); the network team owns those networks and has already set up private services access on each. Every engineer and every workload already has a Google identity, and the security team audits database access by those identities. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 14,
+    "posture": "hardcoded",
+    "description": "No public IP \u2014 the instance is reachable only on the private network. ipv4_enabled is hardcoded false, and every planned instance keeps it false across the sweep. Network reachability is never a knob, whoever the audience is."
+   },
+   {
+    "id": "H2",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "Encrypted connections are required on every planned instance. ssl_mode is either hardcoded to a mode that rejects unencrypted clients, or fed by an input whose every value the sweep plans (a bool, or a validation listing the allowed modes) with no plan accepting unencrypted clients. Choosing between encrypted-only and client certificates is a DBA decision; offering unencrypted connections is not."
+   },
+   {
+    "id": "H3",
+    "weight": 6,
+    "posture": "default_on",
+    "description": "Deletion protection ships on with a real opt-out \u2014 either the native API-level flag or the provider-level guard. Hardcoded on in either form leaves no way to retire an instance."
+   },
+   {
+    "id": "H4",
+    "weight": 6,
+    "posture": "default_on",
+    "description": "Automated backups ship on with a real opt-out (full credit); always-on with no opt-out earns partial credit \u2014 DBAs running throwaway instances lose the choice, but nothing is blocked. Hardcoded off or absent fails."
+   },
+   {
+    "id": "H5",
+    "weight": 4,
+    "posture": "default_on",
+    "description": "Point-in-time recovery ships on with a real opt-out (full credit); always-on earns partial credit \u2014 retained transaction logs bill as backup storage, so test instances legitimately turn it off. Hardcoded off or absent fails."
+   },
+   {
+    "id": "H6",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "High availability is offered \u2014 a regional (failover) instance appears at defaults or under some documented input."
+   },
+   {
+    "id": "H7",
+    "weight": 4,
+    "posture": null,
+    "description": "No raw credential input \u2014 no variable feeds an instance root password or a database user password. Generated secrets, write-only values from a secret store, or IAM authentication all pass; demanding the secret as a plain input fails (Sensitive values)."
+   },
+   {
+    "id": "H8",
+    "weight": 2,
+    "posture": null,
+    "description": "Consumers can add their own labels through an optional input that reaches the instance's user_labels. Cloud SQL instances keep labels inside settings and do not inherit the provider's default_labels, and nothing else this module creates carries labels, so user_labels is the setting that labels anything."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "ladder",
+    "description": "Explicit provider configuration with a configurable region. Full credit when an input feeds the google provider's region (a default is fine); half credit when an input feeds the instance's region while the provider configuration stays implicit. Neither leaves the region to whatever environment runs the module. The project is not scored: in GCP it conventionally travels with the credentials."
+   },
+   {
+    "id": "H10",
+    "weight": 4,
+    "posture": null,
+    "description": "No database password stored in state \u2014 no database user's password and no instance root password is set through an attribute OpenTofu records. IAM database authentication, or write-only passwords (password_wo, root_password_wo), pass; generated or supplied passwords written to the ordinary attributes land in state in plain text and fail."
+   },
+   {
+    "id": "H11",
+    "weight": 4,
+    "posture": "ladder",
+    "description": "Removing a database from the module's input does not drop its data by default. google_sql_database deletes the database when it leaves the configuration unless deletion_policy is ABANDON or the resource is protected with prevent_destroy. Full credit for a guard on by default with a real opt-out (deletion_policy chosen through an input); 0.75 for an always-on guard; nothing when databases are dropped on removal. A module that creates no databases has nothing to drop and passes."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 machine tier (sizing) is a DBA decision."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the PostgreSQL major version is a DBA decision."
+   },
+   {
+    "id": "A3",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 engine flags (database_flags) can be set per instance."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the maintenance window (day and/or hour) is controllable."
+   },
+   {
+    "id": "A5",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the backup schedule or retention (start time, retained backups, or transaction-log retention) is controllable."
+   },
+   {
+    "id": "A6",
+    "weight": 1,
+    "posture": null,
+    "description": "Exposure \u2014 storage sizing (disk size or autoresize limit) is controllable."
+   },
+   {
+    "id": "A7",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the VPC network the instance attaches to is an input (required or defaulted), directly or through a data-source lookup. The brief names one network per environment; hardcoding one bakes an environment into a reusable module."
+   },
+   {
+    "id": "A8",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 25 or fewer inputs, falling linearly to zero at 35. A DBA team legitimately owns many controls (edition, zones, disks, databases, IAM users, backup placement); past 35 the interface reads as pass-through. A race to expose every setting in order to satisfy exposure checks is the failure this guards against: pass-through modules encode less expertise than tuned ones."
+   },
+   {
+    "id": "A9",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no networking setup. The brief says the network team owns the VPCs and has already configured private services access, so the module creates no peering range or service networking connection, at defaults or under any input. Building networking turns a database module into a networking module the DBAs would then own."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_backups_survive_deletion",
+    "description": "Automated backups outlive the instance: retain_backups_on_delete or a final backup on deletion. Cloud SQL otherwise deletes them with it."
+   },
+   {
+    "id": "E2_customer_managed_key",
+    "description": "A customer-managed encryption key can be supplied (encryption_key_name). Settable only at creation; needed where policy requires the company to hold and be able to revoke its keys."
+   },
+   {
+    "id": "E3_iam_database_login",
+    "description": "IAM database authentication is enabled (the cloudsql.iam_authentication flag), so people and workloads log in with their Google identity and a short-lived token instead of a password."
+   },
+   {
+    "id": "E4_manages_databases",
+    "description": "The DBAs can declare the instance's databases through an input. Managing databases is a core DBA responsibility."
+   },
+   {
+    "id": "E5_manages_users",
+    "description": "The DBAs can declare the instance's database users (IAM or built-in) through an input. Managing users is a core DBA responsibility."
+   },
+   {
+    "id": "E6_iam_login_granted",
+    "description": "The IAM principals given database users are also granted roles/cloudsql.instanceUser. Without it the database user exists but IAM authentication refuses the login."
+   },
+   {
+    "id": "E7_workload_identities",
+    "description": "Workload service accounts can be given database logins (CLOUD_IAM_SERVICE_ACCOUNT users), not only people. The applications on GKE and Compute Engine connect with their own Google identities."
+   },
+   {
+    "id": "E8_connection_audit_trail",
+    "description": "Connections and disconnections are logged (log_connections and log_disconnections), so every session is recorded under the identity that opened it for the security team's audit."
+   },
+   {
+    "id": "E9_query_insights",
+    "description": "Query Insights is enabled, giving the DBAs per-query load, latency and plan history in the console without running their own tooling."
+   }
+  ],
+  "total_weight": 92
+ },
+ "G003": {
+  "brief": "# Request: a standard App Service module for the SRE team\n\nOur SRE team operates the web services our product teams build, mostly containerized HTTP APIs, and we're consolidating them onto Azure App Service with one standard module instead of a pile of hand-built apps. The SREs will use this module to deploy and run each service. They know Azure well and think in terms of capacity, availability, health, rollouts, and observability, but they don't want to hand-tune App Service internals for every app. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "HTTPS only \u2014 plain-HTTP requests are redirected, hardcoded on every web app and deployment slot and present across the sweep. The provider default is off."
+   },
+   {
+    "id": "H2",
+    "weight": 8,
+    "posture": "hardcoded",
+    "description": "Basic-auth publishing is disabled on every web app and deployment slot \u2014 neither FTP nor Web Deploy accepts the shared publishing credentials. Both default to ON in the provider."
+   },
+   {
+    "id": "H3",
+    "weight": 6,
+    "posture": null,
+    "description": "Transport stays strong \u2014 TLS for the site and the deployment (SCM) endpoint is 1.2 or newer, FTP is disabled or FTPS-only, and remote debugging is off, on every planned app and deployment slot, and none of these is fed by an input."
+   },
+   {
+    "id": "H4",
+    "weight": 4,
+    "posture": "hardcoded",
+    "description": "A managed identity is attached unconditionally, so the app can reach other Azure services without stored credentials."
+   },
+   {
+    "id": "H5",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Health checks are offered \u2014 a health-check path is configured at defaults or under some documented input, so unhealthy instances are taken out of rotation."
+   },
+   {
+    "id": "H6",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Observability is offered \u2014 diagnostic settings or Application Insights appear at defaults or under some documented input."
+   },
+   {
+    "id": "H7",
+    "weight": 3,
+    "posture": "reachable",
+    "description": "Redundancy is offered \u2014 zone balancing on the service plan appears at defaults or under some documented input. An input that feeds it counts even when turning it on alone fails the module's own guard (zone balancing needs several instances), which a one-input sweep cannot satisfy."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Rollouts are offered \u2014 a deployment slot (azurerm_linux_web_app_slot) is declared, at defaults or behind an input, so a release can be staged, warmed and swapped into production instead of replacing the running app in place."
+   },
+   {
+    "id": "H8",
+    "weight": 2,
+    "posture": null,
+    "description": "Tagging support is table stakes \u2014 consumers can add their own tags to the web app through an optional input."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the plan size (SKU) is an SRE capacity decision."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 instance count or autoscale bounds are controllable."
+   },
+   {
+    "id": "A3",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the health-check path is set per service."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 which container image runs is set per service."
+   },
+   {
+    "id": "A5",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 application settings (environment) can be supplied."
+   },
+   {
+    "id": "A6",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no input for App Service worker internals (32-bit worker, HTTP/2, load-balancing mode, in-app MySQL). The brief's audience explicitly doesn't want to hand-tune these."
+   },
+   {
+    "id": "A7",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 20 or fewer inputs, falling linearly to zero at 30. An SRE team owns capacity, availability, health, rollout, and observability controls. A race to expose every setting in order to satisfy exposure checks is the failure this guards against: pass-through modules encode less expertise than tuned ones."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_autoscale_rules",
+    "description": "Capacity follows load: an autoscale setting scales the plan between bounds instead of a fixed instance count."
+   },
+   {
+    "id": "E2_container_port",
+    "description": "The container's listening port reaches App Service (WEBSITES_PORT), so images that don't listen on port 80 receive traffic and pass health checks."
+   },
+   {
+    "id": "E3_metric_alerts",
+    "description": "Metric alerts are defined (for example 5xx rate, response time or health-check status), so the SREs are paged on symptoms rather than discovering them in dashboards."
+   },
+   {
+    "id": "E4_registry_pull_identity",
+    "description": "Images are pulled from the container registry with the app's managed identity (container_registry_use_managed_identity), so no registry password is stored in app settings."
+   },
+   {
+    "id": "E5_key_vault_references",
+    "description": "Secrets reach the app as Key Vault references in app settings (@Microsoft.KeyVault(...)), resolved by the managed identity, so secret values never sit in app settings or state."
+   }
+  ],
+  "total_weight": 72
+ }
+}

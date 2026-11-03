@@ -1,0 +1,78 @@
+{
+  "module_sha": {
+    "fae788cf0a6b2508": "c4cfff1102295291"
+  },
+  "files": [
+    {
+      "file": "logs/2026-10-22T23-33-09-00-00_generate-module_77oQgunwpb9PtEP2Pyt2x2.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-33-09-00-00_generate-module_WP9Nhhb65SmsxGXMMF3kWn.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-33-09-00-00_generate-module_Y7NSDanBhrQNkYr4qVqXQB.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-24-00-00_generate-module_NwrLUxy9kg6GKQKqMSjf9V.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-24-00-00_generate-module_PHCsjLTX5n6DepSogSN6cA.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-24-00-00_generate-module_QHDusLfJwFoAEQR6EuyQ59.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-24-00-00_generate-module_cmmm4RAb3HSK3aUuorjRws.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-24-00-00_generate-module_dhThK53EB4SCd28oiph4w2.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-49-53-00-00_generate-module_2yWzFa24BkG44iXjtLrou8.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-49-53-00-00_generate-module_Ts6XjsV8Wv7qVjcCYvFh5k.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "candidates/G001/claude-fable-5-1-e2/examples/full.tfvars",
+      "replaced": [
+        "AWS account ID"
+      ]
+    }
+  ],
+  "placeholders": {
+    "AWS account ID": "123456789012",
+    "GCP project ID": "iacbench-sandbox",
+    "Azure subscription ID": "00000000-0000-0000-0000-000000000000"
+  }
+}

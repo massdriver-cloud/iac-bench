@@ -1,0 +1,122 @@
+{
+ "G001": {
+  "ref-lean": {
+   "judge": 97.4,
+   "sections": {
+    "Interface design": 2,
+    "Variables and validation": 2,
+    "Internal logic": 2,
+    "Scope": 2,
+    "Inline Resource Configuration vs Separate Resources": 2,
+    "Outputs": 2,
+    "Iteration: for_each vs count": 2,
+    "Data sources vs inputs": 2,
+    "File layout": 1,
+    "Sensitive values": 2,
+    "Lifecycle meta-arguments": 2,
+    "Documentation": 2,
+    "Deprecated and escape-hatch patterns": 2,
+    "Anti-patterns (immediate credibility loss)": 2
+   }
+  },
+  "ref-flexible": {
+   "judge": 86.8,
+   "sections": {
+    "Interface design": 1,
+    "Variables and validation": 2,
+    "Internal logic": 2,
+    "Scope": 1,
+    "Inline Resource Configuration vs Separate Resources": 2,
+    "Outputs": 2,
+    "Iteration: for_each vs count": 2,
+    "Data sources vs inputs": 2,
+    "File layout": 1,
+    "Sensitive values": 2,
+    "Lifecycle meta-arguments": 2,
+    "Documentation": 2,
+    "Deprecated and escape-hatch patterns": 2,
+    "Anti-patterns (immediate credibility loss)": 2
+   }
+  }
+ },
+ "G002": {
+  "ref-lean": {
+   "judge": 100.0,
+   "sections": {
+    "Interface design": 2,
+    "Variables and validation": 2,
+    "Internal logic": 2,
+    "Scope": 2,
+    "Inline Resource Configuration vs Separate Resources": 2,
+    "Outputs": 2,
+    "Iteration: for_each vs count": 2,
+    "Data sources vs inputs": 2,
+    "File layout": 2,
+    "Sensitive values": 2,
+    "Lifecycle meta-arguments": 2,
+    "Documentation": 2,
+    "Deprecated and escape-hatch patterns": 2,
+    "Anti-patterns (immediate credibility loss)": 2
+   }
+  },
+  "ref-flexible": {
+   "judge": 94.7,
+   "sections": {
+    "Interface design": 2,
+    "Variables and validation": 1,
+    "Internal logic": 2,
+    "Scope": 2,
+    "Inline Resource Configuration vs Separate Resources": 2,
+    "Outputs": 2,
+    "Iteration: for_each vs count": 2,
+    "Data sources vs inputs": 2,
+    "File layout": 2,
+    "Sensitive values": 2,
+    "Lifecycle meta-arguments": 2,
+    "Documentation": 2,
+    "Deprecated and escape-hatch patterns": 2,
+    "Anti-patterns (immediate credibility loss)": 2
+   }
+  }
+ },
+ "G003": {
+  "ref-lean": {
+   "judge": 89.5,
+   "sections": {
+    "Interface design": 1,
+    "Variables and validation": 2,
+    "Internal logic": 2,
+    "Scope": 2,
+    "Inline Resource Configuration vs Separate Resources": 2,
+    "Outputs": 1,
+    "Iteration: for_each vs count": 2,
+    "Data sources vs inputs": 2,
+    "File layout": 1,
+    "Sensitive values": 2,
+    "Lifecycle meta-arguments": 2,
+    "Documentation": 2,
+    "Deprecated and escape-hatch patterns": 2,
+    "Anti-patterns (immediate credibility loss)": 2
+   }
+  },
+  "ref-flexible": {
+   "judge": 89.5,
+   "sections": {
+    "Interface design": 1,
+    "Variables and validation": 2,
+    "Internal logic": 2,
+    "Scope": 2,
+    "Inline Resource Configuration vs Separate Resources": 2,
+    "Outputs": 1,
+    "Iteration: for_each vs count": 2,
+    "Data sources vs inputs": 2,
+    "File layout": 1,
+    "Sensitive values": 2,
+    "Lifecycle meta-arguments": 2,
+    "Documentation": 2,
+    "Deprecated and escape-hatch patterns": 2,
+    "Anti-patterns (immediate credibility loss)": 2
+   }
+  }
+ }
+}

@@ -43,6 +43,7 @@ fixtures/<domain>/<ID>/       fixture.yaml + Jinja2 template (seeded rendering)
 testdata/solutions/<ID>/      known-answer solutions for selftest (correct, alt, cheats)
 prompts/                      versioned prompt templates
 src/iacbench/                 renderer, tofu wrapper, invariant checkers, Inspect task
+results/<release>/            published data releases: logs, modules, grades, calibration (see each README)
 runs/, logs/                  output; gitignored
 ```
 
@@ -50,7 +51,7 @@ runs/, logs/                  output; gitignored
 
 Open the repo in the dev container. It installs the latest OpenTofu, Go and uv, runs `uv sync`, and
 builds `tools/hclast`, the Go helper the static lens uses to parse HCL with HashiCorp's library.
-The engine refuses a helper older than its source; rebuild it with `make -C tools/hclast`.
+The engine refuses a helper built from a different source; rebuild it with `make -C tools/hclast`.
 
 Then:
 

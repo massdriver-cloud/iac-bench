@@ -1,0 +1,836 @@
+{
+  "fixture": "G003",
+  "mode": "absolute_grading",
+  "judge_model": "anthropic/claude-opus-5-5",
+  "principles_sha256": "af3ae1dd9fdc1c0c",
+  "samples_per_candidate": 3,
+  "graded_sections": [
+    "Interface design",
+    "Variables and validation",
+    "Internal logic",
+    "Scope",
+    "Inline Resource Configuration vs Separate Resources",
+    "Outputs",
+    "Iteration: for_each vs count",
+    "Data sources vs inputs",
+    "File layout",
+    "Sensitive values",
+    "Lifecycle meta-arguments",
+    "Documentation",
+    "Deprecated and escape-hatch patterns",
+    "Anti-patterns (immediate credibility loss)"
+  ],
+  "section_weights": {
+    "Sensitive values": 3.0,
+    "Interface design": 2.0,
+    "Variables and validation": 2.0,
+    "Scope": 2.0
+  },
+  "status": "calibrated (every section agrees with the doctrine owner)",
+  "author_label": null,
+  "grades": {
+    "ref-flexible": 94.7,
+    "claude-fable-5-1": 92.1,
+    "claude-sonnet-5-5": 92.1,
+    "claude-opus-5-5": 89.5,
+    "ref-lean": 89.5,
+    "gemini-3.1-pro-preview": 73.7,
+    "gpt-5.5-2026-04-23": 73.7,
+    "claude-haiku-4-5-20251001": 52.6
+  },
+  "detail": {
+    "claude-fable-5-1": {
+      "overall": 92.1,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 1,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] Inputs are framed around the SRE team's concepts (an `autoscale` object with min/max and CPU thresholds, an `alerts` object, `health_check_path`, `staging_slot_enabled`, `zone_redundant`), while the module settles App Service internals itself (`always_on`, `ftps_state`, `minimum_tls_version`, `WEBSITES_ENABLE_APP_SERVICE_STORAGE`).",
+          "[2] Inputs are shaped around the concepts SREs think in, such as the `autoscale` and `alerts` objects, `health_check_path`, `staging_slot_enabled` and `zone_redundant`, while the module hardcodes App Service internals like `always_on`, `ftps_state`, `minimum_tls_version` and the `WEBSITES_*` settings.",
+          "[2] Inputs are shaped around the concepts SREs think in, such as the `autoscale` and `alerts` objects, `health_check_path`, `staging_slot_enabled` and `zone_redundant`, while App Service internals like `always_on`, `ftps_state`, `minimum_tls_version` and `WEBSITES_ENABLE_APP_SERVICE_STORAGE` are decided by the module."
+        ],
+        "Variables and validation": [
+          "[1] Validation is deliberate (SKU allow-list, autoscale min/max and threshold ordering, zone/SKU preconditions), but `instances` and `autoscale.min_instances` form an avoidable pair that can conflict, with `instances` silently ignored when autoscale is enabled.",
+          "[1] Validation and preconditions guard real mistakes (SKU list, zone redundancy needing 3 instances, scale-in below scale-out), but the module adds avoidable conflicting pairs: `instances` is silently ignored against `autoscale.min_instances`, and `container_registry_username`/`password` are silently ignored when `container_registry_id` is set.",
+          "[1] Guards are deliberate (the `sku_name` allow-list, the autoscale min/max and threshold-ordering checks, and the zone-redundancy and Basic-SKU preconditions), but the module adds avoidable conflicting pairs: `instances` is silently ignored when `autoscale.enabled` is true, and `container_registry_username`/`password` are silently ignored when `container_registry_id` is set."
+        ],
+        "Internal logic": [
+          "[2] Locals such as `derived_registry_url`, `worker_count`, `identity_type` and `ip_restrictions` infer values from concept inputs in short, commented, readable steps.",
+          "[2] Locals such as `derived_registry_url`, `identity_type`, `worker_count` and the `ip_restrictions` concat infer values from concept inputs in readable, commented steps.",
+          "[2] Readable locals derive `registry_url` from the image reference, `identity_type` from `user_assigned_identity_ids`, and `ip_restrictions`/`restrict_access` from the CIDR and service-tag lists, instead of asking for more inputs."
+        ],
+        "Scope": [
+          "[2] Beyond the plan and web app, the module adds what the brief's observability, rollout and capacity needs imply: the staging slot, AcrPull role assignments, autoscale, Log Analytics, Application Insights, diagnostic settings and metric alerts.",
+          "[2] The module creates the plan, web app, staging slot, AcrPull role assignments, autoscale, Log Analytics/App Insights, diagnostic settings and metric alerts, which is proportionate to running SRE-operated services with rollouts and observability.",
+          "[2] The module creates what this SRE use case expects, sized to it: plan, web app, optional staging slot, AcrPull role assignments, CPU autoscale, Log Analytics/App Insights, diagnostic settings and baseline metric alerts."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The `ip_restriction`, `app_settings` and `sticky_settings` blocks sit inline on `azurerm_linux_web_app`, which offers no separate-resource alternative for these attributes.",
+          "[2] The inline `ip_restriction`, `app_settings` and `sticky_settings` blocks on `azurerm_linux_web_app` have no separate-resource equivalent in azurerm, and no attribute is configured in both styles.",
+          "[2] The inline `ip_restriction` and `sticky_settings` blocks on `azurerm_linux_web_app` have no separate-resource equivalent in azurerm, so there is no dual-style or avoidable inline usage."
+        ],
+        "Outputs": [
+          "[2] Outputs cover what consumers need to use the service, including `web_app_id`, `url`, `staging_url`, `principal_id`, `outbound_ip_addresses` and `log_analytics_workspace_id`, without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including `web_app_id`, `url`, `staging_url`, `principal_id`, `outbound_ip_addresses` and `log_analytics_workspace_id`, without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including `web_app_id`, `url`, `staging_url`, `principal_id`, `outbound_ip_addresses` and `log_analytics_workspace_id`, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `count` appears only as on/off switches (for example `count = var.staging_slot_enabled ? 1 : 0`), and the repeated blocks use `for_each` dynamic blocks.",
+          "[2] `count` is used only as on/off switches (for example `var.staging_slot_enabled ? 1 : 0`), and dynamic blocks iterate with `for_each`.",
+          "[2] `count` is used only as an on/off switch (e.g. `count = var.staging_slot_enabled ? 1 : 0`), and the repeated blocks use `dynamic` `for_each`."
+        ],
+        "Data sources vs inputs": [
+          "[2] Dependencies are taken by identity (`container_registry_id`, `vnet_integration_subnet_id`), and no redundant facts about them, such as a subnet CIDR, are requested.",
+          "[2] The module takes only identities (`vnet_integration_subnet_id`, `container_registry_id`) and never asks for derived facts that could contradict them.",
+          "[2] Dependencies are taken only by identity (`container_registry_id`, `vnet_integration_subnet_id`, `user_assigned_identity_ids`), with no redundant facts about them requested as inputs."
+        ],
+        "File layout": [
+          "[2] The module is split into `variables.tf`, `outputs.tf`, `locals.tf`, `versions.tf`, `main.tf` for core resources, and `monitoring.tf` for the separate observability concern.",
+          "[2] Code is split into `main.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, with the observability concern separated from the core resources.",
+          "[1] Variables, outputs, locals and monitoring have their own files, but `main.tf` holds about 300 lines mixing the app/slot, ACR role assignments and the autoscale setting as separate concerns without splitting them."
+        ],
+        "Sensitive values": [
+          "[2] `container_registry_password` and the `application_insights_connection_string` output are marked `sensitive = true`, and ACR managed-identity pulls are offered so raw registry credentials are avoidable.",
+          "[2] `container_registry_password` and the `application_insights_connection_string` output are marked `sensitive = true`, and ACR pulls prefer managed identity over credentials.",
+          "[2] `container_registry_password` and the `application_insights_connection_string` output are marked `sensitive = true`, and managed-identity ACR pull is offered as the credential-free path."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The only `lifecycle` usage is `precondition` blocks on `azurerm_service_plan`, with no misused `prevent_destroy` or `ignore_changes`.",
+          "[2] The only `lifecycle` blocks hold preconditions on `azurerm_service_plan`, with no misused `prevent_destroy` or `ignore_changes`.",
+          "[2] The only `lifecycle` blocks contain input-checking preconditions on `azurerm_service_plan`, with no `prevent_destroy` or `ignore_changes` misuse."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has a description that explains behavior (for example `instances` notes it is ignored under autoscale), and a README supplements the code.",
+          "[0] The `sku_name` description says zone redundancy requires \"Standard or Premium\", which contradicts the precondition requiring Premium v2/v3, and the `container_image` error message claims 'latest' is unsupported even though `:latest` passes the regex.",
+          "[1] Every variable and output has a description and the README explains usage, but the `container_image` validation message claims \"Floating 'latest' deployments are not supported\" while `repo:latest` passes the regex, and the `sku_name` description says zone redundancy needs \"Standard or Premium\" where the `zone_redundant` description and its precondition (and Azure) require Premium v2/v3."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] There is no `null_resource` or `local-exec`, and current resources (`azurerm_linux_web_app`, `azurerm_service_plan`) are used instead of the legacy `azurerm_app_service`.",
+          "[2] There is no `null_resource` or `local-exec`, and the module uses the current `azurerm_linux_web_app` and `azurerm_service_plan` resources.",
+          "[2] No `null_resource` or `local-exec` appears, and the current split resources are used (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_metric`)."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly with no remote module calls, and nothing is commented out to dodge errors.",
+          "[2] All resources are authored directly with no remote module calls, nothing is deleted or commented out, and no input silently undoes a posture the module establishes.",
+          "[2] All resources are authored directly with no remote module calls, nothing is commented out, and no input silently undoes a posture the module establishes (`https_only` and TLS 1.2 are hardcoded)."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "27dd91ff30c280ae",
+      "tf_sloc": 682
+    },
+    "claude-haiku-4-5-20251001": {
+      "overall": 52.6,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 1,
+        "Internal logic": 1,
+        "Scope": 1,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 1,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 1,
+        "File layout": 1,
+        "Sensitive values": 1,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 0,
+        "Deprecated and escape-hatch patterns": 1,
+        "Anti-patterns (immediate credibility loss)": 0
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] Concept-level inputs such as `enable_staging_slot`, `health_check_path` and the autoscale thresholds fit an SRE audience, but `health_check_interval_seconds`, `enable_detailed_error_messages`, `enable_request_tracing`, `container_registry_username` and `container_registry_password` are declared and never used, and `os_type` exposes a Windows path the containerized-API use case gives no reason to vary.",
+          "[1] Capacity and rollout concepts such as `enable_staging_slot`, `enable_autoscale` and the threshold inputs fit the SRE audience, but the module exposes several inputs that do nothing (`container_registry_username`, `container_registry_password`, `health_check_interval_seconds`, `enable_detailed_error_messages`, `enable_request_tracing`) and an `os_type` Windows branch that a containerized-API use case gives no reason to vary.",
+          "[1] Concept inputs like `enable_staging_slot` and the autoscale thresholds suit SREs, but several inputs are never used (`container_registry_username`/`password`, `health_check_interval_seconds`, `enable_detailed_error_messages`, `enable_request_tracing`), `os_type` adds an unasked-for Windows path, and connection string `type` is hardcoded to \"SQLAzure\"."
+        ],
+        "Variables and validation": [
+          "[1] `app_name`, `os_type` and `container_port` are guarded, but `log_retention_days` (Application Insights accepts only specific values) and `sku_name` are unvalidated, and `worker_count` can be set outside the `min_workers`/`max_workers` range with no cross-check, an avoidable conflicting pair.",
+          "[1] Ports, thresholds and `max_workers >= min_workers` are guarded, but `worker_count` can be set outside the `min_workers`/`max_workers` range with no check, and `log_retention_days` and `sku_name` are left unvalidated even though bad values break the App Insights and plan deployments.",
+          "[1] Port, OS and autoscale bounds are guarded, but `worker_count` can be set outside the `min_workers`/`max_workers` range (an avoidable conflicting set), and `log_retention_days` and `sku_name` are unvalidated even though Application Insights accepts only specific retention values."
+        ],
+        "Internal logic": [
+          "[1] There are no locals at all, so the identical tag `merge(...)` is repeated on every resource and the full `app_settings` map with its Application Insights ternaries is copy-pasted four times.",
+          "[0] The module has no locals at all, so the tag `merge(...)` block is copied onto seven resources and the identical `app_settings`/`site_config` expressions are repeated across four web app and slot resources.",
+          "[1] The module defines no locals, so the tag merge is repeated on seven resources and the App Insights `app_settings` conditional on four, with empty-string settings injected when App Insights is disabled."
+        ],
+        "Scope": [
+          "[1] The plan, app, slot, autoscale, Application Insights and diagnostics are proportionate, but the app has no managed identity or working registry-pull mechanism for private images, while an unrequested Windows app and Windows slot are added.",
+          "[1] Plan, app, staging slot, autoscale, App Insights and diagnostics fit the brief, but there is no managed identity (no `identity` block) for registry pulls or secret access, and `azurerm_application_insights` is never linked to the created Log Analytics workspace via `workspace_id`.",
+          "[1] Plan, app, staging slot, autoscale and diagnostics fit the brief, but there is no managed identity or working registry-pull auth (the credentials inputs are unused), App Insights is not linked to the Log Analytics workspace, and Windows web app and slot resources are gold-plating for containerized APIs."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The inline blocks used (`site_config`, `cors`, `connection_string`) have no separate-resource alternative in azurerm, so there is no dual-style conflict.",
+          "[2] The inline blocks used (`site_config`, `connection_string`, autoscale `profile`/`rule`) have no separate-resource alternative in the provider, so no mixing or avoidable inline config exists.",
+          "[2] The inline blocks used (`site_config.cors`, `connection_string`, autoscale `rule`) have no separate-resource alternative in azurerm, and no attribute is configured in both styles."
+        ],
+        "Outputs": [
+          "[1] Useful IDs, hostnames and the plan ID are exported, but `principal_id` always resolves to null because no `identity` block is configured on either web app.",
+          "[1] IDs, hostnames and the plan ID are exported usefully, but `principal_id` always returns null because no web app defines an `identity` block, so the consumer gets a misleading output instead of the managed identity they need.",
+          "[1] IDs, hostnames and the plan ID are exported appropriately, but `principal_id` always resolves to null because no `identity` block is configured, so consumers cannot get the identity they would need for role assignments."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `count` is used only as an on/off switch (e.g. `count = var.enable_staging_slot && var.os_type == \"Linux\" ? 1 : 0`), and `connection_string` uses a `for_each` dynamic block.",
+          "[2] Every `count` is an on/off switch (e.g. `count = var.enable_application_insights ? 1 : 0`), and `dynamic \"connection_string\"` uses `for_each`.",
+          "[2] Every `count` is an on/off switch (e.g. `count = var.enable_autoscale ? 1 : 0`), and the repeated connection strings use `for_each`."
+        ],
+        "Data sources vs inputs": [
+          "[1] The module requires both `resource_group_name` and `location` instead of looking up the resource group's location with a data source, so the two can disagree.",
+          "[2] The module takes only dependency identities (`resource_group_name`, `location`) and asks for no derived dependency facts that could mismatch.",
+          "[1] The module takes both `resource_group_name` and `location` as inputs instead of looking up the location from the resource group with a data source."
+        ],
+        "File layout": [
+          "[1] `variables.tf` and `outputs.tf` are separate, but `main.tf` holds roughly 400 lines covering hosting, slots, autoscale and the observability stack without any conceptual split.",
+          "[1] `variables.tf` and `outputs.tf` exist, but `main.tf` packs well over 400 lines covering several concerns (observability, autoscale, Linux/Windows apps, slots) into one file.",
+          "[1] `variables.tf` and `outputs.tf` exist, but `main.tf` holds roughly 450 lines spanning compute, slots, autoscale and monitoring concerns without any split."
+        ],
+        "Sensitive values": [
+          "[1] `connection_strings` and the instrumentation-key outputs are marked sensitive, but the module asks for a raw `container_registry_password` input rather than a reference such as a managed identity or Key Vault secret.",
+          "[1] `connection_strings`, the registry password and the instrumentation-key outputs are marked sensitive, but the module asks for raw `container_registry_password` credentials rather than a reference, and the `app_settings` map, a common carrier of secrets, is not sensitive.",
+          "[1] `connection_strings` and the instrumentation-key outputs are marked sensitive, but the module demands a raw `container_registry_password` instead of a managed identity or Key Vault reference."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No `lifecycle` blocks are used, and nothing in the module calls for `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, and none of the resources call for `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, and nothing in the module calls for `prevent_destroy` or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[0] The README advertises \"Private registries: Optional registry authentication\" and a managed-identity `principal_id`, neither of which is implemented, and the `cors_allowed_origins` description says \"empty = all allowed\", which is wrong.",
+          "[0] The README advertises \"Optional registry authentication\" even though the registry credential variables are never used, and the `cors_allowed_origins` description claims \"empty = all allowed\", which is wrong.",
+          "[0] The README advertises \"Private registries: Optional registry authentication\" and a managed-identity `principal_id`, neither of which is implemented, and the `cors_allowed_origins` description \"empty = all allowed\" is wrong."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[1] `azurerm_application_insights` is created as a classic resource with no `workspace_id`, and the deprecated `APPINSIGHTS_INSTRUMENTATIONKEY` setting is injected, though no `null_resource` or `local-exec` is present.",
+          "[1] There is no `null_resource` or `local-exec`, but `azurerm_application_insights` is created in the retired classic (workspace-less) form and the legacy `APPINSIGHTS_INSTRUMENTATIONKEY` setting is injected.",
+          "[2] The module uses the current `azurerm_linux_web_app`/`azurerm_service_plan` resource forms with no `null_resource` or `local-exec`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[0] `require_https` and `minimum_tls_version` (which accepts \"1.0\") let a consumer silently undo the HTTPS-only, TLS 1.2 posture the module otherwise establishes.",
+          "[0] `require_https` can be set to false and `minimum_tls_version` accepts \"1.0\", letting a consumer silently undo the HTTPS/TLS 1.2 posture the module otherwise establishes.",
+          "[0] Inputs `require_https` and `minimum_tls_version` (which accepts \"1.0\") let a consumer silently undo the HTTPS-only/TLS 1.2 posture the module otherwise establishes."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "46c6b717d43a6777",
+      "tf_sloc": 575
+    },
+    "claude-opus-5-5": {
+      "overall": 89.5,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 1,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] Inputs are framed in the SRE team's own concepts: capacity (`sku_name`, `instance_count_min`/`instance_count_max`, `zone_redundant`), health (`health_check_path`), rollouts (`staging_slot_enabled`) and observability (`alert_emails`, alert thresholds), while App Service internals like `always_on`, TLS, FTPS and the autoscale rules are decided by the module.",
+          "[2] Inputs are framed in the SRE team's own concepts (`instance_count_min`/`instance_count_max`, `zone_redundant`, `health_check_path`, `staging_slot_enabled`, the alert thresholds), while App Service internals such as `always_on`, `ftps_state`, TLS versions, `health_check_eviction_time_in_min` and the autoscale rules are decided by the module.",
+          "[2] Inputs match how SREs think: capacity (`sku_name`, `instance_count_min`/`instance_count_max`), availability (`zone_redundant`), health (`health_check_path`), rollouts (`staging_slot_enabled`) and observability (`alert_emails`, alert thresholds), while App Service internals such as autoscale rules, `always_on`, TLS and FTPS are decided by the module."
+        ],
+        "Variables and validation": [
+          "[1] Guards are deliberate (name regex, pinned image tag, SKU family, max>=min and zone preconditions), but `acr_id` and `container_registry_url` are an avoidable conflicting pair: setting `acr_id` while leaving the Docker Hub URL default turns on managed-identity pulls against the wrong registry.",
+          "[1] Validation is deliberate (name regex, pinned image tag, SKU family, retention range, and preconditions on min/max and zone redundancy), but `acr_id` and `container_registry_url` are an avoidable pair: setting `acr_id` while leaving the Docker Hub default URL turns on managed-identity pulls against the wrong registry.",
+          "[1] Mistakes are guarded deliberately (name regex, tag/digest pinning, SKU regex, min/max and zone preconditions), but `acr_id` and `container_registry_url` are an avoidable pair: setting `acr_id` while keeping the Docker Hub default enables managed-identity pulls against the wrong registry, and the `instance_count_max <= 30` check rejects valid Isolated v2 values the SKU validation allows."
+        ],
+        "Internal logic": [
+          "[2] Locals stay readable while inferring values, e.g. `use_acr_identity = var.acr_id != null`, `staging_image = coalesce(...)` and a `merge` that lets platform-owned app settings override user ones.",
+          "[2] Simple, readable locals derive values from inputs, such as `use_acr_identity` from `acr_id`, `staging_image` via `coalesce`, and `platform_app_settings` merged last so module-owned settings win.",
+          "[2] Locals stay readable and purposeful, e.g. `use_acr_identity` derived from `acr_id`, `staging_image` via `coalesce`, and `app_settings = merge(var.app_settings, local.platform_app_settings)` so platform settings win."
+        ],
+        "Scope": [
+          "[2] Alongside the plan and app, the module creates the operational pieces an SRE expects: autoscale, Log Analytics/App Insights, diagnostic settings, an action group with 5xx/health/latency/capacity alerts, and AcrPull role assignments, all proportionate to the brief.",
+          "[2] The module creates what an SRE operator expects for this job (Log Analytics, App Insights, autoscale, diagnostic settings, an action group with 5xx/health/latency/capacity alerts, a staging slot, and an AcrPull role assignment) without unrelated extras.",
+          "[2] Alongside the plan and web app, the module creates what operating an SRE-run service implies: Log Analytics and App Insights, a diagnostic setting, autoscale, an action group with health/5xx/latency/capacity alerts, a staging slot and AcrPull role assignments, with nothing beyond the brief."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] Inline blocks are used only where the provider offers no separate resource, such as the autoscale `rule` blocks, `enabled_log`, `email_receiver` and `site_config`.",
+          "[2] The inline blocks used (autoscale `rule`, `email_receiver`, `site_config`, `app_settings`) have no separate-resource alternative in azurerm, and the two styles are never mixed.",
+          "[2] The inline blocks used (`site_config`, autoscale `rule`, `email_receiver`, `enabled_log`) have no separate-resource alternative in azurerm, so there is no inline/separate choice to fault."
+        ],
+        "Outputs": [
+          "[2] Outputs cover what consumers need, including `app_id`, `url`, `staging_url`, `principal_id`/`staging_principal_id` for downstream grants, `service_plan_id` and the workspace ID, without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including app id/name, production and staging URLs, managed identity principal IDs, the plan ID, the workspace ID and the App Insights connection string, without dumping every attribute.",
+          "[2] Outputs cover what consumers need (`app_id`, `url`, `staging_url`, `principal_id`, `service_plan_id`, `log_analytics_workspace_id`, the sensitive App Insights connection string) without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `count` appears only as an on/off switch (`var.staging_slot_enabled ? 1 : 0`, `local.use_acr_identity ? 1 : 0`), and multiplicity uses `for_each` in dynamic blocks such as `toset(var.alert_emails)`.",
+          "[2] `count` is used only as an on/off switch (`var.staging_slot_enabled ? 1 : 0`, `local.use_acr_identity ? 1 : 0`), and multiplicity uses `for_each` in the `email_receiver` and `enabled_log` dynamic blocks.",
+          "[2] `count` appears only as on/off switches (`var.staging_slot_enabled ? 1 : 0`, `local.use_acr_identity ? 1 : 0`), and multiplicity uses `for_each` in dynamic blocks such as `toset(var.alert_emails)`."
+        ],
+        "Data sources vs inputs": [
+          "[1] The module takes the ACR identity (`acr_id`) but still asks for `container_registry_url` separately instead of looking up the registry's login server with a data source, so the two can disagree.",
+          "[1] The module takes `acr_id` as the dependency's identity but still asks for `container_registry_url` separately, instead of looking up the ACR login server with a data source.",
+          "[1] The module takes the ACR's identity as `acr_id` but also asks for `container_registry_url` instead of looking up the registry's login server with a data source, so the two can disagree."
+        ],
+        "File layout": [
+          "[1] Variables, outputs and versions have their own files, but `main.tf` holds roughly 400 lines spanning distinct concerns (observability backends, compute, autoscale, diagnostics and alerting) that should be split.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 400 lines spanning distinct concerns (observability backends, compute, autoscale, diagnostics and alerting) without being split.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` holds roughly 400 lines spanning distinct concerns (observability backends, compute, autoscale, diagnostics and alerting) without splitting them."
+        ],
+        "Sensitive values": [
+          "[2] The `application_insights_connection_string` output is marked `sensitive = true`, and registry access uses a managed identity with AcrPull instead of raw registry credentials.",
+          "[2] The `application_insights_connection_string` output is marked `sensitive = true`, and no input accepts raw credentials because ACR pulls use the managed identity.",
+          "[2] The only secret-like value, `application_insights_connection_string`, is marked `sensitive = true`, and no secrets are hardcoded or defaulted."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] `ignore_changes = [worker_count]` on the service plan is the legitimate autoscale-owned-count case, and its comment says so.",
+          "[2] `ignore_changes = [worker_count]` on the service plan is the legitimate case of a value owned by `azurerm_monitor_autoscale_setting`, and `prevent_destroy` is not misused.",
+          "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale-owned case, with a comment explaining it."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate description (e.g. `alert_emails` explains that alerts fire without notifications when the list is empty), and brief comments explain non-obvious choices like the staging swap flow and why `worker_count` is ignored.",
+          "[2] Every variable and output has an accurate description (e.g. `alert_emails` explains that alerts fire without notifications when the list is empty), and brief comments explain non-obvious choices such as the `worker_count` ignore and the staging-slot purpose.",
+          "[2] Every variable and output has an accurate description, e.g. `alert_emails` explaining that alerts fire without notifications when the list is empty, and comments explain non-obvious choices such as the staging slot and ACR identity pulls."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module uses current resources (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_metric`) and contains no `null_resource` or `local-exec`.",
+          "[2] The module uses current resources (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_log`/`enabled_metric`) and contains no `null_resource` or `local-exec`.",
+          "[2] The module uses current resources (`azurerm_service_plan`, `azurerm_linux_web_app`, `azurerm_linux_web_app_slot`) and contains no `null_resource` or `local-exec`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly with no remote module calls, and no input lets a consumer undo the hardcoded security posture (`https_only`, TLS 1.2, basic-auth publishing disabled).",
+          "[2] All resources are authored directly with no remote module call, and no input lets a consumer override the hardcoded security settings such as `https_only` and the disabled basic-auth publishing.",
+          "[2] All resources are authored directly with no remote module call, and no input can override the module's security posture, since platform app settings are merged last and TLS/FTPS/basic-auth settings are hardcoded."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "907259d1e294119d",
+      "tf_sloc": 489
+    },
+    "claude-sonnet-5-5": {
+      "overall": 92.1,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The inputs are framed in the SRE concepts the brief names: capacity (`min_instances`/`max_instances`/`zone_redundant`), health (`health_check_path`), rollouts (`enable_staging_slot`) and observability (alert thresholds, `alert_action_group_ids`); App Service internals such as `always_on`, `ftps_state`, `minimum_tls_version` and `client_affinity_enabled` are decided by the module.",
+          "[1] Most inputs are SRE-level concepts (`min_instances`/`max_instances`, `zone_redundant`, `health_check_path`, `enable_staging_slot`, alert thresholds), but the one decision that always differs per service is given a placeholder: `container_image` defaults to \"appsvc/staticsite\" with tag \"latest\", and `public_network_access_enabled` makes exposure a knob.",
+          "[2] Inputs are framed in the SRE's concepts (`min_instances`/`max_instances`, `zone_redundant`, `health_check_path`, `enable_staging_slot`, alert thresholds), while App Service internals such as `always_on`, `ftps_state`, `minimum_tls_version` and `WEBSITES_ENABLE_APP_SERVICE_STORAGE` are decided by the module."
+        ],
+        "Variables and validation": [
+          "[1] The module guards deliberately (max/min and zone preconditions, SKU and eviction-range checks), but the `sku_name` regex rejects valid SKUs such as P4mv3/P5mv3, the `name` regex caps at 40 chars below App Service's 60, and nothing guards a scale-in threshold at or above the scale-out threshold.",
+          "[1] Guards are deliberate (name regex, port range, eviction 2\u201310, max>=min and zone-redundancy preconditions), but the `sku_name` regex `P[1-3]mv3` rejects valid SKUs such as P4mv3/P5mv3, and nothing checks that the scale-out CPU threshold exceeds the scale-in threshold.",
+          "[1] The module guards inputs deliberately (`max_instances >= min_instances` and zone-redundancy preconditions, port and eviction ranges), but the `sku_name` regex `^(S[1-3]|P[0-9]v[2-4]|P[1-3]mv3)$` rejects valid slot-capable SKUs such as P4mv3/P5mv3, and the scale-in/scale-out CPU thresholds can be set to cross each other without any check."
+        ],
+        "Internal logic": [
+          "[2] Readable locals infer values from concept inputs, such as `key_vault_settings` building `@Microsoft.KeyVault(...)` references, `vnet_route_all_enabled` derived from subnet presence, and `ip_restriction_default_action` derived from whether restrictions exist.",
+          "[2] Readable locals derive values from concept inputs rather than demanding more inputs: `local.workspace_id`, `local.key_vault_settings`, `vnet_route_all_enabled = var.vnet_integration_subnet_id != null`, and autoscale `enabled = var.max_instances > var.min_instances`.",
+          "[2] Readable locals derive values from concept inputs, e.g. `local.workspace_id` coalescing the input or the created workspace, `key_vault_settings` building `@Microsoft.KeyVault(...)` references, and `ip_restriction_default_action` inferred from `length(var.ip_restrictions)`."
+        ],
+        "Scope": [
+          "[2] Plan, web app, staging slot, autoscale setting, Log Analytics/App Insights, diagnostic setting and three metric alerts are proportionate to the SRE team's stated concerns, without invented extras.",
+          "[2] Plan, web app, staging slot, autoscale, App Insights, diagnostic setting and 5xx/latency/health alerts match the SRE concerns in the brief (capacity, availability, health, rollouts, observability) without unrelated architecture.",
+          "[2] The resources match the SRE concerns in the brief: plan, web app, staging slot for rollouts, CPU autoscale, App Insights, diagnostic settings and 5xx/latency/health alerts, with no unrelated architecture added."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The inline `ip_restriction` dynamic blocks in `site_config` have no separate-resource alternative in azurerm, and no attribute is configured in both styles.",
+          "[2] The inline `ip_restriction` blocks and autoscale `rule` blocks have no separate-resource equivalent in azurerm, so there is no mixing of styles and no avoidable inline usage.",
+          "[2] The inline `ip_restriction` dynamic blocks inside `site_config` have no separate-resource equivalent in azurerm, so no dual-style or avoidable inline usage exists."
+        ],
+        "Outputs": [
+          "[2] Outputs cover what consumers need, including `app_url`, `staging_url`, `web_app_id`, `service_plan_id`, both identity `principal_id`s for AcrPull/Key Vault grants, and the workspace ID, without dumping every attribute.",
+          "[2] Outputs cover what consumers need from outside (`app_url`, `web_app_id`, `service_plan_id`, both `principal_id`s for AcrPull/Key Vault grants, `log_analytics_workspace_id`) without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including `app_url`, `staging_url`, `web_app_id`, `service_plan_id`, and `principal_id`/`staging_principal_id` for AcrPull and Key Vault grants, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `count` appears only as an on/off switch (resource group, workspace, staging slot), and the multi-entry `ip_restriction` and alert `action` blocks iterate with `for_each`.",
+          "[2] `count` appears only as on/off switches (`var.enable_staging_slot ? 1 : 0`, `var.create_resource_group ? 1 : 0`), while multiplicity uses `for_each` over `var.ip_restrictions` and `var.alert_action_group_ids`.",
+          "[2] `count` is used only as an on/off switch (`var.enable_staging_slot ? 1 : 0`, `var.create_resource_group ? 1 : 0`), and multiplicity uses `for_each` over maps (`ip_restrictions`, `alert_action_group_ids`)."
+        ],
+        "Data sources vs inputs": [
+          "[2] An existing resource group is resolved with `data \"azurerm_resource_group\" \"existing\"`, and the existing workspace is taken by identity (`log_analytics_workspace_id`) rather than by redundant derived facts.",
+          "[2] An existing resource group is resolved via `data \"azurerm_resource_group\" \"existing\"`, and dependencies such as the subnet and workspace are taken by identity only.",
+          "[2] An existing resource group is resolved via `data \"azurerm_resource_group\" \"existing\"` from its name, and dependencies such as the subnet and workspace are taken only by ID."
+        ],
+        "File layout": [
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` exist, but `main.tf` holds roughly 400 lines spanning distinct concerns (observability backbone, compute, autoscale, diagnostics, alerts) without splitting them.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` holds roughly 400 lines spanning distinct concerns (compute, autoscale, diagnostics, alerts) without splitting.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` exist, but `main.tf` holds roughly 400 lines spanning several distinct concerns (resource group, observability, compute, autoscale, diagnostics, alerts) with no conceptual split."
+        ],
+        "Sensitive values": [
+          "[2] Secrets are taken as Key Vault references (`key_vault_secret_references`) rather than raw values, and the `application_insights_connection_string` output is marked `sensitive = true`.",
+          "[2] `application_insights_connection_string` is marked `sensitive = true`, and secrets are accepted as Key Vault references (`key_vault_secret_references`) rather than raw values.",
+          "[2] `application_insights_connection_string` is marked `sensitive = true`, and secrets are accepted as Key Vault URIs via `key_vault_secret_references` rather than as raw values."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale case and is commented as such; no `prevent_destroy` is misused.",
+          "[2] `ignore_changes = [worker_count]` on the service plan is the legitimate autoscale-owned-count case and is commented as such.",
+          "[2] `ignore_changes = [worker_count]` on the service plan is justified because autoscale owns the live instance count, and no `prevent_destroy` is misused."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate, useful description (e.g. the delegation requirement on `vnet_integration_subnet_id` and the identity grant notes on `principal_id`), and the light inline comments fit the module's size.",
+          "[2] Every variable and output has an accurate description (e.g. `key_vault_secret_references` explains the required identity grant), with brief comments where behavior is non-obvious.",
+          "[2] Every variable and output has an accurate, useful description (e.g. `principal_id` explains the AcrPull/Key Vault grants), and comments explain the non-obvious `ignore_changes`."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module uses the current `azurerm_linux_web_app`/`azurerm_service_plan` resources and contains no `null_resource` or `local-exec`.",
+          "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources and has no `null_resource` or `local-exec`.",
+          "[2] The module uses the current `azurerm_service_plan`/`azurerm_linux_web_app` resources and contains no `null_resource` or `local-exec`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly with no remote module calls and no deleted or commented-out resources, and no input lets a consumer silently undo a posture the module establishes.",
+          "[2] All resources are authored directly with no remote module calls, nothing is commented out to dodge an error, and no input undoes a posture the module otherwise enforces (https_only, TLS 1.2, FTPS disabled are hardcoded).",
+          "[2] All resources are authored directly with no remote module calls, no deleted or commented-out resources, and no input that silently overrides a posture the module otherwise enforces."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "1ac23e6f81e9a378",
+      "tf_sloc": 530
+    },
+    "gemini-3.1-pro-preview": {
+      "overall": 73.7,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 0,
+        "Internal logic": 2,
+        "Scope": 1,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 1,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The capacity and health inputs (`sku_name`, `worker_count`, `health_check_path`) suit the SRE audience, but `docker_registry_url` is hardcoded to Docker Hub and there is no input for the app's own settings, so decisions that genuinely vary per service are overprescribed.",
+          "[1] Capacity and health are exposed through `sku_name`, `worker_count` and `health_check_path`, but `docker_registry_url` is hardcoded to Docker Hub and there are no availability inputs (zone redundancy, autoscale), which leaves open decisions the SRE use case raises.",
+          "[1] The SRE-facing inputs `sku_name`, `worker_count` and `health_check_path` are reasonable, but the registry is hardcoded to `docker_registry_url = \"https://index.docker.io/v1/\"`, there is no input for app settings, and rollout and availability decisions (zone redundancy, autoscale) are absent, so decisions the use case leaves open are overprescribed."
+        ],
+        "Variables and validation": [
+          "[0] No variable has a `validation` block, so inputs SREs routinely get wrong are unguarded, such as `health_check_path` without a leading slash, an invalid `sku_name`, or an `app_name` that breaks the globally unique web app name length.",
+          "[0] None of the variables has a `validation` block, so realistic mistakes go unguarded: a `health_check_path` without a leading slash, an invalid `sku_name`, a non-positive `worker_count`, or an `app_name` that breaks web app naming rules.",
+          "[0] No variable has a `validation` block, so a `health_check_path` without a leading `/`, an invalid `sku_name`, a non-positive `worker_count`, or an `app_name` that yields an invalid or over-long web app name all reach the provider unguarded."
+        ],
+        "Internal logic": [
+          "[2] The single `local.name_prefix` derives every resource name readably from `app_name` and `environment`, with no convoluted expression chains.",
+          "[1] The only local is `name_prefix`; the identical `site_config` and `app_settings` blocks are copied between `azurerm_linux_web_app.this` and the staging slot instead of being computed once, and `environment` drives nothing beyond naming.",
+          "[2] The only local, `name_prefix = \"${var.app_name}-${var.environment}\"`, derives every resource name from two concept inputs simply and readably, without demanding extra inputs."
+        ],
+        "Scope": [
+          "[1] Observability is well covered by the Log Analytics workspace, Application Insights and diagnostic settings on the app and the slot, but access posture is omitted: `https_only` is never set on `azurerm_linux_web_app` or the slot, and there is no managed identity.",
+          "[1] The observability and rollout resources (Log Analytics, App Insights, diagnostic settings, staging slot) are appropriate, but access posture is missing: there is no `https_only`, minimum TLS, FTPS restriction, or managed identity on the web app or slot.",
+          "[1] Observability (Log Analytics, App Insights, diagnostic settings) and a staging slot fit the brief, but `azurerm_linux_web_app` omits `https_only`, `minimum_tls_version`/FTPS hardening and a managed identity, leaving access posture unaddressed."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] `site_config` and `app_settings` have no separate-resource alternative, and diagnostics use dedicated `azurerm_monitor_diagnostic_setting` resources, so no styles are mixed.",
+          "[2] Diagnostic settings are separate `azurerm_monitor_diagnostic_setting` resources, and the inline `site_config` and `app_settings` have no separate-resource alternative.",
+          "[2] `site_config` and `app_settings` on the web app and slot have no separate-resource equivalent in azurerm, so no inline-versus-separate choice is being misused."
+        ],
+        "Outputs": [
+          "[2] Outputs cover what consumers need to use the app (`app_id`, `app_default_hostname`, `staging_default_hostname`, `log_analytics_workspace_id`) without dumping every attribute.",
+          "[2] The outputs cover what consumers need to use the app: `app_id`, `app_default_hostname`, `staging_default_hostname`, `log_analytics_workspace_id` and a sensitive instrumentation key, without dumping every attribute.",
+          "[1] Hostnames, `app_id` and the workspace ID are exported, but the web app name, resource group name, slot ID and service plan ID that SREs need for deployments and slot swaps are missing."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The module never uses `count` for multiplicity; the app and slot diagnostic settings are declared as distinct resources.",
+          "[2] There is no `count` used for multiplicity anywhere; every resource is a single instance.",
+          "[2] No resource uses `count` for multiplicity; the module declares each resource individually (e.g. `azurerm_monitor_diagnostic_setting.app` and `.app_slot`)."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module creates its own resource group and takes no existing dependency, so there are no dependency facts to look up.",
+          "[2] The module creates its own resource group and takes no external dependency identities, so there is nothing that should be looked up with a data source.",
+          "[2] The module creates its own resource group, workspace and plan, so there are no external dependency facts that it asks for instead of looking up."
+        ],
+        "File layout": [
+          "[1] `variables.tf` and `outputs.tf` exist, but `main.tf` mixes the terraform/provider blocks, the separate observability stack (workspace, App Insights, diagnostic settings) and the app resources instead of splitting by concern.",
+          "[1] `variables.tf` and `outputs.tf` exist, but `main.tf` mixes the observability stack (workspace, App Insights, two diagnostic settings) with the core app and plan, rather than splitting that distinct concern into its own file.",
+          "[1] `variables.tf` and `outputs.tf` exist, but `main.tf` mixes the observability stack (Log Analytics, App Insights, two diagnostic settings) with the core plan, app and slot instead of splitting the distinct concerns."
+        ],
+        "Sensitive values": [
+          "[2] The `application_insights_instrumentation_key` output is marked `sensitive = true`, and no secrets are accepted as inputs or hardcoded.",
+          "[2] The `application_insights_instrumentation_key` output is marked `sensitive = true`, and no secrets are taken as inputs or hardcoded.",
+          "[2] The `application_insights_instrumentation_key` output is marked `sensitive = true`, and no secret is taken as an input or hardcoded."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No `lifecycle` blocks are used, and none of the resources call for `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, so there is no misuse of `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, and none of the resources is a stateful service that would warrant `prevent_destroy`."
+        ],
+        "Documentation": [
+          "[1] Every variable and output has a description, but they are terse (e.g. \"Environment name.\") and there is no README or comment explaining the always-created staging slot or the hardcoded eviction time and Docker Hub registry.",
+          "[1] Every variable and output has a description, but they are terse (e.g. \"Environment name.\"), and there is no README or comment explaining the always-created staging slot or the hardcoded Docker Hub registry.",
+          "[1] Every variable and output has an accurate description, but they are terse (e.g. \"Environment name.\"), and there is no README or comment explaining the always-created staging slot or the hardcoded Docker Hub registry."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module uses current `azurerm_linux_web_app` and `azurerm_service_plan` resources with no `null_resource` or `local-exec`.",
+          "[2] The module uses the current `azurerm_linux_web_app` and `azurerm_service_plan` resources, with no `null_resource` or `local-exec`.",
+          "[2] There is no `null_resource` or `local-exec`, and the module uses current resource forms such as `azurerm_service_plan` and `azurerm_linux_web_app`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly with no remote module calls, no deleted or commented-out resources, and no input that bypasses an established security posture.",
+          "[2] Resources are authored directly with no remote module calls, no commented-out resources, and no input that lets a consumer bypass the module's own posture.",
+          "[2] All resources are authored directly, with no remote module call, no removed or commented-out resource, and no input that bypasses an established security posture."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "beff1ba244960cc1",
+      "tf_sloc": 167
+    },
+    "gpt-5.5-2026-04-23": {
+      "overall": 73.7,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 1,
+        "Internal logic": 1,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 1,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 1,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The capacity, health, rollout and observability inputs (`plan_sku_name`, autoscale bounds, `health_check_path`, `enable_staging_slot`, `alert_action_group_ids`) suit SREs, but the module still exposes decisions the use case settles (`always_on`, whose own description says it \"Should remain true for HTTP APIs\", and `enable_app_service_storage`) while hardcoding the alert thresholds (5xx `threshold = 10`, CPU `threshold = 85`) that an observability-minded team would expect to own.",
+          "[1] The module exposes concept-level controls that suit SREs, such as `enable_staging_slot`, `health_check_path` and the autoscale thresholds, but it also surfaces App Service internals (`always_on`, `enable_app_service_storage`) and offers private registries only raw `container_registry_username`/`container_registry_password`, with no managed-identity pull option.",
+          "[1] Concept-level SRE controls like `enable_autoscale`, `health_check_path` and `enable_staging_slot` fit the audience, but the module also exposes knobs it has already decided (`always_on` is described as \"Should remain true for HTTP APIs\") and offers raw `container_registry_username`/`container_registry_password` with no managed-identity registry pull option."
+        ],
+        "Variables and validation": [
+          "[1] Names, port and `instance_count` are deliberately validated, but `log_retention_days` is unguarded although it also feeds App Insights retention (which accepts only specific values), and the avoidable `instance_count` vs `autoscale_min_instances`/`autoscale_max_instances` inputs can be set to conflict with no cross-check.",
+          "[1] Name, port and `instance_count` are deliberately validated, but nothing checks `autoscale_min_instances <= autoscale_max_instances`, `plan_sku_name` against slot/autoscale tiers, or `log_retention_days` against App Insights' allowed values, and `create_resource_group`/`resource_group_name` is an avoidable conflicting pair.",
+          "[1] `service_name`, `environment`, `container_port` and `instance_count` are validated, but `instance_count`, `autoscale_min_instances` and `autoscale_max_instances` can be set to conflict unchecked, the scale-in threshold can exceed the scale-out threshold, and `plan_sku_name`, `log_retention_days` and `health_check_eviction_time_in_minutes` accept values the service rejects."
+        ],
+        "Internal logic": [
+          "[1] The naming and tag locals are readable, but `log_analytics_name = \"law-...-${local.suffix}\"` ends in a trailing hyphen whenever `web_app_name` is set (because `suffix` is then \"\"), producing an invalid workspace name.",
+          "[1] `local.log_analytics_name` appends `-${local.suffix}`, which becomes an empty string when `web_app_name` is set, producing a workspace name ending in a hyphen, and the slot duplicates the app's whole `site_config` instead of sharing a local.",
+          "[1] Locals cleanly derive names, tags and app settings, but `local.suffix` becomes \"\" when `web_app_name` is set, so `log_analytics_name` ends in a trailing hyphen, which is an invalid workspace name."
+        ],
+        "Scope": [
+          "[2] The plan, Linux web app, staging slot, Log Analytics, App Insights, diagnostic setting, CPU autoscale and 5xx/CPU alerts cover availability, rollout and observability proportionately, and HTTPS-only and disabled basic auth set the access posture.",
+          "[2] Beyond the plan and web app, the module adds proportionate operational resources for an SRE-run service: a Log Analytics workspace, Application Insights, an `azurerm_monitor_diagnostic_setting`, CPU autoscale, a staging slot, and 5xx/CPU metric alerts.",
+          "[2] The module bundles a Linux web app with managed identity, a plan, Log Analytics and Application Insights, diagnostic settings, CPU autoscale, 5xx and CPU alerts, and a staging slot, all proportionate to SRE capacity, availability, health, rollout and observability needs."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The inline blocks used (`connection_string`, autoscale `profile`, alert `action`) have no separate-resource alternative in azurerm, and no attribute is configured in both styles.",
+          "[2] The inline blocks used (`site_config`, `connection_string`, autoscale `profile`, alert `criteria`) have no separate-resource equivalent in the provider, so no style is mixed or wrongly chosen.",
+          "[2] `cors`, `connection_string` and `app_settings` on `azurerm_linux_web_app` have no separate-resource alternative in azurerm, so inline is the only option and no styles are mixed."
+        ],
+        "Outputs": [
+          "[2] The outputs cover what consumers need, including `web_app_id`, `default_hostname`, `url`, `principal_id`, `service_plan_id`, `log_analytics_workspace_id` and the slot hostname, without dumping every attribute.",
+          "[2] Outputs cover the consumer-facing values: `web_app_id`, `default_hostname`, `url`, `principal_id`, `service_plan_id`, the workspace ID and the slot hostname, with `application_insights_connection_string` marked sensitive.",
+          "[2] The outputs cover what consumers need, including `web_app_id`, `default_hostname`, `url`, `principal_id`, `service_plan_id`, `log_analytics_workspace_id` and staging slot hostname, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `count` is used only as an on/off switch (`var.enable_staging_slot ? 1 : 0`, `var.enable_autoscale ? 1 : 0`), and the repeated blocks use `for_each` over `toset(...)`.",
+          "[2] `count` appears only as an on/off switch (e.g. `count = var.enable_staging_slot ? 1 : 0`), and repeated blocks use dynamic `for_each`.",
+          "[2] `count` appears only as on/off switches (`var.enable_staging_slot ? 1 : 0`, `var.enable_autoscale ? 1 : 0`), and repeated blocks use dynamic `for_each`."
+        ],
+        "Data sources vs inputs": [
+          "[2] Dependencies are taken by identity only (`alert_action_group_ids`, `resource_group_name`), and the module never asks for derived facts that a lookup should supply.",
+          "[2] Dependencies are taken by identity only (`alert_action_group_ids`, `resource_group_name`), and the module never asks for derived facts about them that could mismatch.",
+          "[2] Dependencies are taken by identity only (`resource_group_name`, `alert_action_group_ids`) without asking for derived facts that could mismatch them."
+        ],
+        "File layout": [
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 350 lines mixing the app/slot, monitoring, autoscale and alerting concerns with no conceptual split.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` holds roughly 350 lines mixing the app, the slot, monitoring, autoscale and alerting concerns without a conceptual split.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 350 lines mixing the app, observability, autoscale and alerting concerns without splitting."
+        ],
+        "Sensitive values": [
+          "[1] The registry password, `app_settings`, `connection_strings` and the App Insights connection-string output are marked `sensitive`, but private registry access is offered only through raw `container_registry_username`/`container_registry_password` rather than the managed-identity pull the app's `SystemAssigned` identity could provide.",
+          "[1] `container_registry_password`, `app_settings`, `connection_strings` and the connection-string output are marked sensitive, but a private registry can only be reached through a raw password input rather than a managed-identity or Key Vault reference.",
+          "[1] `container_registry_password`, `app_settings`, `connection_strings` and the connection-string output are marked sensitive, but pulling from a private registry requires a raw password input rather than a managed-identity or secret reference."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No `lifecycle` blocks are used, so nothing misapplies `prevent_destroy` or `ignore_changes`.",
+          "[1] `azurerm_service_plan.main` sets `worker_count = var.instance_count` while `azurerm_monitor_autoscale_setting` changes capacity, yet there is no `ignore_changes` on `worker_count`, so each apply resets the autoscaled count.",
+          "[2] No `lifecycle` blocks are used, and none are needed for these resources."
+        ],
+        "Documentation": [
+          "[0] The `container_registry_username`/`container_registry_password` descriptions claim a null value works with \"managed registry access configured outside this module\", but `application_stack` never enables managed-identity registry pull, so that guidance is wrong.",
+          "[1] Every variable and output has a description, but there is no README and no comments explaining non-obvious interplay such as `instance_count` vs autoscale, and the `container_registry_username` description promises outside-configured managed registry access that the module does not support.",
+          "[1] Every variable and output has a description, but there are no comments or README explaining non-obvious logic such as the suffix/naming scheme or the `SLOT_NAME` setting, and `log_retention_days` omits that it also drives Application Insights retention."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module uses current resource forms (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_log`/`enabled_metric`) and contains no `null_resource` or `local-exec`.",
+          "[2] The module uses the current `azurerm_linux_web_app`/`azurerm_service_plan` resources and contains no `null_resource` or `local-exec`.",
+          "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources and has no `null_resource` or `local-exec`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly, with no remote module call and no input that bypasses the HTTPS/TLS/basic-auth posture.",
+          "[2] All resources are authored directly with no remote module calls, and no input lets a consumer undo the enforced `https_only`, TLS 1.2 or disabled-FTPS posture.",
+          "[2] All resources are authored directly, nothing is commented out, and no input lets consumers disable `https_only`, the TLS 1.2 minimum, or the disabled basic-auth publishing."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "07db46a40a1f8616",
+      "tf_sloc": 524
+    },
+    "ref-flexible": {
+      "overall": 94.7,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 1,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The inputs follow how SREs think: `min_instances`/`max_instances` for capacity, `zone_redundant` for availability, `health_check_path` for health, and `container_image` for rollouts. App Service internals are settled inside the module, including the autoscale thresholds, `always_on`, the TLS settings and the staging slot.",
+          "[2] Inputs map to the concepts the SRE audience works in (`min_instances`/`max_instances` for capacity, `zone_redundant` for availability, `health_check_path` for health), while the module settles App Service internals itself (autoscale CPU thresholds, TLS, `always_on`, the staging-slot rollout).",
+          "[2] Inputs map to the SRE team's concepts: capacity (`sku_name`, `min_instances`, `max_instances`), availability (`zone_redundant`), health (`health_check_path`), and image, while the module settles the internals itself (autoscale CPU rules, a hardcoded staging slot for rollouts, TLS and FTPS settings, `always_on`)."
+        ],
+        "Variables and validation": [
+          "[2] `sku_name` is restricted to Premium v3 tiers and `name` is format-checked. The genuinely needed `zone_redundant`/`min_instances` and `min_instances`/`max_instances` pairs are cross-checked with `precondition` blocks that have teaching error messages.",
+          "[2] `sku_name` is restricted to Premium v3, `max_instances` is bounded to 1\u201330, `name` is length-checked, and preconditions cross-check the necessary pairs `zone_redundant`/`min_instances` and `max_instances`/`min_instances`.",
+          "[2] `sku_name` is restricted to Premium v3 SKUs, and both realistic conflicts are caught by preconditions: zone redundancy with fewer than 2 instances, and `max_instances` below `min_instances` (a min/max pair that is genuinely needed)."
+        ],
+        "Internal logic": [
+          "[2] The only local is `local.tags = merge(var.tags, { managed-by = \"opentofu\" })`, which is simple and readable, and values like autoscale capacity are wired directly from the concept inputs.",
+          "[2] Logic is simple and readable: `local.tags` merges consumer tags with `managed-by`, and `min_instances` feeds both `worker_count` and autoscale capacity without convoluted expressions.",
+          "[2] The only local, `local.tags = merge(var.tags, { managed-by = \"opentofu\" })`, is simple and readable, and `min_instances` is reused for both `worker_count` and the autoscale capacity rather than asking for another input."
+        ],
+        "Scope": [
+          "[2] The module creates the resources the job implies without gold-plating: an autoscale setting for capacity, a staging slot for rollouts, and a Log Analytics workspace with `azurerm_monitor_diagnostic_setting` for observability, plus a hardened access posture (`https_only`, basic auth disabled, `ftps_state = \"Disabled\"`).",
+          "[1] Autoscale, Log Analytics diagnostics and a staging slot are proportionate, but nothing (no `container_registry_use_managed_identity` and no AcrPull role assignment) lets the app pull containerized APIs from a private registry, and the staging slot gets no diagnostic setting.",
+          "[2] Beyond the plan and app, the module adds what an SRE operating the service would expect: `azurerm_monitor_autoscale_setting`, a staging slot for rollouts, `azurerm_log_analytics_workspace` with 30-day retention, and `azurerm_monitor_diagnostic_setting`, with no unrequested architecture."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] No resource here supports both inline and separate-resource forms for the same attributes; the autoscale `profile`/`rule` and diagnostic `enabled_log` blocks exist only inline.",
+          "[2] Only blocks with no separate-resource alternative (`site_config`, `profile`/`rule`, `enabled_log`) are used inline, and no attribute is configured in both styles.",
+          "[2] The inline `profile`/`rule` blocks in `azurerm_monitor_autoscale_setting` and the `enabled_log` blocks in the diagnostic setting have no separate-resource alternative in the provider, so no attribute is split or duplicated across styles."
+        ],
+        "Outputs": [
+          "[1] `outputs.tf` exposes the app name, hostname, principal_id and workspace id. It omits the web app resource ID, needed for RBAC scoping, and the staging slot's managed identity principal ID, which consumers need so the slot can resolve the Key Vault references the module recommends.",
+          "[1] Name, hostname, principal ID and workspace ID are exported, but the web app's resource `id` is missing (needed for role scopes and private endpoints), as is the staging slot's identity `principal_id`, which needs the same Key Vault grants for the recommended references to resolve.",
+          "[1] Name, hostname, app principal_id and workspace id are exported, but the web app's resource ID, the resource group name and the staging slot's separate managed-identity `principal_id` are not, even though the slot needs its own identity granted access for the Key Vault references the module recommends."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The module has no repeated resources and uses no `count` anywhere.",
+          "[2] The module creates no repeated resources and uses no `count` anywhere.",
+          "[2] The module uses no `count` or multiplicity anywhere, so there is nothing to fault."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module creates its own resource group and workspace and takes no dependency facts that would need cross-checking against a lookup.",
+          "[2] The module creates its own resource group and takes no dependency facts that a data source should look up instead.",
+          "[2] The module takes no inputs describing existing dependencies (it creates its own resource group and workspace), so there are no facts that should have been looked up instead."
+        ],
+        "File layout": [
+          "[1] Variables, outputs and versions have their own files. However, `main.tf` (about 190 lines) mixes several distinct concerns that warrant splitting: the plan and autoscale, the web app and slot, and the Log Analytics plus diagnostics observability stack.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 200 lines mixing distinct concerns (autoscale, Log Analytics/diagnostics, app and slot) that are not split out.",
+          "[1] Variables, outputs and versions have their own files, but main.tf holds roughly 200 lines mixing several distinct concerns (plan and autoscale, app and slot, Log Analytics and diagnostics) with no conceptual split."
+        ],
+        "Sensitive values": [
+          "[2] No raw secrets are accepted or hardcoded, and the `app_settings` description steers consumers toward Key Vault references rather than secret values.",
+          "[2] The module takes no raw credentials, and the `app_settings` description steers secrets to Key Vault references rather than plain values.",
+          "[2] No raw secret inputs or outputs exist, and the `app_settings` description steers consumers toward Key Vault references rather than raw secret values."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The only `lifecycle` blocks hold `precondition` checks on `azurerm_service_plan`; there is no misused `prevent_destroy` or `ignore_changes`.",
+          "[1] `azurerm_service_plan.this` sets `worker_count = var.min_instances` while `azurerm_monitor_autoscale_setting` scales the same plan, yet there is no `ignore_changes` on `worker_count`, so each apply fights autoscale (exactly the case where `ignore_changes` is legitimate).",
+          "[2] The only `lifecycle` usage on `azurerm_service_plan` holds validation preconditions, with no `prevent_destroy` or `ignore_changes` misuse."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate description, and the comment on `azurerm_linux_web_app_slot.staging` explains the non-obvious slot-swap rollout design, an amount that fits the module.",
+          "[2] Every variable and output has an accurate description, and the comment on `azurerm_linux_web_app_slot.staging` explains the non-obvious swap/rollback design.",
+          "[2] Every variable and output has an accurate description, and the comment above `azurerm_linux_web_app_slot.staging` explains the non-obvious rollout and rollback design, which fits the module's size."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module uses current azurerm 4.x forms (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_log`) and has no `null_resource` or `local-exec`.",
+          "[2] The module uses current `azurerm_service_plan`/`azurerm_linux_web_app` resources and contains no `null_resource` or `local-exec`.",
+          "[2] The module uses current `azurerm_service_plan`/`azurerm_linux_web_app` resources and `enabled_metric` blocks, with no `null_resource` or `local-exec`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the enforced HTTPS, TLS 1.2 or disabled basic-auth posture.",
+          "[2] All resources are authored directly with no remote module calls, and no input can override the hardcoded `https_only`, TLS 1.2 or disabled basic-auth posture.",
+          "[2] All resources are authored directly with no remote module calls, and no input lets a consumer undo the hardcoded `https_only`, TLS 1.2 or disabled basic-auth posture."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "6a53948a06afd738",
+      "tf_sloc": 251
+    },
+    "ref-lean": {
+      "overall": 89.5,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 1,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] Capacity is a core SRE decision, yet instance count is hardcoded by environment (`local.instance_count = local.is_prod ? 3 : ...`) with no input or autoscaling control, and zone balancing is likewise fixed to `is_prod`. The well-shaped `size`, `health_check_path` and `environment` concepts do not make up for that overprescription.",
+          "[1] The `size` and `environment` concept inputs suit the SRE audience, but `instance_count` is hardcoded from environment (1/2/3) with no capacity override or autoscale, and `registry_url` has no way to authenticate to a private registry (e.g. managed-identity ACR pull), so it overprescribes decisions the use case leaves open.",
+          "[1] Capacity and availability are concept-level (`size`, `environment`), but `local.instance_count` is hardcoded per environment with no input or autoscale, so SREs who think in capacity cannot set instance counts, and there is no input for authenticating to a private registry."
+        ],
+        "Variables and validation": [
+          "[2] The inputs consumers realistically get wrong are guarded with teaching messages: `environment` and `size` are enum checks, `service` has a format and length regex, and `health_check_path` must start with \"/\". No condition rejects a valid value, and no conflicting input pair exists.",
+          "[2] The inputs consumers would realistically get wrong are guarded with teaching messages (`environment` and `size` via `contains`, `health_check_path` via `startswith`, and the `service` slug regex), none rejects a valid value, and no conflicting input pairs exist.",
+          "[2] The inputs consumers realistically get wrong are guarded with teaching messages (`service` regex, `environment` and `size` allow-lists, `health_check_path` starting with \"/\"), and no two inputs can be set to conflict."
+        ],
+        "Internal logic": [
+          "[2] Small, readable locals (`sku_by_size`, `is_prod`, `instance_count`, merged `tags`) derive the SKU, worker count, zone balancing and retention from concept inputs without clever chains.",
+          "[2] Readable locals such as `sku_by_size`, `is_prod` and `instance_count` derive SKU, worker count, zone balancing and retention from the concept inputs without convoluted expressions.",
+          "[2] Readable locals (`sku_by_size`, `is_prod`, `instance_count`) derive SKU, worker count, zone balancing and retention from the `size` and `environment` concepts instead of asking for more inputs."
+        ],
+        "Scope": [
+          "[2] The module covers what the job needs proportionately: hardened app settings (`https_only`, basic auth disabled, TLS 1.2), a managed identity, a staging slot for rollouts, health checks, and Log Analytics, Application Insights and diagnostic settings for observability.",
+          "[2] The module covers the job proportionately: the plan and app with HTTPS-only and basic auth disabled, a staging slot for rollouts, and observability through Log Analytics, App Insights and `azurerm_monitor_diagnostic_setting`, with no unrelated architecture.",
+          "[2] The module covers the operator's job proportionately: HTTPS-only app with basic auth disabled, a managed identity, a staging slot for rollouts, health checks, App Insights, Log Analytics and a diagnostic setting."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The inline blocks (`site_config`, `identity`, `app_settings`) have no separate-resource alternative, and diagnostics use the dedicated `azurerm_monitor_diagnostic_setting` resource.",
+          "[2] The inline blocks used (`site_config`, `identity`, `app_settings`) have no separate-resource alternative, and diagnostics are a separate `azurerm_monitor_diagnostic_setting`, so no inline/separate mixing occurs.",
+          "[2] The inline blocks used (`site_config`, `identity`, `enabled_log`) have no separate-resource alternative in the provider, so there is no mixing or avoidable inline config."
+        ],
+        "Outputs": [
+          "[1] The outputs omit the web app's resource ID and the staging slot's managed identity `principal_id`. Without the slot's identity, consumers cannot grant it the Key Vault access that the `app_settings` description asks them to rely on.",
+          "[1] Outputs include the name, hostname and `principal_id`, but omit the web app's resource ID and the staging slot's managed identity `principal_id`, which consumers need to grant the slot access (e.g. for the Key Vault references the module recommends).",
+          "[1] Outputs cover name, hostname and the app's `principal_id`, but omit the app resource ID, the staging slot's own identity principal ID (needed for Key Vault references after a swap), and the App Insights/workspace identifiers."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The module uses no `count` or `for_each`; every resource is a singleton, so there is nothing to fault.",
+          "[2] The module creates no repeated resources and uses no `count` or `for_each`, so nothing applies.",
+          "[2] No resource uses `count` or needs multiplicity, so there is nothing to fault."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module creates its own resource group and all dependencies, so no external dependency facts are requested that a data source should look up.",
+          "[2] The module takes no facts about external dependencies as inputs, since it creates its own resource group, so no data lookup is needed.",
+          "[2] The module creates its own resource group, workspace and plan and takes no dependency facts as inputs, so no lookup is needed."
+        ],
+        "File layout": [
+          "[1] Variables and outputs have their own files, but `main.tf` mixes a distinct monitoring concern (Log Analytics, Application Insights, diagnostic setting) with the plan, app and slot instead of splitting it out.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` packs the app, slot and a distinct observability concern (Log Analytics, App Insights, diagnostic setting) into one roughly 180-line file.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` mixes the observability stack (workspace, App Insights, diagnostic setting) and the slot with the core app instead of splitting distinct concerns."
+        ],
+        "Sensitive values": [
+          "[2] No raw secrets are accepted, defaulted or output, and the `app_settings` description directs consumers to Key Vault references rather than secret values.",
+          "[2] No secret is taken as a raw input or output; the App Insights connection string is wired internally, and the `app_settings` description directs secrets to Key Vault references.",
+          "[2] No secret is taken as an input or output, the App Insights connection string is used only internally, and the `app_settings` description directs consumers to Key Vault references for secrets."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No `lifecycle` blocks are used, so there is no misuse of `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, so there is no misuse of `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, and none of the resources needs `prevent_destroy` or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate description, and the comments on the zone-balancing instance logic and the slot-based release flow explain the non-obvious choices without noise.",
+          "[2] Every variable and output has an accurate description, and the comment on `azurerm_linux_web_app_slot.staging` explains the non-obvious release, swap and rollback flow.",
+          "[1] Every variable and output has an accurate description, but there is no README, and the slot comment describes a deploy-to-slot-then-swap workflow that the config does not support, since `var.container_image` sets both the app and the slot."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module uses current resources (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_metric`) and has no `null_resource` or `local-exec`.",
+          "[2] The module uses the current `azurerm_linux_web_app` and `azurerm_service_plan` resources with no `null_resource` or `local-exec`.",
+          "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources and has no `null_resource` or `local-exec`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly with no remote module calls, no deleted or commented-out resources, and no input that bypasses the hardened security settings.",
+          "[2] The resources are authored directly, with no remote module call and no input that could undo the enforced `https_only`, TLS 1.2 or disabled basic-auth posture.",
+          "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass `https_only`, TLS 1.2 or the disabled basic auth."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "439598c1ef8f36bd",
+      "tf_sloc": 200
+    }
+  },
+  "calibration": {
+    "fixture": "G003",
+    "judge_model": "anthropic/claude-opus-5-5",
+    "method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)",
+    "cells": 112,
+    "agreement": 0.982,
+    "by_section": {
+      "Interface design": 1.0,
+      "Variables and validation": 1.0,
+      "Internal logic": 1.0,
+      "Scope": 1.0,
+      "Inline Resource Configuration vs Separate Resources": 1.0,
+      "Outputs": 1.0,
+      "Iteration: for_each vs count": 1.0,
+      "Data sources vs inputs": 1.0,
+      "File layout": 1.0,
+      "Sensitive values": 1.0,
+      "Lifecycle meta-arguments": 1.0,
+      "Documentation": 0.75,
+      "Deprecated and escape-hatch patterns": 1.0,
+      "Anti-patterns (immediate credibility loss)": 1.0
+    },
+    "misses": [
+      {
+        "module": "gpt-5.5-2026-04-23",
+        "section": "Documentation",
+        "human": 0,
+        "judge": 1
+      },
+      {
+        "module": "claude-fable-5-1",
+        "section": "Documentation",
+        "human": 0,
+        "judge": 1
+      }
+    ],
+    "unfilled": 0,
+    "failing_sections": []
+  },
+  "agreement": 0.982,
+  "agreement_method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)"
+}
