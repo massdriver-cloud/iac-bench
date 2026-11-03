@@ -989,3 +989,137 @@ def base_inputs(m: Module, defaults_inputs: dict) -> dict:
             if value is not UNKNOWN:
                 out[name] = value
     return out
+
+
+# ------------------------------------------------------------ value proofs
+
+# A closed value set larger than this is treated as open.
+MAX_POSSIBLE = 64
+
+
+def _union(sets: list) -> list | None:
+    out: list = []
+    for s in sets:
+        if s is None:
+            return None
+        for v in s:
+            if not any(_eq(v, x) for x in out):
+                out.append(v)
+    return out if len(out) <= MAX_POSSIBLE else None
+
+
+def _allowed(m: Module, cond: dict, path: tuple) -> list | None:
+    """Values a validation condition admits for input `path`, when the
+    condition confines it to a literal set: `contains([...], x)`, `x == lit`,
+    their disjunction, or a conjunction with one confining side."""
+    t = cond["t"]
+    if t == "call" and cond["name"] == "contains" and len(cond["args"]) == 2:
+        if _input_path(m, cond["args"][1]) == path:
+            return _literals(m, cond["args"][0])
+        return None
+    if t == "binary" and cond["op"] == "==":
+        for a, b in ((cond["l"], cond["r"]), (cond["r"], cond["l"])):
+            if b["t"] == "lit" and _input_path(m, a) == path:
+                return [b["v"]]
+        return None
+    if t == "binary" and cond["op"] == "||":
+        return _union([_allowed(m, cond["l"], path), _allowed(m, cond["r"], path)])
+    if t == "binary" and cond["op"] == "&&":
+        left, right = _allowed(m, cond["l"], path), _allowed(m, cond["r"], path)
+        if left is not None and right is not None:
+            return [v for v in left if any(_eq(v, x) for x in right)]
+        return left if left is not None else right
+    return None
+
+
+def _input_domain(m: Module, path: tuple) -> list | None:
+    """Every value input `path` can take: both values of a bool, or the
+    literal set a validation confines it to. Otherwise open (None)."""
+    v = m.variables.get(path[0])
+    if v is None:
+        return None
+    for cond in v.validations:
+        allowed = _allowed(m, cond, path)
+        if allowed is not None:
+            return allowed
+    if _type_name(_leaf_type(m, path)) == "bool":
+        return [True, False]
+    return None
+
+
+def possible_values(m: Module, node: dict, seen: frozenset = frozenset()) -> list | None:
+    """Every value an expression can produce under any accepted inputs, or
+    None when that set is open or unknown. Conditionals contribute both
+    branches whatever their condition, so the set may be larger than what is
+    reachable, never smaller: when every member is secure, every reachable
+    value is."""
+    t = node["t"]
+    if t == "lit":
+        return [node["v"]]
+    if t == "cond":
+        return _union([possible_values(m, node["then"], seen), possible_values(m, node["else"], seen)])
+    if t == "ref":
+        steps = node["steps"]
+        root = steps[0].get("attr")
+        if root == "local" and len(steps) == 2 and steps[1]["attr"] in m.locals:
+            name = steps[1]["attr"]
+            if name in seen:
+                return None
+            return possible_values(m, m.locals[name], seen | {name})
+        path = _input_path(m, node)
+        return _input_domain(m, path) if path else None
+    if t == "index":
+        return _map_values(m, node["coll"], seen)
+    if t == "call" and node["name"] == "lookup" and len(node["args"]) >= 2:
+        sets = [_map_values(m, node["args"][0], seen)]
+        sets += [possible_values(m, a, seen) for a in node["args"][2:]]
+        return _union(sets)
+    if t == "call" and node["name"] in ("coalesce", "try") and not node.get("expand"):
+        return _union([possible_values(m, a, seen) for a in node["args"]])
+    return None
+
+
+def _map_values(m: Module, coll: dict, seen: frozenset) -> list | None:
+    """The values of a map or list literal (directly or through a local),
+    whichever key selects them."""
+    if coll["t"] == "ref":
+        steps = coll["steps"]
+        if steps[0].get("attr") == "local" and len(steps) == 2 and steps[1]["attr"] in m.locals:
+            name = steps[1]["attr"]
+            if name in seen:
+                return None
+            return _map_values(m, m.locals[name], seen | {name})
+        return None
+    if coll["t"] == "object":
+        return _union([possible_values(m, i["v"], seen) for i in coll["items"]])
+    if coll["t"] == "tuple":
+        return _union([possible_values(m, i, seen) for i in coll["items"]])
+    if coll["t"] == "lit" and isinstance(coll["v"], (dict, list)):
+        vals = coll["v"].values() if isinstance(coll["v"], dict) else coll["v"]
+        return _union([[v] for v in vals])
+    return None
+
+
+_MISSING_ATTR = object()
+
+
+def attr_nodes(body: dict, path: list) -> list:
+    """Expression trees at a dotted attribute path through nested blocks.
+    A missing attribute yields _MISSING_ATTR; a `dynamic` block on the path
+    yields None (generated content is never closed)."""
+    head, rest = path[0], path[1:]
+    if not rest:
+        attr = body["attributes"].get(head)
+        return [attr["expr"] if attr else _MISSING_ATTR]
+    if any(b["type"] == "dynamic" and b["labels"][:1] == [head] for b in body["blocks"]):
+        return [None]
+    blocks = [b for b in body["blocks"] if b["type"] == head]
+    if not blocks:
+        return [_MISSING_ATTR]
+    return [n for b in blocks for n in attr_nodes(b["body"], rest)]
+
+
+def existence_open(m: Module, res: Resource) -> bool:
+    """True when any input (through locals) gates the resource's existence."""
+    attrs = res.body["attributes"]
+    return any(_deps(m, [attrs[k]["expr"]]) for k in ("count", "for_each") if k in attrs)

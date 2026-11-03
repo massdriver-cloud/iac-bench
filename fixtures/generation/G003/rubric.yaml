@@ -40,7 +40,7 @@ items:
       default is off.
     check:
       all_of:
-        - hardcoded:
+        - closed_values:
             type: azurerm_linux_web_app
             attrs: {https_only: true}
         - resource:
@@ -68,7 +68,7 @@ items:
       credentials. Both default to ON in the provider.
     check:
       all_of:
-        - hardcoded:
+        - closed_values:
             type: azurerm_linux_web_app
             attrs:
               ftp_publish_basic_authentication_enabled: false
