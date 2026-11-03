@@ -425,16 +425,24 @@ def _solved_plans(
     fixture: GenerationFixture, work: Path, defaults_inputs: dict, defaults_plan: dict,
     sweep_plans: list, harness: RootProbeHarness, details: list,
 ) -> list:
-    """Solve-then-confirm (solve.py): for each sweep goal the defaults and
-    the sweep miss, plan the solver's witnesses until one plans and meets
-    the goal. Confirmed plans are evidence like any sweep plan: an input
-    instantiation the module accepts."""
-    specs = [i["check"] for i in fixture.items if i.get("check")] + [e["check"] for e in fixture.expertise]
+    """Solve-then-confirm (solve.py): for each sweep goal of an item that
+    fails on the defaults plan and the sweep, plan the solver's witnesses
+    until one plans and meets the goal. Confirmed plans are evidence like
+    any sweep plan: an input instantiation the module accepts."""
+    entries = [i for i in fixture.items if i.get("check")] + list(fixture.expertise)
+    ctx = checks.CheckContext(
+        work, defaults_plan, sweep_plans, item_specs={e["id"]: e["check"] for e in entries}
+    )
+    failing = []
+    for entry in entries:
+        try:
+            if not checks.evaluate(ctx, entry["check"]):
+                failing.append(entry["check"])
+        except Exception:
+            failing.append(entry["check"])
     open_goals = [
-        g for g in solve.goals(specs)
-        if not checks._verb_resource(
-            checks.CheckContext(work, defaults_plan, sweep_plans), {**g.spec, "plans": ["defaults", "sweep"]}
-        )
+        g for g in solve.goals(failing)
+        if not checks._verb_resource(ctx, {**g.spec, "plans": ["defaults", "sweep"]})
     ]
     if not open_goals:
         return []

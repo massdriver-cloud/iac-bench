@@ -138,3 +138,10 @@ def test_solver_on_known_answer_solutions():
     assert solve.solve(good, goal, solve.base_inputs(good, {}))
     bad = solve.Module.load(SOLUTIONS / "G003" / "bad_guard_contradiction")
     assert solve.solve(bad, goal, solve.base_inputs(bad, {})) == []
+
+
+def test_closed_values_compares_types_like_hcl(tmp_path):
+    d = module(tmp_path, 'variable "n" {\n  type = number\n  validation {\n'
+                         '    condition = contains([1], var.n)\n    error_message = "x"\n  }\n}\n'
+                         'resource "x_db" "this" {\n  enabled = var.n\n}\n')
+    assert not closed(d, "x_db", {"enabled": True})

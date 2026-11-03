@@ -328,7 +328,8 @@ def _verb_closed_values(ctx: CheckContext, spec: dict) -> bool:
                 if node is None or node is solve._MISSING_ATTR:
                     return False
                 values = solve.possible_values(module, node)
-                if values is None or not all(_is_literal(v, expected) for v in values):
+                allowed = expected["in"] if isinstance(expected, dict) and "in" in expected else [expected]
+                if values is None or not all(any(solve._eq(v, a) for a in allowed) for v in values):
                     return False
     return any(not solve.existence_open(module, res) for res in instances)
 

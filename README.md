@@ -108,6 +108,9 @@ uv run inspect eval src/iacbench/task.py@generate_module -T fixture=G001 \
 # 3 bad) — plan-only, against the cloud the fixture's rubric declares
 IACBENCH_CLOUD=1 AWS_REGION=us-east-1 uv run iacbench selftest --fixture G001
 
+# after an engine change: re-score stored candidates, compare with their logged scores
+uv run iacbench rescore --fixture G001 --candidates runs/candidates/G001 --log-dir logs
+
 # judge layer: absolute grades, experimental until calibrated against human verdicts
 uv run iacbench judge --fixture G001 --candidates runs/candidates/G001 --grade \
     --model openai/gpt-5.5 --out runs/judge/G001-gpt

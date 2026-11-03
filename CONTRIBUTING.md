@@ -50,6 +50,8 @@ Scoring changes rewrite history (stored results are re-scorable by design), so:
   must state the **expected score movement** and why it is correct.
 - The full selftest must pass; add or update known-answer solutions when the
   change alters what "correct" means.
+- Re-score stored model output with `iacbench rescore` and account for every
+  difference it prints against the logged scores.
 - Judge-affecting changes (prompts, doctrine, judge model) create a new hashed
   edition; substantial changes require re-checking calibration against the
   human-ranked set before the judged column is trusted.

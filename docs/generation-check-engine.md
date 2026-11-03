@@ -146,9 +146,10 @@ A one-variable sweep cannot reach a capability whose input the module
 guards with a second input: zone balancing that a precondition allows only
 with three or more instances, or an observability resource created only
 when a workspace ID is supplied. For every `resource` check that accepts
-*some* sweep plan (`plans` includes `sweep`, `quantifier: any`) and that the
-defaults plan and the sweep both miss, the solver (`solve.py`) searches the
-source for inputs that reach it, and the harness plans what it finds.
+*some* sweep plan (`plans` includes `sweep`, `quantifier: any`), belongs to
+a rubric or expertise item that fails on the defaults plan and the sweep,
+and is itself missed by both, the solver (`solve.py`) searches the source
+for inputs that reach it, and the harness plans what it finds.
 
 - **Evaluation.** The Go helper exports every expression's tree. The solver
   evaluates variables (with `optional()` object defaults), locals, `count`,
