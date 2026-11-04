@@ -9,14 +9,14 @@ calibration of the judge.
 
 | | |
 |---|---|
-| Engine | tag [`2026-10-engine`](https://github.com/massdriver-cloud/iac-bench/tree/2026-10-engine) |
-| Fixtures and rubric editions | G001 (AWS S3) `7159cedae642d9e7`, G002 (GCP Cloud SQL) `36ff21d5fa87ec1a`, G003 (Azure App Service) `59f6dcc6fd047fcf` |
+| Code | tag [`2026-10`](https://github.com/massdriver-cloud/iac-bench/tree/2026-10) |
+| Fixtures and rubric editions | G001 (AWS S3) `5fbd92ed46751d8c`, G002 (GCP Cloud SQL) `e0fc549d24a3dc0e`, G003 (Azure App Service) `67b3fe6d553daec4` |
 | Doctrine edition | `af3ae1dd9fdc1c0c` (`docs/good-opentofu.md`) |
 | Judge | `anthropic/claude-opus-5-5`, absolute grading, 3 samples per module |
 | Calibration | per fixture, against the doctrine owner's grades (`calibration/`) |
 | OpenTofu | 1.12.5 |
 | Runs | 2026-10-22; judged 2026-10-23 |
-| Prices | OpenRouter list prices dated 2026-10-23 (`prices.yaml` at the engine tag) |
+| Prices | OpenRouter list prices dated 2026-10-23 (`prices.yaml`) |
 
 Models: `anthropic/claude-fable-5-1`, `anthropic/claude-haiku-5-5`,
 `anthropic/claude-opus-5-5`, `anthropic/claude-sonnet-5-5`, `google/gemini-3.1-pro-preview`,
@@ -56,19 +56,17 @@ Read any transcript in Inspect's log viewer:
 uv run inspect view --log-dir results/2026-10/logs
 ```
 
-Rebuild the published report tables with the engine that produced them:
+Rebuild the published report tables:
 
 ```bash
-git worktree add ../iac-bench-2026-10-engine 2026-10-engine
-cd ../iac-bench-2026-10-engine && uv sync
-uv run iacbench report --log-dir ../iac-bench/results/2026-10/logs \
-    --judge-dir ../iac-bench/results/2026-10/judge/G001-opus-5-5 \
-    --judge-dir ../iac-bench/results/2026-10/judge/G002-opus-5-5 \
-    --judge-dir ../iac-bench/results/2026-10/judge/G003-opus-5-5
+uv run iacbench report --log-dir results/2026-10/logs \
+    --judge-dir results/2026-10/judge/G001-opus-5-5 \
+    --judge-dir results/2026-10/judge/G002-opus-5-5 \
+    --judge-dir results/2026-10/judge/G003-opus-5-5
 ```
 
-Re-score the modules with an engine and compare every item with the recorded scores
-(plans run against each fixture's cloud):
+Re-score the modules and compare every item with the recorded scores (plans run against
+each fixture's cloud):
 
 ```bash
 uv run iacbench rescore --fixture G003 --candidates results/2026-10/candidates/G003 \

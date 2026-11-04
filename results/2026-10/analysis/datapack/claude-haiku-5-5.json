@@ -746,13 +746,12 @@
     "epoch": 1,
     "candidate_dir": "candidates/G003/claude-haiku-5-5-e1",
     "gate": true,
-    "rubric": 0.922,
-    "mechanical": 0.875,
+    "rubric": 0.978,
+    "mechanical": 0.927,
     "judge": 81.6,
-    "composite": 85.72999999999999,
+    "composite": 89.37,
     "mandatory_failures": [],
     "items_lost": {
-     "H6": false,
      "A7": 0.8
     },
     "expertise": {
@@ -1162,19 +1161,18 @@
    "median_seconds": 84
   },
   "G003": {
-   "composite_median": 85.72999999999999,
+   "composite_median": 89.37,
    "composite_range": [
     85.25,
     92.96000000000001
    ],
-   "rubric_median": 0.922,
+   "rubric_median": 0.967,
    "judge_median": 84.2,
    "gate_failures": 0,
    "insecure_attempts": 1,
    "item_loss_counts": {
     "A7": 2,
-    "H2": 1,
-    "H6": 1
+    "H2": 1
    },
    "expertise_rate": {
     "E1_autoscale_rules": 1.0,
@@ -1189,5 +1187,5 @@
    "median_seconds": 367
   }
  },
- "overall": 66.8
+ "overall": 68.0
 }

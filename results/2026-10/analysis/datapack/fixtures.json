@@ -158,7 +158,7 @@
     "id": "H2",
     "weight": 10,
     "posture": "hardcoded",
-    "description": "Encrypted connections are required on every planned instance. ssl_mode is either hardcoded to a mode that rejects unencrypted clients, or fed by an input whose every value the sweep plans (a bool, or a validation listing the allowed modes) with no plan accepting unencrypted clients. Choosing between encrypted-only and client certificates is a DBA decision; offering unencrypted connections is not."
+    "description": "Encrypted connections are required on every planned instance. Every ssl_mode value the source can produce rejects unencrypted clients: a literal, or an input confined to such modes (a bool choosing between them, or a validation listing them), and no plan across the sweep accepts unencrypted clients. Choosing between encrypted-only and client certificates is a DBA decision; offering unencrypted connections is not."
    },
    {
     "id": "H3",
@@ -368,7 +368,7 @@
     "id": "H7",
     "weight": 3,
     "posture": "reachable",
-    "description": "Redundancy is offered \u2014 zone balancing on the service plan appears at defaults or under some documented input. An input that feeds it counts even when turning it on alone fails the module's own guard (zone balancing needs several instances), which a one-input sweep cannot satisfy."
+    "description": "Redundancy is offered \u2014 zone balancing on the service plan appears at defaults or under some documented input, including inputs the module requires together (zone balancing with enough instances)."
    },
    {
     "id": "H9",

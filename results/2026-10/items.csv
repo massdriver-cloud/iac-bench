@@ -394,7 +394,7 @@ G003,anthropic/claude-haiku-5-5,1,rubric,H2,True
 G003,anthropic/claude-haiku-5-5,1,rubric,H3,True
 G003,anthropic/claude-haiku-5-5,1,rubric,H4,True
 G003,anthropic/claude-haiku-5-5,1,rubric,H5,True
-G003,anthropic/claude-haiku-5-5,1,rubric,H6,False
+G003,anthropic/claude-haiku-5-5,1,rubric,H6,True
 G003,anthropic/claude-haiku-5-5,1,rubric,H7,True
 G003,anthropic/claude-haiku-5-5,1,rubric,H8,True
 G003,anthropic/claude-haiku-5-5,1,rubric,H9,True
@@ -1096,7 +1096,7 @@ G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H2,False
 G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H3,True
 G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H4,True
 G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H5,True
-G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H6,False
+G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H6,True
 G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H7,False
 G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H8,True
 G003,openrouter/deepseek/deepseek-v4-pro-0813,1,rubric,H9,True
