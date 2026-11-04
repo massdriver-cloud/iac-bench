@@ -1,13 +1,12 @@
-"""iacbench CLI: render and selftest. Evals run via `inspect eval` (see README)."""
+"""iacbench CLI: selftest, report, rescore, judge and calibrate. Evals run via
+`inspect eval` (see README)."""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-from .manifest import FixtureManifest
 from .paths import RUNS_DIR, find_fixture_dir
-from .render import render_fixture
 from .selftest import run_selftest
 
 
@@ -15,25 +14,16 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="iacbench")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_render = sub.add_parser("render", help="render a fixture into a directory")
-    p_render.add_argument("--fixture", required=True)
-    p_render.add_argument("--seed", type=int, default=0)
-    p_render.add_argument("--out", required=True)
-
-    p_selftest = sub.add_parser("selftest", help="validate checkers against known-answer solutions")
+    p_selftest = sub.add_parser("selftest", help="validate the rubric checks against known-answer modules")
     p_selftest.add_argument("--fixture", action="append", help="limit to a fixture id (repeatable)")
 
-    p_report = sub.add_parser("report", help="render markdown report with Wilson intervals from eval logs")
+    p_report = sub.add_parser("report", help="markdown report from eval logs: leaderboard, rubric and judged grades")
     p_report.add_argument("--log-dir", default="logs")
     p_report.add_argument("--out", default=None, help="output file (default: print to stdout)")
     p_report.add_argument(
         "--judge-dir", action="append", default=None,
         help="judge output dir (repeatable); adds a pairwise-ranking section",
     )
-
-    p_sweep = sub.add_parser("sweep", help="find (and optionally delete) leaked iacbench-tagged AWS resources")
-    p_sweep.add_argument("--region", default=None, help="AWS region (default: AWS_REGION or us-east-1)")
-    p_sweep.add_argument("--delete", action="store_true", help="delete what is found (S3 supported)")
 
     p_rescore = sub.add_parser(
         "rescore",
@@ -43,6 +33,9 @@ def main(argv=None) -> int:
     p_rescore.add_argument("--candidates", required=True, help="directory with one module subdirectory per candidate")
     p_rescore.add_argument("--log-dir", required=True, help="eval logs holding the candidates' scores")
     p_rescore.add_argument("--workers", type=int, default=8, help="candidates scored in parallel")
+    p_rescore.add_argument(
+        "--redactions", help="a data release's redactions.json: maps redacted modules to their logged hashes"
+    )
 
     p_judge = sub.add_parser("judge", help="pairwise LLM judging of generation candidates (experimental layer)")
     p_judge.add_argument("--fixture", default="G001")
@@ -80,14 +73,6 @@ def main(argv=None) -> int:
 
     args = parser.parse_args(argv)
 
-    if args.command == "render":
-        manifest = FixtureManifest.load(find_fixture_dir(args.fixture))
-        ctx = render_fixture(manifest, args.seed, Path(args.out))
-        print(f"rendered {manifest.id} seed={args.seed} -> {args.out}")
-        for key, value in sorted(ctx.items()):
-            print(f"  {key} = {value}")
-        return 0
-
     if args.command == "selftest":
         return run_selftest(args.fixture)
 
@@ -97,19 +82,15 @@ def main(argv=None) -> int:
         judge_dirs = [Path(d) for d in (args.judge_dir or [])]
         return run_report(Path(args.log_dir), Path(args.out) if args.out else None, judge_dirs)
 
-    if args.command == "sweep":
-        import os
-
-        from .sweep import run_sweep
-
-        return run_sweep(args.region or os.environ.get("AWS_REGION", "us-east-1"), args.delete)
-
     if args.command == "rescore":
+        import json
+
         from .generation import GenerationFixture
         from .rescore import run_rescore
 
         fixture = GenerationFixture.load(find_fixture_dir(args.fixture))
-        return run_rescore(fixture, Path(args.candidates), Path(args.log_dir), args.workers)
+        sha_map = json.loads(Path(args.redactions).read_text())["module_sha"] if args.redactions else None
+        return run_rescore(fixture, Path(args.candidates), Path(args.log_dir), args.workers, sha_map)
 
     if args.command == "calibrate":
         import json

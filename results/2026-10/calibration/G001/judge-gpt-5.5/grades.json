@@ -1,0 +1,868 @@
+{
+  "fixture": "G001",
+  "mode": "absolute_grading",
+  "judge_model": "openai/gpt-5.5-2026-04-23",
+  "principles_sha256": "af3ae1dd9fdc1c0c",
+  "samples_per_candidate": 3,
+  "graded_sections": [
+    "Interface design",
+    "Variables and validation",
+    "Internal logic",
+    "Scope",
+    "Inline Resource Configuration vs Separate Resources",
+    "Outputs",
+    "Iteration: for_each vs count",
+    "Data sources vs inputs",
+    "File layout",
+    "Sensitive values",
+    "Lifecycle meta-arguments",
+    "Documentation",
+    "Deprecated and escape-hatch patterns",
+    "Anti-patterns (immediate credibility loss)"
+  ],
+  "section_weights": {
+    "Sensitive values": 3.0,
+    "Interface design": 2.0,
+    "Variables and validation": 2.0,
+    "Scope": 2.0
+  },
+  "status": "experimental (sections below 0.75: Interface design)",
+  "author_label": null,
+  "grades": {
+    "claude-fable-5-1": 100.0,
+    "claude-opus-5-5": 97.4,
+    "ref-lean": 97.4,
+    "claude-sonnet-5-5": 92.1,
+    "ref-flexible": 92.1,
+    "gpt-5.5-2026-04-23": 86.8,
+    "gemini-3.1-pro-preview": 78.9,
+    "claude-haiku-4-5-20251001": 76.3
+  },
+  "detail": {
+    "claude-fable-5-1": {
+      "overall": 100.0,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The module asks app teams for the core concepts `application` and `environment` while making S3-specific decisions internally such as public access blocking, ownership controls, encryption, versioning, lifecycle hygiene, and IAM policy generation.",
+          "[2] The module centers the app-team interface on `application` and `environment` while making S3-specific decisions internally, with optional concept-level inputs such as `cors_allowed_origins`, `object_expiration_days`, and `kms_key_arn`.",
+          "[2] The module requires only `application` and `environment` while deriving `local.bucket_name` and making advanced decisions optional through inputs such as `kms_key_arn`, `cors_allowed_origins`, and `object_expiration_days`."
+        ],
+        "Variables and validation": [
+          "[2] Realistic consumer mistakes are guarded with validations such as regex checks on `application` and `environment`, HTTPS-only non-wildcard entries for `cors_allowed_origins`, and minimum-day checks for retention and expiration inputs.",
+          "[2] Realistic mistake-prone inputs are guarded, such as `cors_allowed_origins` requiring HTTPS origins without wildcards and `object_expiration_days` requiring a positive value when set.",
+          "[2] Realistic consumer mistakes are guarded with validations on inputs such as `application`, `environment`, `bucket_name`, `kms_key_arn`, `cors_allowed_origins`, and retention/expiration day values."
+        ],
+        "Internal logic": [
+          "[2] Locals such as `bucket_name`, `use_kms`, and `default_tags` derive internal implementation values from higher-level inputs instead of requiring callers to provide account IDs, regions, or encryption mode flags.",
+          "[2] The `locals` in `main.tf` infer values such as `bucket_name`, `use_kms`, and `default_tags` from higher-level inputs instead of requiring consumers to provide them directly.",
+          "[2] The `locals` in `main.tf` compute inferred values like `bucket_name`, `use_kms`, and `default_tags` from concept-level inputs instead of demanding separate inputs."
+        ],
+        "Scope": [
+          "[2] The module creates the bucket plus expected operational and access posture resources including `aws_s3_bucket_public_access_block`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_versioning`, `aws_s3_bucket_lifecycle_configuration`, `aws_s3_bucket_policy`, and scoped IAM policies.",
+          "[2] The module creates the core bucket plus expected operational and access posture resources including `aws_s3_bucket_public_access_block`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_versioning`, lifecycle configuration, bucket policy, and optional IAM policies.",
+          "[2] The module creates the expected S3 bucket support resources including ownership controls, public access block, encryption configuration, versioning, lifecycle configuration, bucket policy, optional CORS/logging, and scoped IAM policies."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] S3 bucket concerns are modeled with separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_public_access_block`, and `aws_s3_bucket_policy` rather than mixed inline configuration on `aws_s3_bucket`.",
+          "[2] S3 bucket features are modeled as separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_policy`, and `aws_s3_bucket_cors_configuration` rather than being mixed into `aws_s3_bucket`.",
+          "[2] S3 bucket features are modeled as separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_public_access_block`, and `aws_s3_bucket_server_side_encryption_configuration` rather than deprecated inline bucket arguments."
+        ],
+        "Outputs": [
+          "[2] Outputs expose practical consumption values such as `bucket_name`, `bucket_arn`, `bucket_domain_name`, `region`, and the read-only/read-write policy ARNs and JSON without exporting every bucket attribute.",
+          "[2] Outputs expose practical consumer values such as `bucket_name`, `bucket_arn`, `bucket_domain_name`, and the read-only/read-write policy ARNs without exporting every bucket attribute.",
+          "[2] Outputs include practical consumer values such as `bucket_name`, `bucket_arn`, `bucket_domain_name`, `region`, and the read-only/read-write policy ARNs and JSON documents."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] Resource-level `count` is used only as an on/off switch, for example `count = var.create_access_policies ? 1 : 0` on the IAM policies and conditional counts for CORS and logging.",
+          "[2] `count` is used only as an on/off switch, for example `count = var.create_access_policies ? 1 : 0` on the IAM policy resources.",
+          "[2] `count` is used only as an on/off switch for optional singleton resources like `aws_iam_policy.read_only`, `aws_s3_bucket_cors_configuration.this`, and `aws_s3_bucket_logging.this`."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module looks up deployment facts with `data \"aws_caller_identity\" \"current\"` and `data \"aws_region\" \"current\"` instead of asking the caller to provide account ID or region name for bucket naming.",
+          "[2] The module derives account and effective region from `data \"aws_caller_identity\" \"current\"` and `data \"aws_region\" \"current\"` instead of requiring consumers to provide those facts.",
+          "[2] The module looks up account and effective region with `data \"aws_caller_identity\" \"current\"` and `data \"aws_region\" \"current\"` instead of asking consumers to provide those facts."
+        ],
+        "File layout": [
+          "[2] Inputs, outputs, core bucket resources, IAM policy resources, and version/provider declarations are separated into `variables.tf`, `outputs.tf`, `main.tf`, `iam.tf`, and `versions.tf`.",
+          "[2] The module separates concerns across `variables.tf`, `outputs.tf`, `main.tf`, `iam.tf`, and `versions.tf`.",
+          "[2] Variables, outputs, versions, IAM policy resources, and core bucket resources are separated into `variables.tf`, `outputs.tf`, `versions.tf`, `iam.tf`, and `main.tf`."
+        ],
+        "Sensitive values": [
+          "[2] The module has no raw secret variables or outputs, and the encryption input `kms_key_arn` is a provider-resolvable key ARN rather than key material.",
+          "[2] The module has no variables or outputs carrying secret values; `kms_key_arn` is a provider-resolvable key identifier rather than raw key material.",
+          "[2] The module has no variable or output carrying a secret value; `kms_key_arn` is a key identifier rather than raw secret material."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No resource in the module contains a `lifecycle` block using `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks using `prevent_destroy` or `ignore_changes` appear in the module.",
+          "[2] No `lifecycle` blocks with `prevent_destroy` or `ignore_changes` are present in the module."
+        ],
+        "Documentation": [
+          "[2] Every variable and output includes a `description`, and the README accurately explains the two-input example plus the bucket, security, lifecycle, IAM, and tagging decisions.",
+          "[2] Every variable and output has a `description`, and the README accurately summarizes the default bucket behavior and common optional inputs.",
+          "[2] Every variable and output has a `description`, and the README explains the default bucket decisions and common optional inputs."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, or other escape-hatch provisioner pattern.",
+          "[2] The module contains no `null_resource`, `local-exec`, or remote-module escape hatch.",
+          "[2] The module does not use `null_resource`, `local-exec`, remote modules, or deprecated inline S3 bucket configuration forms."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors AWS resources directly, such as `aws_s3_bucket.this`, and contains no remote `module` calls or commented-out failed resources.",
+          "[2] The module authors its own AWS resources directly and does not call a remote module or comment out failed resources.",
+          "[2] The module authors its own AWS resources directly and does not contain a remote module call or an input that disables the established public-access and TLS security posture."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "40dd568e6521aac7",
+      "tf_sloc": 388
+    },
+    "claude-haiku-4-5-20251001": {
+      "overall": 76.3,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 1,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 0,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module mostly presents concept-level inputs like `application_name` and `environment`, but `variable \"bucket_name\"` exposes a low-level S3 naming decision to non-S3 app developers despite the module already being able to generate `local.bucket_name`.",
+          "[1] The module has the obvious `application_name` and `environment` inputs, but also exposes S3-specific controls like `bucket_name` and `retain_old_versions_days` to app developers despite the brief asking them to trust the module's judgment.",
+          "[2] The inputs are mostly high-level concepts for app teams\u2014`application_name`, `environment`, optional `bucket_name`, optional `retain_old_versions_days`, and `tags`\u2014while S3-specific choices like encryption, public access blocking, versioning, and logging are made inside the module."
+        ],
+        "Variables and validation": [
+          "[1] The inputs are deliberately validated, but `variable \"environment\"` only allows `dev`, `staging`, and `production`, which rejects otherwise valid environment names the brief did not rule out.",
+          "[1] Inputs are deliberately validated, but `retain_old_versions_days` allows `0` even though `aws_s3_bucket_lifecycle_configuration.assets` still uses it as `noncurrent_days`, which does not actually disable the rule.",
+          "[1] The module has deliberate validation blocks, but `bucket_name` permits dots via `^[a-z0-9][a-z0-9.-]*[a-z0-9]$` while the same value is used in `aws_kms_alias.assets.name = \"alias/${local.bucket_name}\"`, where dots are not valid in KMS aliases."
+        ],
+        "Internal logic": [
+          "[2] `local.bucket_name` cleanly derives the bucket name from `application_name`, `environment`, and `data.aws_caller_identity.current.account_id` instead of requiring consumers to provide those inferred details.",
+          "[1] `aws_kms_alias.assets.name = \"alias/${local.bucket_name}\"` derives a KMS alias directly from a bucket name even though `bucket_name` validation allows dots that are valid for S3 but invalid in KMS aliases.",
+          "[2] `local.bucket_name` cleanly derives the default bucket name from `application_name`, `environment`, and `data.aws_caller_identity.current.account_id` instead of requiring an account ID input."
+        ],
+        "Scope": [
+          "[1] The module includes core bucket concerns such as `aws_s3_bucket_public_access_block`, versioning, encryption, logging, lifecycle, and a bucket policy, but the separately created `aws_s3_bucket.logs` has no lifecycle cleanup or log-delivery permission/policy configuration.",
+          "[2] The module creates the core bucket plus public access blocking, versioning, KMS encryption, access logging, lifecycle configuration, bucket policy, and metrics resources needed for a standard application assets bucket.",
+          "[1] The module creates the core bucket, encryption, versioning, public access block, logging, lifecycle, and policy resources, but the logging bucket has no bucket policy or grant permitting S3 log delivery to write into `aws_s3_bucket.logs`."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The module uses separate S3 resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration` rather than deprecated inline bucket arguments or mixed styles.",
+          "[2] S3 features such as versioning, logging, encryption, public access block, lifecycle configuration, and policy are modeled with separate resources like `aws_s3_bucket_versioning.assets` rather than inline bucket configuration.",
+          "[2] S3 configuration is modeled with separate resources such as `aws_s3_bucket_versioning.assets`, `aws_s3_bucket_logging.assets`, and `aws_s3_bucket_server_side_encryption_configuration.assets` rather than mixed inline and separate configuration."
+        ],
+        "Outputs": [
+          "[2] The outputs expose the practical values consumers need, including `bucket_name`, `bucket_arn`, `bucket_region`, `bucket_domain_name`, and `kms_key_arn`.",
+          "[2] The outputs include consumer-useful values such as `bucket_name`, `bucket_arn`, `bucket_region`, `bucket_domain_name`, and `kms_key_arn`.",
+          "[1] Useful values like `bucket_name`, `bucket_arn`, `bucket_region`, and `kms_key_arn` are exported, but `bucket_policy_arn` is a misleading duplicate whose value is just `aws_s3_bucket.assets.arn`."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The module contains no `count` usage for multiplicity and has no repeated resource set requiring iteration.",
+          "[2] The module contains no `count` usage for repeated resources and has no multiplicity case requiring iteration.",
+          "[2] The module does not use `count` for multiplicity, and there are no repeated resource instances requiring iteration."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module looks up the AWS account identity with `data \"aws_caller_identity\" \"current\"` instead of asking the consumer to provide the account ID for bucket naming.",
+          "[2] The module uses `data.aws_caller_identity.current.account_id` to derive the generated bucket name instead of asking the caller to provide the AWS account ID.",
+          "[2] The module uses `data \"aws_caller_identity\" \"current\"` to obtain the AWS account ID instead of asking the caller to provide it."
+        ],
+        "File layout": [
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` combines multiple clear concerns including the primary bucket, KMS key, logging bucket, lifecycle policy, bucket policy, and metrics.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but distinct concerns such as the KMS key, logging bucket, lifecycle rules, bucket policy, and metrics are all kept together in `main.tf`.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` combines distinct concerns including the assets bucket, KMS key, logging bucket, lifecycle policy, bucket policy, and metrics."
+        ],
+        "Sensitive values": [
+          "[2] The module has no variables or outputs carrying secrets or confidential values; outputs such as `kms_key_arn` and `bucket_name` are identifiers rather than secret material.",
+          "[2] The module has no variables or outputs carrying secrets or confidential values, and no hardcoded secret values are present.",
+          "[2] The module has no variables or outputs that carry secrets or confidential values, and no hardcoded secret values are present."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No resource in the module uses `prevent_destroy` or `ignore_changes`.",
+          "[2] The module does not use `prevent_destroy` or `ignore_changes` lifecycle meta-arguments.",
+          "[2] No `lifecycle`, `prevent_destroy`, or `ignore_changes` meta-arguments are used."
+        ],
+        "Documentation": [
+          "[0] The `tags` variable description says additional tags apply to all resources, but `aws_kms_key.assets` and `aws_s3_bucket.logs` define tags without merging `var.tags`.",
+          "[0] `README.md` and the variable description say `retain_old_versions_days` can be set to `0` to disable old-version retention, but `aws_s3_bucket_lifecycle_configuration.assets` always creates the `delete-old-versions` rule using that value.",
+          "[0] The `tags` variable description says \u201cAdditional tags to apply to all resources,\u201d but resources such as `aws_kms_key.assets` and `aws_s3_bucket.logs` use fixed `tags = { ... }` maps without merging `var.tags`."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, remote module call, or deprecated inline S3 bucket configuration pattern.",
+          "[2] The module does not use `null_resource`, `local-exec`, or deprecated legacy resource forms.",
+          "[2] The module does not use `null_resource`, `local-exec`, remote modules, or legacy inline S3 bucket configuration forms."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors its own AWS resources directly and does not delete/comment out failed resources or expose an input that silently disables its access-security posture.",
+          "[2] The module authors its own AWS resources directly and does not call a remote module, comment out failed resources, or expose an input that disables its security posture.",
+          "[2] The module authors its own AWS resources directly and does not call a remote module or expose an input that disables the established security posture."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "3b508ce67649dcf4",
+      "tf_sloc": 230
+    },
+    "claude-opus-5-5": {
+      "overall": 97.4,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] variables.tf exposes concept-level inputs such as `application`, `environment`, `purpose`, optional `cors_allowed_origins`, and `expire_objects_after_days` rather than mirroring S3 bucket attributes.",
+          "[2] The module exposes concept-level inputs such as `application`, `environment`, optional `purpose`, CORS origins, retention, expiry, KMS key ARN, and `force_destroy` rather than pass-through S3 resource attributes.",
+          "[2] The inputs are mostly deployment concepts an app team can understand\u2014`application`, `environment`, `purpose`, optional retention/expiry, CORS origins, KMS key reference, and tags\u2014while the module decides S3-specific posture internally."
+        ],
+        "Variables and validation": [
+          "[2] variables.tf validates realistic mistakes including allowed `environment` values, S3-safe `application`/`purpose` names, positive retention periods, non-wildcard CORS origins, and KMS ARN shape.",
+          "[1] Most inputs are validated, but `variable \"environment\"` hardcodes `[\"dev\", \"test\", \"staging\", \"prod\"]`, rejecting otherwise valid environment names the brief did not rule out.",
+          "[2] Realistic mistake-prone inputs are guarded, such as `environment` being limited to `dev`, `test`, `staging`, or `prod`, bucket-name components using regex validation, and retention day values requiring sane numeric ranges."
+        ],
+        "Internal logic": [
+          "[2] main.tf uses locals to infer `bucket_name`, environment-based `noncurrent_days`, and merged `tags` from higher-level inputs.",
+          "[2] `locals` compute inferred values such as `bucket_name`, environment-based `noncurrent_days`, and merged `tags` from higher-level inputs.",
+          "[2] `locals` compute inferred values like `bucket_name`, environment-based `noncurrent_days`, and merged `tags` from concept inputs without requiring extra caller inputs."
+        ],
+        "Scope": [
+          "[2] main.tf creates the bucket plus ownership controls, public access blocking, encryption, versioning, lifecycle housekeeping, TLS-enforcing bucket policy, optional CORS, and read-only/read-write IAM policies.",
+          "[2] The module creates the bucket plus ownership controls, public access blocking, encryption, versioning, lifecycle cleanup, HTTPS/TLS enforcement policy, and ready-made IAM policies.",
+          "[2] The module creates the expected bucket support resources for a standard app assets bucket, including public access block, ownership controls, encryption, versioning, lifecycle configuration, TLS-enforcing bucket policy, optional CORS, and IAM policies."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] S3 features are modeled with separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_lifecycle_configuration`, `aws_s3_bucket_public_access_block`, and `aws_s3_bucket_server_side_encryption_configuration`.",
+          "[2] S3 bucket capabilities are modeled with dedicated resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration` rather than legacy inline bucket arguments.",
+          "[2] S3 bucket features that AWS supports as separate resources are modeled separately, such as `aws_s3_bucket_versioning`, `aws_s3_bucket_lifecycle_configuration`, and `aws_s3_bucket_server_side_encryption_configuration`."
+        ],
+        "Outputs": [
+          "[2] outputs.tf exports consumer-useful values including `bucket_name`, `bucket_arn`, `bucket_region`, `bucket_regional_domain_name`, and the IAM policy ARNs.",
+          "[2] Outputs include consumer-useful values such as `bucket_name`, `bucket_arn`, `bucket_region`, `bucket_regional_domain_name`, and the read/write and read-only IAM policy ARNs.",
+          "[2] The outputs expose practical consumer values including `bucket_name`, `bucket_arn`, `bucket_region`, `bucket_regional_domain_name`, and the read/write and read-only policy ARNs."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] the only `count` usage is `aws_s3_bucket_cors_configuration.this` as an on/off switch with `count = length(var.cors_allowed_origins) > 0 ? 1 : 0`.",
+          "[2] The only resource `count` is on `aws_s3_bucket_cors_configuration.this` as an on/off switch based on whether `cors_allowed_origins` is empty.",
+          "[2] The only `count` usage is `aws_s3_bucket_cors_configuration.this` as an on/off switch based on whether `cors_allowed_origins` is empty."
+        ],
+        "Data sources vs inputs": [
+          "[2] main.tf derives the account ID with `data \"aws_caller_identity\" \"current\"` instead of requiring it as an input, and it does not ask for duplicate facts about dependencies.",
+          "[2] The module looks up the current account with `data \"aws_caller_identity\" \"current\"` instead of asking the caller to provide an account ID.",
+          "[2] The module uses `data \"aws_caller_identity\" \"current\"` to derive the account ID for naming instead of asking the caller to provide it."
+        ],
+        "File layout": [
+          "[1] variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` mixes core bucket resources with IAM policy documents and IAM policy resources that are a separate concern.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` mixes the bucket resources, bucket policy documents, and IAM policy resources as separate concerns.",
+          "[1] Variables and outputs are properly separated into `variables.tf` and `outputs.tf`, but `main.tf` keeps bucket configuration, bucket policy documents, and IAM policy resources together despite those being distinct concerns."
+        ],
+        "Sensitive values": [
+          "[2] the module has no variables or outputs carrying raw secrets, and `kms_key_arn` is a reference identifier rather than secret material.",
+          "[2] The module accepts no raw secrets, and `kms_key_arn` is a reference identifier rather than a secret value.",
+          "[2] The module does not accept or output raw secrets; `kms_key_arn` is a reference to a key rather than confidential key material."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] the only `lifecycle` block is on `aws_s3_bucket.this` and contains a `precondition`, with no `prevent_destroy` or `ignore_changes` usage.",
+          "[2] The only `lifecycle` block contains a `precondition`, with no use of `prevent_destroy` or `ignore_changes`.",
+          "[2] The only `lifecycle` block on `aws_s3_bucket.this` contains a `precondition`, and the module does not use suspect `prevent_destroy` or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[2] every variable in variables.tf and every output in outputs.tf has a description, and comments explain non-obvious choices such as ACL disabling and TLS enforcement.",
+          "[2] Every variable and output has a `description`, and comments explain non-obvious choices such as ACL disabling, private assets, lifecycle behavior, CORS, and TLS enforcement.",
+          "[2] Every variable and output includes a `description`, and inline comments explain non-obvious choices such as private access, versioning, lifecycle cleanup, CORS, and TLS enforcement."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] the module contains no `null_resource`, `local-exec`, remote module call, or deprecated escape-hatch pattern.",
+          "[2] The module contains no `null_resource`, `local-exec`, or deprecated legacy inline S3 bucket configuration.",
+          "[2] The module contains no `null_resource`, `local-exec`, or deprecated legacy resource form."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] the module authors AWS resources directly and does not call a remote module or remove resources to hide errors.",
+          "[2] The module authors AWS resources directly and does not call a remote module or expose an input that makes the bucket publicly accessible.",
+          "[2] The module authors AWS resources directly and does not call a remote module or remove resources to hide errors."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "74963c055d49fa9f",
+      "tf_sloc": 300
+    },
+    "claude-sonnet-5-5": {
+      "overall": 92.1,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module is mostly opinionated but exposes S3-specialist knobs such as `variable \"kms_key_arn\"` and `variable \"access_log_bucket\"` to app developers who were asked to fill in only obvious inputs.",
+          "[1] The module makes important safe defaults such as public access blocking, but exposes S3-specific operational knobs like `kms_key_arn`, `access_log_bucket`, `versioning_enabled`, and `noncurrent_version_retention_days` to app developers who were meant to fill in only obvious inputs.",
+          "[1] The module is not a pass-through and has a minimal path with only `var.name`, but it exposes S3/KMS operational details such as `kms_key_arn`, `noncurrent_version_retention_days`, `access_log_bucket`, and `force_destroy` to app developers who were meant to rely on the module's judgment."
+        ],
+        "Variables and validation": [
+          "[1] Several inputs are validated, but `variable \"cors_allowed_origins\"` is a raw `list(string)` with no validation for the non-obvious origin format consumers are likely to mistype.",
+          "[2] Realistic consumer mistakes are guarded with validations on `var.name`, `var.noncurrent_version_retention_days`, and `var.expire_objects_after_days`, while provider-answerable identities such as `kms_key_arn` and `access_log_bucket` are left to AWS.",
+          "[2] Realistic user-controlled breakage is guarded with validations on `var.name`, `var.noncurrent_version_retention_days`, and `var.expire_objects_after_days`, while provider-answerable references such as `kms_key_arn` and `access_log_bucket` are left to AWS."
+        ],
+        "Internal logic": [
+          "[2] `local.use_kms` cleanly derives the encryption mode from `var.kms_key_arn` and is reused in the encryption configuration.",
+          "[2] The `local.use_kms` local cleanly infers KMS behavior from `var.kms_key_arn` and is reused in the encryption configuration instead of requiring extra inputs.",
+          "[2] The module uses readable internal logic such as `local.use_kms` to derive encryption settings and dynamic lifecycle `rule` blocks from higher-level inputs."
+        ],
+        "Scope": [
+          "[2] The module creates the expected bucket posture resources including public access blocking, ownership controls, encryption, versioning, lifecycle cleanup, TLS-only bucket policy, optional CORS, and optional access logging.",
+          "[2] The module includes the bucket plus expected supporting S3 controls for ownership, public access blocking, encryption, versioning, HTTPS-only policy, lifecycle cleanup, optional CORS, and optional access logging.",
+          "[2] The module creates the bucket plus expected supporting S3 controls including ownership controls, public access block, encryption configuration, versioning, HTTPS-only bucket policy, lifecycle cleanup, optional CORS, and optional access logging."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] S3 bucket configuration is implemented with separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_lifecycle_configuration`, and `aws_s3_bucket_cors_configuration` rather than deprecated inline bucket blocks.",
+          "[2] S3 bucket features are modeled with dedicated resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_server_side_encryption_configuration`, and `aws_s3_bucket_versioning` rather than legacy inline bucket arguments.",
+          "[2] S3 configurations are modeled as separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_lifecycle_configuration`, and `aws_s3_bucket_cors_configuration` rather than being mixed into `aws_s3_bucket`."
+        ],
+        "Outputs": [
+          "[2] Outputs include practical consumer values such as `bucket_name`, `bucket_arn`, `bucket_regional_domain_name`, `region`, and a usable `read_write_policy_json` without dumping every bucket attribute.",
+          "[2] Outputs include practical consumer values such as `bucket_name`, `bucket_arn`, `bucket_regional_domain_name`, `region`, and a `read_write_policy_json` document without dumping every bucket attribute.",
+          "[2] Outputs include practical consumer values like `bucket_name`, `bucket_arn`, `bucket_regional_domain_name`, `region`, and a ready-made `read_write_policy_json` without exporting every bucket attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] All `count` uses, such as on `aws_s3_bucket_cors_configuration.this`, are binary on/off switches rather than multiplicity by index.",
+          "[2] The only `count` uses are conditional on/off switches for `aws_s3_bucket_versioning`, `aws_s3_bucket_cors_configuration`, and `aws_s3_bucket_logging`.",
+          "[2] The only `count` usages, such as on `aws_s3_bucket_cors_configuration.this` and `aws_s3_bucket_logging.this`, are conditional on/off switches rather than multiplicity indexing."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module does not ask for duplicate dependency facts and uses the `aws_iam_policy_document` data source to derive the bucket policy JSON.",
+          "[2] The module accepts dependency identities like `access_log_bucket` and `kms_key_arn` rather than asking consumers to also provide derived attributes that could conflict.",
+          "[2] The module does not ask for duplicate dependency facts, and the only data source, `data \"aws_iam_policy_document\" \"this\"`, computes policy JSON from authoritative bucket attributes."
+        ],
+        "File layout": [
+          "[1] Variables and outputs are split correctly, but `main.tf` combines distinct lifecycle, CORS, logging, policy, and bucket concerns in one resource file.",
+          "[1] Variables and outputs are split into `variables.tf` and `outputs.tf`, but `main.tf` keeps distinct concerns such as lifecycle configuration, CORS, logging, policy, and encryption all together.",
+          "[2] Inputs are in `variables.tf`, outputs are in `outputs.tf`, and the S3 resources are kept in `main.tf`."
+        ],
+        "Sensitive values": [
+          "[2] The module has no raw secret variables or outputs, and `kms_key_arn` is only a reference identifier rather than secret material.",
+          "[2] The module has no variables or outputs carrying secrets, and `kms_key_arn` is a reference identifier rather than a secret value.",
+          "[2] The module has no variables or outputs carrying secrets, and `kms_key_arn` is a reference rather than a raw key value."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No `lifecycle` blocks with `prevent_destroy` or `ignore_changes` are present.",
+          "[2] No `lifecycle` meta-arguments such as `prevent_destroy` or `ignore_changes` are used.",
+          "[2] No `lifecycle` meta-arguments such as `prevent_destroy` or `ignore_changes` are used."
+        ],
+        "Documentation": [
+          "[2] Every declared variable and output includes a `description`, such as `variable \"expire_objects_after_days\"` and `output \"bucket_arn\"`.",
+          "[2] Every variable and output has a `description`, and the comments on ownership controls, public access, and encrypted transport accurately clarify the less obvious S3 controls.",
+          "[2] Every declared variable and output has a `description`, and the resource comments accurately explain non-obvious choices like disabled ACLs and encrypted transport."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, or legacy inline S3 bucket configuration blocks.",
+          "[2] The module uses no `null_resource`, `local-exec`, or remote module calls, and uses current split S3 bucket configuration resources.",
+          "[2] The module uses normal AWS S3 resources and contains no `null_resource`, `local-exec`, or deprecated escape-hatch pattern."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors its own AWS resources directly and does not call a remote module or hide errors by omitting the requested bucket resources.",
+          "[2] There is no evidence of deleted resources to hide errors, remote module calls, or an input that permits bypassing the module\u2019s public-access-blocking and HTTPS-only security posture.",
+          "[2] The module authors its own resources directly and does not call a remote module, comment out failed resources, or expose a public-access bypass input."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "14480e4d385e0330",
+      "tf_sloc": 213
+    },
+    "gemini-3.1-pro-preview": {
+      "overall": 78.9,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 0,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 0,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module exposes mostly use-case concepts like `app_name`, `environment`, and `purpose`, but also asks app developers to decide S3-specific controls such as `versioning_enabled`.",
+          "[1] The module uses clear concept inputs like `app_name`, `environment`, and `purpose`, but also exposes S3-specific knobs such as `variable \"versioning_enabled\"` and `variable \"force_destroy\"` to app developers despite the brief saying the module should own S3 design decisions.",
+          "[1] The module uses concept inputs like `app_name`, `environment`, and `purpose`, but exposes S3-specific/operational knobs such as `versioning_enabled` to app developers who the brief says should trust the module's judgment."
+        ],
+        "Variables and validation": [
+          "[0] There are no `validation` blocks, even though `app_name`, `environment`, and `purpose` are directly composed into `local.bucket_name` and invalid characters or empty values would break S3 bucket creation.",
+          "[0] None of the inputs have `validation` blocks, so realistic mistakes such as invalid bucket-name characters in `app_name`/`environment`/`purpose` or negative `expiration_days` are left to fail at the provider.",
+          "[0] There are no `validation` blocks, so realistic mistakes such as spaces or invalid characters in `var.app_name`, `var.environment`, or `var.purpose` can produce an invalid S3 bucket name."
+        ],
+        "Internal logic": [
+          "[2] `locals` derive `base_name` and `bucket_name` from the concept inputs and `random_id.suffix.hex` in a straightforward way.",
+          "[2] `locals` derive `bucket_name` from the conceptual inputs and a `random_id` suffix instead of requiring consumers to supply a globally unique bucket name.",
+          "[2] The `locals` block computes `base_name` and `bucket_name` from concept inputs and a `random_id` suffix instead of requiring the caller to provide a bucket name."
+        ],
+        "Scope": [
+          "[2] The module creates the bucket plus standard supporting S3 resources for ownership controls, public access blocking, versioning, encryption, TLS enforcement, and lifecycle cleanup.",
+          "[2] The module creates the core bucket plus standard operational/security adjuncts including `aws_s3_bucket_public_access_block`, `aws_s3_bucket_ownership_controls`, `aws_s3_bucket_versioning`, encryption configuration, TLS bucket policy, and lifecycle cleanup.",
+          "[2] The module creates the bucket plus standard supporting controls including `aws_s3_bucket_public_access_block`, `aws_s3_bucket_ownership_controls`, `aws_s3_bucket_versioning`, server-side encryption, and a TLS-enforcing bucket policy."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] S3 configuration is modeled with separate resources such as `aws_s3_bucket_versioning`, `aws_s3_bucket_server_side_encryption_configuration`, and `aws_s3_bucket_lifecycle_configuration` rather than inline bucket configuration.",
+          "[2] S3 settings that have dedicated resources are modeled separately, such as `aws_s3_bucket_versioning` and `aws_s3_bucket_server_side_encryption_configuration`, rather than being mixed into `aws_s3_bucket`.",
+          "[2] S3 bucket concerns are modeled with separate resources such as `aws_s3_bucket_public_access_block` and `aws_s3_bucket_server_side_encryption_configuration` rather than inline configuration on `aws_s3_bucket`."
+        ],
+        "Outputs": [
+          "[2] The outputs expose practical consumer values: `bucket_id`, `bucket_arn`, and `bucket_regional_domain_name`.",
+          "[2] The module outputs practical consumer values via `bucket_id`, `bucket_arn`, and `bucket_regional_domain_name` without exporting every bucket attribute.",
+          "[2] The module outputs the bucket name via `bucket_id`, the ARN via `bucket_arn`, and the regional domain name via `bucket_regional_domain_name`."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `count` is used only as a conditional on/off switch for the two lifecycle configuration resources.",
+          "[2] The only `count` usages on the lifecycle resources are on/off switches based on whether `var.expiration_days` is null.",
+          "[2] The only `count` usages on the two lifecycle configuration resources are on/off switches based on whether `var.expiration_days` is null."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module does not ask for duplicate facts about external dependencies such as both an ID and an attribute that should be looked up.",
+          "[2] The module does not ask for duplicate facts about external dependencies, and there are no dependency attributes that should instead be looked up with data sources.",
+          "[2] The module does not ask for derived facts about external dependencies, and there are no dependency inputs such as both an ID and a matching CIDR that should instead be looked up."
+        ],
+        "File layout": [
+          "[0] `main.tf` contains provider requirements, variables, resources, and outputs instead of placing variables and outputs in `variables.tf` and `outputs.tf`.",
+          "[0] All variables, resources, and outputs are placed together in `main.tf` instead of using `variables.tf` and `outputs.tf`.",
+          "[0] `main.tf` contains variables, resources, and outputs together, with no separate `variables.tf` or `outputs.tf`."
+        ],
+        "Sensitive values": [
+          "[2] The module has no variables or outputs that carry secrets or confidential values.",
+          "[2] The module has no variables or outputs that carry secrets or confidential values.",
+          "[2] The module has no variables or outputs that carry secrets or confidential values, only names, environment, purpose, tags, and bucket identifiers."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No `lifecycle` meta-arguments such as `prevent_destroy` or `ignore_changes` are used.",
+          "[2] No `lifecycle` meta-arguments such as `prevent_destroy` or `ignore_changes` are used.",
+          "[2] The module does not use any `lifecycle` meta-arguments such as `prevent_destroy` or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[2] Every declared variable and output includes a `description`, and the resource comments accurately explain non-obvious choices like ACL disabling and TLS enforcement.",
+          "[2] Every declared variable and output includes a `description`, and the resource comments accurately explain non-obvious choices such as disabling ACLs and requiring TLS.",
+          "[2] Every declared variable and output includes a `description`, such as `var.expiration_days` and `output \"bucket_arn\"`."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module does not use `null_resource`, `local-exec`, or deprecated S3 inline configuration forms.",
+          "[2] The module does not use `null_resource`, `local-exec`, or deprecated legacy resource forms.",
+          "[2] The module contains no `null_resource`, `local-exec`, or apparent deprecated resource form."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors AWS resources directly and does not call a remote module or comment out/delete a failed resource.",
+          "[2] The module authors AWS resources directly and contains no remote module calls, commented-out failed resources, or input that silently bypasses its public-access-blocking posture.",
+          "[2] The module authors AWS resources directly and contains no remote `module` block or commented-out resource used to hide an error."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "87c9394a2aae646f",
+      "tf_sloc": 160
+    },
+    "gpt-5.5-2026-04-23": {
+      "overall": 86.8,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module has a simple minimal path with `application_name` and `environment`, but it also exposes low-level S3 controls such as `bucket_key_enabled` and detailed `cors_rules` attributes to app developers who should not need S3 expertise.",
+          "[1] The module provides good concept inputs like `application_name` and `environment`, but also exposes S3-specialist knobs such as `bucket_key_enabled`, `abort_incomplete_multipart_upload_days`, `noncurrent_version_expiration_days`, and raw `cors_rules` to app developers.",
+          "[1] The module has concept inputs like `application_name` and `environment`, but also exposes S3-specific knobs such as `bucket_key_enabled`, `versioning_enabled`, and lifecycle day variables to app developers who were supposed to rely on the module's judgment."
+        ],
+        "Variables and validation": [
+          "[1] The module validates several realistic inputs, but `cors_rules` only validates `allowed_methods` values and does not guard empty `allowed_methods` or `allowed_origins` lists that would break the CORS configuration.",
+          "[1] Inputs are deliberately validated, but `variable \"environment\"` rejects common valid environment names longer than eight characters, such as `production`, via `length(var.environment) <= 8`.",
+          "[1] Inputs are deliberately validated, but `application_name` is arbitrarily limited to 18 characters even when an explicit `bucket_name` is supplied, rejecting otherwise valid application names."
+        ],
+        "Internal logic": [
+          "[1] The module uses locals for inferred values like `local.bucket_name` and `local.common_tags`, but the bucket-name expression references `data.aws_region.current.region`, which is not the standard `aws_region` data source attribute for the provider versions admitted.",
+          "[2] `locals.bucket_name` and `locals.common_tags` compute inferred values from higher-level inputs and data sources in straightforward expressions.",
+          "[2] `locals.bucket_name` and `locals.common_tags` infer the generated bucket name and shared tags from higher-level inputs and data sources in readable expressions."
+        ],
+        "Scope": [
+          "[2] The module creates the expected S3 bucket posture resources, including `aws_s3_bucket_public_access_block`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_versioning`, lifecycle configuration, and a TLS-deny bucket policy.",
+          "[2] The module creates the bucket plus expected supporting S3 resources for access posture, encryption, versioning, TLS-only policy, lifecycle hygiene, and optional integrations such as logging and CORS.",
+          "[2] The module creates the bucket plus expected supporting S3 posture resources including public access block, ownership controls, encryption configuration, versioning, TLS-deny bucket policy, and lifecycle housekeeping."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The module uses separate S3 resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration` rather than stuffing those settings inline on `aws_s3_bucket`.",
+          "[2] The module uses separate S3 resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration` instead of legacy inline bucket configuration.",
+          "[2] The S3 bucket\u2019s major configurations are modeled with separate resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration` rather than mixed inline bucket attributes."
+        ],
+        "Outputs": [
+          "[2] The outputs include the key consumer-facing values needed to use the bucket, including `bucket_name`, `bucket_arn`, `bucket_domain_name`, and `bucket_hosted_zone_id`.",
+          "[2] The outputs expose practical consumer values including `bucket_name`, `bucket_arn`, `bucket_domain_name`, and `bucket_hosted_zone_id` without dumping every bucket attribute.",
+          "[2] The outputs expose practical consumer values including `bucket_name`, `bucket_arn`, `bucket_domain_name`, and `bucket_hosted_zone_id` without dumping every resource attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The only `count` usages, such as on `aws_s3_bucket_logging.this` and `aws_s3_bucket_notification.this`, are on/off switches rather than multiplicity by index.",
+          "[2] The only `count` uses, such as on `aws_s3_bucket_logging.this`, are conditional on/off switches, while repeated nested CORS rules use `for_each`.",
+          "[2] `count` is used only as an on/off switch for optional singleton resources like `aws_s3_bucket_logging.this`, while repeated nested CORS rules use `for_each`."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module derives account and region facts with `data \"aws_caller_identity\" \"current\"` and `data \"aws_region\" \"current\"` instead of asking consumers to provide those values.",
+          "[2] The module looks up account and region facts with `data \"aws_caller_identity\" \"current\"` and `data \"aws_region\" \"current\"` rather than asking consumers to provide them.",
+          "[2] The module looks up account and region with `data.aws_caller_identity.current` and `data.aws_region.current` instead of asking consumers to provide those facts."
+        ],
+        "File layout": [
+          "[2] Inputs, outputs, provider requirements, and resources are split into `variables.tf`, `outputs.tf`, `versions.tf`, and `main.tf` rather than being placed in a single file.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` combines multiple distinct concerns including bucket policy, lifecycle rules, logging, CORS, and notifications.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` combines bucket creation, policy, lifecycle, logging, CORS, and notification concerns in one resource file."
+        ],
+        "Sensitive values": [
+          "[2] The module has no variables or outputs that carry raw secrets, and `kms_key_arn` is a reference identifier rather than a secret value.",
+          "[2] The module has no secret-valued variables or outputs, and `kms_key_arn` is a reference identifier rather than a raw secret.",
+          "[2] The module does not accept raw secrets, and the KMS setting is a reference input `kms_key_arn` rather than confidential key material."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The only `lifecycle` block is a precondition on `aws_s3_bucket.this`, and the module does not use `prevent_destroy` or `ignore_changes`.",
+          "[2] The module does not use `prevent_destroy` or `ignore_changes`, and its only `lifecycle` block on `aws_s3_bucket.this` contains a precondition.",
+          "[2] The only `lifecycle` block is an `aws_s3_bucket.this` precondition on bucket-name length, with no inappropriate `prevent_destroy` or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has a `description`, and `README.md` accurately summarizes the module\u2019s defaults and minimal usage.",
+          "[2] Every variable and output has a `description`, and `README.md` accurately summarizes the module\u2019s purpose, defaults, and minimal use.",
+          "[2] Every variable and output has a description, and the README accurately summarizes the module\u2019s defaults and minimal use."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, or remote workaround resources.",
+          "[2] The module contains no `null_resource`, `local-exec`, or remote workaround resources.",
+          "[2] The module contains no `null_resource`, `local-exec`, or remote workaround resources, and uses current split S3 configuration resources."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors its own AWS resources directly and contains no remote `module` call or deleted/commented-out replacement for a failing resource.",
+          "[2] The module authors AWS resources directly and contains no `module` blocks calling remote modules or commented-out/deleted resources to hide errors.",
+          "[2] The module authors its own AWS resources directly and contains no remote `module` block or evidence of deleting resources to hide an error."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "495ecd0d28611881",
+      "tf_sloc": 312
+    },
+    "ref-flexible": {
+      "overall": 92.1,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module gives app developers S3-specific lifecycle knobs such as `transition_storage_class`, `transition_days`, and `noncurrent_expiration_days` even though the brief says they should fill in only obvious inputs and trust the module\u2019s judgment.",
+          "[1] The module gives app teams concept-level inputs like `purpose` and `environment`, but also exposes S3-specific choices such as `transition_storage_class` that this audience may not be equipped to choose.",
+          "[1] The module exposes S3-specific knobs such as `transition_storage_class`, `transition_days`, `noncurrent_expiration_days`, and `force_destroy` to app developers instead of mostly encoding those judgments behind the simple `purpose` and `environment` inputs."
+        ],
+        "Variables and validation": [
+          "[2] Inputs with realistic user mistakes have targeted validation, such as `purpose` matching `^[a-z0-9-]{2,24}$`, `environment` limited to known values, and lifecycle day counts constrained to whole valid ranges.",
+          "[2] Realistic user mistakes are guarded with validations on `purpose`, `environment`, `transition_days`, `transition_storage_class`, and `noncurrent_expiration_days`, while provider-answerable values like `region` are left to AWS.",
+          "[2] Inputs with realistic bad values are guarded, such as `environment` being limited to `dev`, `staging`, or `prod` and lifecycle day counts requiring whole nonnegative or minimum-valid values."
+        ],
+        "Internal logic": [
+          "[2] `locals` derive `is_prod`, `bucket_name`, `force_destroy`, and merged `tags` from higher-level inputs instead of requiring separate resource-attribute inputs.",
+          "[2] `locals` cleanly derive internal values such as `is_prod`, `bucket_name`, `force_destroy`, and merged `tags` from higher-level inputs.",
+          "[2] The `locals` block cleanly derives `is_prod`, `bucket_name`, `force_destroy`, and merged `tags` from higher-level inputs without requiring separate resource-attribute inputs."
+        ],
+        "Scope": [
+          "[2] `main.tf` creates the asset bucket plus ownership controls, public access blocking, server-side encryption, versioning, lifecycle rules, and production access logging resources.",
+          "[2] The module creates the bucket plus standard supporting controls for ownership, public access blocking, encryption, versioning, lifecycle cleanup, and production access logging.",
+          "[2] The module creates the core bucket plus competent supporting S3 posture resources including ownership controls, public access block, server-side encryption, versioning, lifecycle cleanup, and production access logging."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] S3 bucket concerns are modeled with separate resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_server_side_encryption_configuration`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_logging` rather than legacy inline bucket arguments.",
+          "[2] The module uses separate S3 resources such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_server_side_encryption_configuration`, and `aws_s3_bucket_versioning` rather than deprecated inline bucket configuration.",
+          "[2] S3 features that the AWS provider models separately are implemented as separate resources, such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration`."
+        ],
+        "Outputs": [
+          "[2] `outputs.tf` exposes the bucket name, ARN, and regional domain name needed by consumers to use the created asset bucket.",
+          "[2] The outputs expose the values consumers need to use the bucket externally: `bucket_name`, `bucket_arn`, and `bucket_regional_domain_name`.",
+          "[2] The module outputs the asset bucket\u2019s usable identifiers via `bucket_name`, `bucket_arn`, and `bucket_regional_domain_name` without dumping every resource attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The only `count` usage is an on/off switch for production-only logging resources, for example `count = local.is_prod ? 1 : 0` on `aws_s3_bucket.logs`.",
+          "[2] The only `count` usage, such as on `aws_s3_bucket.logs`, is an on/off switch for production-only logging resources.",
+          "[2] The only `count` usage is an on/off switch for production-only logging resources, such as `count = local.is_prod ? 1 : 0` on `aws_s3_bucket.logs`."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module uses `data \"aws_caller_identity\" \"current\"` to obtain the account ID for the logging bucket policy instead of asking the caller to provide it.",
+          "[2] The module looks up the current AWS account with `data \"aws_caller_identity\" \"current\"` instead of asking the caller to provide an account ID.",
+          "[2] The module looks up the current AWS account with `data \"aws_caller_identity\" \"current\"` for the log bucket policy instead of asking the caller to provide an account ID."
+        ],
+        "File layout": [
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` mixes the primary asset bucket resources with the distinct logging bucket, logging configuration, and log bucket policy concern.",
+          "[1] The module separates variables and outputs into `variables.tf` and `outputs.tf`, but keeps both the main asset bucket and the supporting logging bucket resources together in `main.tf`.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but the main asset bucket and the supporting production log bucket concern are both kept together in `main.tf`."
+        ],
+        "Sensitive values": [
+          "[2] The module has no variables or outputs carrying secrets or confidential values, and no hardcoded secrets are present.",
+          "[2] The module has no variables or outputs carrying secrets; inputs are non-secret configuration such as `purpose`, `environment`, `region`, and lifecycle settings.",
+          "[2] The module has no variables or outputs carrying secrets or confidential values."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] No Terraform/OpenTofu `lifecycle` meta-argument blocks such as `prevent_destroy` or `ignore_changes` appear in any resource.",
+          "[2] No `lifecycle` meta-arguments such as `prevent_destroy` or `ignore_changes` are present.",
+          "[2] No resource uses `lifecycle`, `prevent_destroy`, or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[2] Every variable in `variables.tf` and every output in `outputs.tf` includes a `description`, with concise comments explaining the non-obvious always-on versioning decision.",
+          "[2] Every variable and output has a `description`, and comments explain non-obvious choices like always enabling versioning.",
+          "[2] Every variable and output has a description, such as `variable \"purpose\"` and `output \"bucket_arn\"`, and comments explain non-obvious choices like always enabling versioning."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, remote module call, or deprecated inline S3 bucket configuration pattern.",
+          "[2] The module contains no `null_resource`, `local-exec`, remote workaround, or deprecated inline S3 bucket configuration pattern.",
+          "[2] The module contains no `null_resource`, `local-exec`, remote module call, or deprecated legacy S3 bucket inline configuration pattern."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors AWS resources directly and does not include a remote module call, commented-out failed resource, or input that weakens the public-access-block posture.",
+          "[2] The module authors AWS resources directly and does not call a remote module or comment out failed resources.",
+          "[2] The module authors its own AWS resources directly and does not call a remote module or comment out/delete a failing resource."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "11ec872edf9cfb6d",
+      "tf_sloc": 220
+    },
+    "ref-lean": {
+      "overall": 97.4,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module exposes S3-specific lifecycle controls like `variable \"transition_days\"` and `variable \"noncurrent_expiration_days\"` to app developers despite the brief saying they should fill in only obvious inputs and rely on the module's judgment.",
+          "[2] The required inputs are concept-level choices an app team can make, such as `variable \"purpose\"` and `variable \"environment\"`, while S3 details like ownership controls, public access blocking, encryption, and versioning are decided internally.",
+          "[2] The inputs are mostly deployment concepts an app team can answer\u2014`purpose`, `environment`, optional lifecycle retention knobs, `extra_tags`, and `region`\u2014while security decisions such as public access blocking and encryption are made internally rather than exposed as knobs."
+        ],
+        "Variables and validation": [
+          "[2] Consumer-controlled inputs with meaningful constraints are validated, such as `purpose` with a slug regex, `environment` limited to `dev`, `staging`, or `prod`, and `transition_days` constrained to `0` or at least `30`.",
+          "[2] Realistic input mistakes are guarded with validations such as `contains([\"dev\", \"staging\", \"prod\"], var.environment)` and `var.transition_days == 0 || var.transition_days >= 30`.",
+          "[2] Realistic mistakes are guarded with validations such as `contains([\"dev\", \"staging\", \"prod\"], var.environment)`, the `purpose` slug regex, and `transition_days == 0 || var.transition_days >= 30`."
+        ],
+        "Internal logic": [
+          "[2] The module uses locals such as `local.is_prod`, `local.bucket_name`, and `local.tags` to infer resource behavior and names from concept inputs rather than demanding separate inputs.",
+          "[2] `locals` derives inferred values such as `is_prod`, `bucket_name`, and merged `tags` instead of requiring those as separate inputs.",
+          "[2] `locals` compute inferred values like `is_prod`, `bucket_name`, and merged `tags` from concept inputs rather than requiring separate raw inputs."
+        ],
+        "Scope": [
+          "[2] The module creates the asset bucket plus expected supporting S3 controls including public access blocking, ownership controls, server-side encryption, versioning, lifecycle rules, and prod access logging.",
+          "[2] The module creates the core bucket plus operational posture resources including `aws_s3_bucket_public_access_block.assets`, `aws_s3_bucket_server_side_encryption_configuration.assets`, `aws_s3_bucket_versioning.assets`, and lifecycle configuration.",
+          "[2] The module creates the core asset bucket plus expected supporting posture and hygiene resources including `aws_s3_bucket_public_access_block.assets`, `aws_s3_bucket_server_side_encryption_configuration.assets`, `aws_s3_bucket_versioning.assets`, and `aws_s3_bucket_lifecycle_configuration.assets`."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] S3 features that the AWS provider models as separate resources are implemented separately, such as `aws_s3_bucket_public_access_block`, `aws_s3_bucket_versioning`, and `aws_s3_bucket_server_side_encryption_configuration`.",
+          "[2] Bucket features are modeled as separate resources such as `aws_s3_bucket_public_access_block.assets` and `aws_s3_bucket_server_side_encryption_configuration.assets` rather than inline bucket arguments.",
+          "[2] S3 bucket settings that the AWS provider exposes as separate resources are modeled separately, such as `aws_s3_bucket_public_access_block.assets` and `aws_s3_bucket_server_side_encryption_configuration.assets`, rather than inline on `aws_s3_bucket.assets`."
+        ],
+        "Outputs": [
+          "[2] The outputs expose practical consumer values for using the bucket externally: `bucket_name`, `bucket_arn`, and `bucket_regional_domain_name`.",
+          "[2] The outputs expose the practical external-use values `bucket_name`, `bucket_arn`, and `bucket_regional_domain_name`.",
+          "[2] The module outputs practical consumer values for using the bucket externally: `bucket_name`, `bucket_arn`, and `bucket_regional_domain_name`."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] The only resource-level `count` usages, such as on `aws_s3_bucket.logs`, are boolean on/off switches for prod-only logging resources.",
+          "[2] `count` is used only as an on/off switch for prod-only resources, for example `count = local.is_prod ? 1 : 0` on `aws_s3_bucket.logs`.",
+          "[2] `count` is only used as an on/off switch for prod-only logging resources, for example `count = local.is_prod ? 1 : 0` on `aws_s3_bucket.logs`."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module uses `data \"aws_caller_identity\" \"current\"` to derive the AWS account ID for the log bucket policy instead of requiring it as an input.",
+          "[2] The module uses `data \"aws_caller_identity\" \"current\"` to obtain the AWS account ID for the log bucket policy instead of asking the consumer for it.",
+          "[2] The module derives the AWS account ID with `data \"aws_caller_identity\" \"current\"` instead of asking the caller to provide it."
+        ],
+        "File layout": [
+          "[1] The module separates variables, outputs, providers, and versions into their own files, but `main.tf` combines the primary asset bucket with the supporting prod log bucket and its policy despite those being separate concerns.",
+          "[1] Variables and outputs are separated into `variables.tf` and `outputs.tf`, but `main.tf` mixes the primary asset bucket resources with the supporting access-log bucket and its policy/configuration.",
+          "[1] Variables and outputs are correctly separated into `variables.tf` and `outputs.tf`, but `main.tf` combines the main asset bucket with the supporting prod log bucket and log bucket policy instead of splitting clear concerns."
+        ],
+        "Sensitive values": [
+          "[2] There are no variables or outputs carrying secrets; inputs are non-secret values like `purpose`, `environment`, `region`, and `extra_tags`.",
+          "[2] There are no variables or outputs carrying secrets or confidential values in the module.",
+          "[2] The declared variables are `purpose`, `environment`, lifecycle day counts, `extra_tags`, and `region`, with no secret or confidential values accepted or output."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The module does not use `prevent_destroy` or `ignore_changes` lifecycle meta-arguments anywhere.",
+          "[2] The module contains no `lifecycle` blocks using `prevent_destroy` or `ignore_changes`.",
+          "[2] The module contains no `lifecycle` meta-argument blocks such as `prevent_destroy` or `ignore_changes`."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has a `description`, and comments explain non-obvious choices such as versioning, multipart cleanup, and prod access logging.",
+          "[2] Every declared variable and output includes a `description`, such as `variable \"purpose\"` and `output \"bucket_arn\"`.",
+          "[2] Every variable and output includes a `description`, such as `variable \"noncurrent_expiration_days\"` and `output \"bucket_arn\"`, and comments explain non-obvious lifecycle and logging choices."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, or deprecated inline S3 bucket configuration patterns.",
+          "[2] The module uses normal provider resources and contains no `null_resource`, `local-exec`, or remote-exec provisioner.",
+          "[2] The module contains no `null_resource`, `local-exec`, or remote workaround resources."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors AWS resources directly and does not call a remote module or expose an input that disables its public access blocking or encryption posture.",
+          "[2] The module authors resources directly, such as `aws_s3_bucket.assets`, and contains no remote `module` blocks or commented-out replacement for failed resources.",
+          "[2] The module authors AWS resources directly and exposes no input that disables the established security posture, such as public access blocking or encryption."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "9c6fe551b2a9a56d",
+      "tf_sloc": 204
+    }
+  },
+  "calibration": {
+    "fixture": "G001",
+    "judge_model": "openai/gpt-5.5-2026-04-23",
+    "method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)",
+    "cells": 112,
+    "agreement": 0.938,
+    "by_section": {
+      "Interface design": 0.5,
+      "Variables and validation": 1.0,
+      "Internal logic": 1.0,
+      "Scope": 0.75,
+      "Inline Resource Configuration vs Separate Resources": 1.0,
+      "Outputs": 1.0,
+      "Iteration: for_each vs count": 1.0,
+      "Data sources vs inputs": 1.0,
+      "File layout": 1.0,
+      "Sensitive values": 1.0,
+      "Lifecycle meta-arguments": 1.0,
+      "Documentation": 0.875,
+      "Deprecated and escape-hatch patterns": 1.0,
+      "Anti-patterns (immediate credibility loss)": 1.0
+    },
+    "misses": [
+      {
+        "module": "claude-fable-5-1",
+        "section": "Interface design",
+        "human": 1,
+        "judge": 2
+      },
+      {
+        "module": "ref-flexible",
+        "section": "Scope",
+        "human": 1,
+        "judge": 2
+      },
+      {
+        "module": "ref-flexible",
+        "section": "Documentation",
+        "human": 1,
+        "judge": 2
+      },
+      {
+        "module": "gemini-3.1-pro-preview",
+        "section": "Interface design",
+        "human": 2,
+        "judge": 1
+      },
+      {
+        "module": "ref-lean",
+        "section": "Interface design",
+        "human": 1,
+        "judge": 2
+      },
+      {
+        "module": "ref-lean",
+        "section": "Scope",
+        "human": 1,
+        "judge": 2
+      },
+      {
+        "module": "claude-haiku-4-5-20251001",
+        "section": "Interface design",
+        "human": 2,
+        "judge": 1
+      }
+    ],
+    "unfilled": 0,
+    "failing_sections": [
+      "Interface design"
+    ]
+  },
+  "agreement": 0.938,
+  "agreement_method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)"
+}

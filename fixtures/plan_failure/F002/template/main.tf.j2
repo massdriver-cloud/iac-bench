@@ -1,9 +1,0 @@
-resource "null_resource" "{{ resource_prefix }}_node" {
-  for_each = var.{{ resource_prefix }}_instances
-
-  triggers = {
-    name = each.key
-    size = each.value
-    env  = "{{ env_name }}"
-  }
-}

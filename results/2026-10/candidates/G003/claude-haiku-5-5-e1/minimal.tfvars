@@ -1,0 +1,5 @@
+name                 = "orders-api"
+location             = "eastus2"
+resource_group_name  = "rg-orders-api"
+container_image_name = "acme/orders-api"
+container_image_tag  = "1.0.0"

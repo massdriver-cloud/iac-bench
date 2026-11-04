@@ -1,4 +1,4 @@
-"""iacbench: benchmark scoring LLMs on OpenTofu IaC tasks with mechanical invariants."""
+"""iacbench: benchmark scoring LLM-written OpenTofu modules against real plans and a calibrated judge."""
 
 __version__ = "0.1.0"
 

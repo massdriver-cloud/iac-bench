@@ -38,18 +38,24 @@ def _differences(logged, result) -> list:
     return diffs
 
 
-def run_rescore(fixture: GenerationFixture, candidates: Path, log_dir: Path, workers: int = 8) -> int:
+def run_rescore(
+    fixture: GenerationFixture, candidates: Path, log_dir: Path, workers: int = 8,
+    sha_map: dict | None = None,
+) -> int:
     """Print every difference; 0 when every logged candidate scores as logged.
-    Candidates without a logged score (hand-written references) are skipped."""
+    Candidates without a logged score (hand-written references) are skipped.
+    `sha_map` maps a redacted module's hash to the hash its score was logged
+    under (a data release's redactions.json)."""
     logged = {
         a.module_sha: a
         for a in collect_attempts(log_dir)
-        if a.kind == "generation" and a.fixture == fixture.id and a.module_sha
+        if a.fixture == fixture.id and a.module_sha
     }
     dirs = sorted(d for d in Path(candidates).iterdir() if d.is_dir())
     jobs = []
     for d in dirs:
-        attempt = logged.get(module_sha(d))
+        sha = module_sha(d)
+        attempt = logged.get((sha_map or {}).get(sha, sha))
         if attempt is None:
             print(f"{d.name}: skipped, no logged score for this module in {log_dir}")
         else:

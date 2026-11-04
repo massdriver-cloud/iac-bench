@@ -12,9 +12,9 @@ __pycache__/
 .claude/settings.local.json
 
 # Benchmark output
-runs/
-logs/
-report.md
+/runs/
+/logs/
+/report.md
 
 # OpenTofu provider cache and working dirs
 .cache/
@@ -23,3 +23,4 @@ report.md
 
 # Built HCL helper (tools/hclast)
 tools/hclast/hclast
+tools/hclast/hclast.sha256

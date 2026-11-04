@@ -1,0 +1,143 @@
+# Your grade per module and doctrine section: 0, 1 or 2.
+# Read modules/Module-X.md for the source and the judges' grades.
+fixture: G003
+principles_sha256: af3ae1dd9fdc1c0c
+candidates:
+  Module A: 46c6b717d43a6777
+  Module B: 1ac23e6f81e9a378
+  Module C: 439598c1ef8f36bd
+  Module D: beff1ba244960cc1
+  Module E: 07db46a40a1f8616
+  Module F: 27dd91ff30c280ae
+  Module G: 907259d1e294119d
+  Module H: 6a53948a06afd738
+grades:
+  Module A:
+    Interface design: 1
+    Variables and validation: 1
+    Internal logic: 1
+    Scope: 1
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 1
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 1
+    File layout: 1
+    Sensitive values: 1
+    Lifecycle meta-arguments: 2
+    Documentation: 0
+    Deprecated and escape-hatch patterns: 1
+    Anti-patterns (immediate credibility loss): 0
+  Module B:
+    Interface design: 2
+    Variables and validation: 1
+    Internal logic: 2
+    Scope: 2
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 2
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 2
+    File layout: 1
+    Sensitive values: 2
+    Lifecycle meta-arguments: 2
+    Documentation: 2
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+  Module C:
+    Interface design: 1
+    Variables and validation: 2
+    Internal logic: 2
+    Scope: 2
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 1
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 2
+    File layout: 1
+    Sensitive values: 2
+    Lifecycle meta-arguments: 2
+    Documentation: 2
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+  Module D:
+    Interface design: 1
+    Variables and validation: 0
+    Internal logic: 2
+    Scope: 1
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 2
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 2
+    File layout: 1
+    Sensitive values: 2
+    Lifecycle meta-arguments: 2
+    Documentation: 1
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+  Module E:
+    Interface design: 1
+    Variables and validation: 1
+    Internal logic: 1
+    Scope: 2
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 2
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 2
+    File layout: 1
+    Sensitive values: 1
+    Lifecycle meta-arguments: 2
+    Documentation: 0
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+  Module F:
+    Interface design: 2
+    Variables and validation: 1
+    Internal logic: 2
+    Scope: 2
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 2
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 2
+    File layout: 2
+    Sensitive values: 2
+    Lifecycle meta-arguments: 2
+    Documentation: 0
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+  Module G:
+    Interface design: 2
+    Variables and validation: 1
+    Internal logic: 2
+    Scope: 2
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 2
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 1
+    File layout: 1
+    Sensitive values: 2
+    Lifecycle meta-arguments: 2
+    Documentation: 2
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+  Module H:
+    Interface design: 2
+    Variables and validation: 2
+    Internal logic: 2
+    Scope: 2
+    Inline Resource Configuration vs Separate Resources: 2
+    Outputs: 1
+    'Iteration: for_each vs count': 2
+    Data sources vs inputs: 2
+    File layout: 1
+    Sensitive values: 2
+    Lifecycle meta-arguments: 2
+    Documentation: 2
+    Deprecated and escape-hatch patterns: 2
+    Anti-patterns (immediate credibility loss): 2
+notes:
+  Module A: ''
+  Module B: ''
+  Module C: ''
+  Module D: ''
+  Module E: 'Documentation: a description promises support the module lacks; wrong documentation is a 0.'
+  Module F: 'Documentation: a validation message contradicts the check; wrong documentation is a 0.'
+  Module G: ''
+  Module H: ''

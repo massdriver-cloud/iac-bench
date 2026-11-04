@@ -1,0 +1,5 @@
+project_id        = "example-project"
+instance_name     = "apps-dev-postgres"
+region            = "us-central1"
+network_self_link = "projects/example-project/global/networks/apps-dev"
+database_name     = "app"

@@ -7,9 +7,9 @@ attempt budgets) are ruled out by policy rather than by promise.
 
 ## Runs and results
 
-- **No retractions.** Every scored run of a listed model is published. A model
-  never gets a do-over that deletes a bad run; re-runs add rows, they do not
-  replace them.
+- **No retractions.** Every scored run behind a published result is published
+  with it. A model never gets a do-over that deletes a bad run; re-runs add
+  rows, they do not replace them.
 - **No private variants.** A model appears on the leaderboard under exactly one
   pinned, dated identifier per row. Variants (thinking budgets, reasoning
   effort, snapshots) are separate rows, never averaged and never cherry-picked
@@ -38,12 +38,11 @@ attempt budgets) are ruled out by policy rather than by promise.
 
 ## What this benchmark does not measure
 
-- **Apply-time behavior.** Generation scoring is plan-only: apply-time cloud
-  API rejections, idempotency under re-apply, and destroy behavior are not
-  yet scored (fix-domain Tier 2 fixtures do apply and destroy for real).
+- **Apply-time behavior.** Scoring is plan-only: apply-time cloud API
+  rejections, idempotency under re-apply, and destroy behavior are not scored.
 - **Consumption skill.** Selecting safe inputs for an existing knob-heavy
   module is a different skill from authoring; this benchmark measures
-  authoring and repair.
+  authoring.
 - **General coding ability, general intelligence, or fitness for any
   particular production use.** Scores are specific to the published fixtures,
   scaffold, and doctrine.

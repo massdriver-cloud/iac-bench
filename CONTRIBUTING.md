@@ -7,34 +7,32 @@ known answers before it counts. Contributions are expected to preserve that.
 
 ## Development setup
 
-Open the repo in the dev container (`.devcontainer/`) — it provides pinned
-OpenTofu, `uv`, and the Python environment (`uv sync` runs automatically).
-All commands below run inside the container.
+Open the repo in the dev container (`.devcontainer/`). It provides OpenTofu, Go, `uv`
+and the Python environment, and builds the HCL helper (`tools/hclast`). All commands
+below run inside the container.
 
 ```bash
-uv run iacbench selftest          # validate all checkers against known answers
-uv run iacbench render --fixture F001 --seed 42 --out /tmp/f
-uv run inspect eval src/iacbench/task.py -T fixture=F001 --model mockllm/model
+uv run pytest tests                               # static analysis, no credentials
+IACBENCH_CLOUD=1 uv run iacbench selftest         # every fixture's reference matrix
 ```
 
-Tier-2 fixtures (real AWS, creating resources) require AWS credentials and
-`IACBENCH_AWS=1`. Generation scoring (plan-only) requires `IACBENCH_CLOUD=1` plus
-credentials for the cloud each fixture's rubric declares; fixtures whose cloud has no
-credentials in the environment are skipped. CI runs only the hermetic tier.
+Scoring (plan-only) requires `IACBENCH_CLOUD=1` plus credentials for the cloud each
+fixture's rubric declares; fixtures whose cloud has no credentials in the environment are
+skipped. CI runs lint and the unit tests, which need no credentials.
 
 ## Contributing a fixture
 
 A fixture PR is accepted only when it ships **complete with its evidence**:
 
-1. **The fixture** (`fixtures/<domain>/<ID>/`): manifest/rubric, templates or
-   brief. Briefs for generation fixtures are short, realistic human prompts —
-   scored criteria are hidden and must never leak into the brief or scaffold
-   prompts.
-2. **Its known-answer matrix** (`testdata/solutions/<ID>/`): at least two
-   *structurally different* correct/good solutions (this is what proves the
-   checkers accept more than one valid answer), the broken/naive baseline, and
-   cheat variants targeting each anti-gaming invariant, with `expectations.yaml`.
-3. **A green selftest**: `uv run iacbench selftest --fixture <ID>` must pass.
+1. **The fixture** (`fixtures/generation/<ID>/`): `brief.md` and `rubric.yaml`.
+   Briefs are short, realistic human prompts; scored criteria are hidden and must
+   never leak into the brief or scaffold prompts.
+2. **Its reference matrix** (`testdata/solutions/<ID>/`): at least two
+   *structurally different* good modules (this is what proves the checks accept
+   more than one valid answer) and bad modules that each fail specific items,
+   with `expectations.yaml`.
+3. **A green selftest**: `IACBENCH_CLOUD=1 uv run iacbench selftest --fixture <ID>`
+   must pass.
    A fixture whose checkers haven't been validated against known answers does
    not merge.
 4. **Provenance and licensing**: document the fixture's source and the license
@@ -60,10 +58,8 @@ Scoring changes rewrite history (stored results are re-scorable by design), so:
 
 ## Ground rules
 
-- **No credentials anywhere** — fixtures, tests, logs, and examples must be
-  credential-free and deterministic. Hermetic fixtures may not require cloud
-  access; Tier-2 fixtures must tag all resources `iacbench=true` and destroy
-  them after scoring.
+- **No credentials anywhere**: fixtures, tests, logs, and examples must be
+  credential-free. Scoring only plans; it never creates cloud resources.
 - **Mechanical before judged** — if a criterion can be checked from `tofu`
   output, plan JSON, or static analysis, it belongs in the rubric, not the
   judge. Judged scores stay in their own column, never folded into mechanical
@@ -74,8 +70,9 @@ Scoring changes rewrite history (stored results are re-scorable by design), so:
 ## Before opening a PR
 
 ```bash
-uv run ruff check src
-uv run iacbench selftest
+uv run ruff check src tests
+uv run pytest tests
+IACBENCH_CLOUD=1 uv run iacbench selftest
 ```
 
 By contributing, you agree that your contribution is licensed under the

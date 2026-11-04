@@ -1,0 +1,7 @@
+project_id        = "apps-dev-project"
+region            = "europe-west1"
+instance_name     = "orders-dev"
+environment       = "dev"
+network_self_link = "projects/apps-dev-project/global/networks/apps-dev"
+database_version  = "POSTGRES_16"
+tier              = "db-custom-1-3840"

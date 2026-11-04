@@ -12,7 +12,6 @@
 id: G002
 domain: generation
 suite_version: v0.1.0
-tier: 2
 cloud: gcp
 scoring_policy: v1  # pinned pre-publication; see docs/generation-check-engine.md
 
