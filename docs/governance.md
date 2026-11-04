@@ -7,9 +7,9 @@ attempt budgets) are ruled out by policy rather than by promise.
 
 ## Runs and results
 
-- **No retractions.** Every scored run of a listed model is published. A model
-  never gets a do-over that deletes a bad run; re-runs add rows, they do not
-  replace them.
+- **No retractions.** Every scored run behind a published result is published
+  with it. A model never gets a do-over that deletes a bad run; re-runs add
+  rows, they do not replace them.
 - **No private variants.** A model appears on the leaderboard under exactly one
   pinned, dated identifier per row. Variants (thinking budgets, reasoning
   effort, snapshots) are separate rows, never averaged and never cherry-picked
