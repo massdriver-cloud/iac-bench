@@ -126,7 +126,8 @@ not measure) are published in `docs/governance.md`.
 ## License and contributing
 
 Code is Apache-2.0 (see `LICENSE`); each data release under `results/` carries its own
-license. Contributions welcome: see `CONTRIBUTING.md` for the fixture contract (reference
+license. To cite iac-bench or a release, use `CITATION.cff` (GitHub's "Cite this repository").
+Contributions welcome: see `CONTRIBUTING.md` for the fixture contract (reference
 matrix + selftest required) and scoring-change rules, and `SECURITY.md` for private
 vulnerability reporting.
 
