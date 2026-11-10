@@ -16,6 +16,7 @@ calibration of the judge.
 | Calibration | per fixture, against the doctrine owner's grades (`calibration/`) |
 | OpenTofu | 1.12.5 |
 | Runs | 2026-10-22; judged 2026-10-23 |
+| Archive | Zenodo, [doi:10.5281/zenodo.23988899](https://doi.org/10.5281/zenodo.23988899) |
 | Prices | OpenRouter list prices dated 2026-10-23 (`prices.yaml`) |
 
 Models: `anthropic/claude-fable-5-1`, `anthropic/claude-haiku-5-5`,
