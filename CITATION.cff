@@ -36,6 +36,6 @@ references:
     publisher:
       name: Zenodo
     year: 2026
-    version: "2026-10"
-    doi: "10.5281/zenodo.23988899"
+    version: "2026-10.1"
+    doi: "10.5281/zenodo.24141509"
     license: CC-BY-4.0
