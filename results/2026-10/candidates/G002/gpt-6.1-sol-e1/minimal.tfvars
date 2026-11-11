@@ -1,0 +1,8 @@
+project_id         = "dba-platform-dev"
+network_project_id = "dba-platform-dev"
+name               = "apps-dev-postgres"
+region             = "us-central1"
+environment        = "dev"
+postgres_version   = "POSTGRES_16"
+tier               = "db-f1-micro"
+availability_type  = "ZONAL"

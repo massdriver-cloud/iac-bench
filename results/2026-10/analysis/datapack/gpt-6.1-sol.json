@@ -1,0 +1,1171 @@
+{
+ "model": "openai/gpt-6.1-sol",
+ "fixtures": {
+  "G001": [
+   {
+    "label": "gpt-6.1-sol-e1",
+    "epoch": 1,
+    "candidate_dir": "candidates/G001/gpt-6.1-sol-e1",
+    "gate": true,
+    "rubric": 0.64,
+    "mechanical": 0.634,
+    "judge": 94.7,
+    "composite": 72.79,
+    "mandatory_failures": [],
+    "items_lost": {
+     "H6": false,
+     "H7": false,
+     "H9": false,
+     "H12": 0.5,
+     "H15": false,
+     "H13": false,
+     "H14": false,
+     "B1_provider_constraints": false
+    },
+    "expertise": {
+     "E1_ownership_controls": true,
+     "E2_multipart_cleanup": true,
+     "E4_tls_enforcement": true,
+     "E5_regional_domain_output": true,
+     "E6_intelligent_tiering": false,
+     "E7_name_uniqueness": false,
+     "E9_consumer_access_policies": false
+    },
+    "variables": 4,
+    "tf_sloc": 172,
+    "output_tokens": 4434,
+    "seconds": 129,
+    "cost_usd": 0.066,
+    "judge_sections": {
+     "Interface design": 1,
+     "Variables and validation": 2,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 2,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[1] Most inputs fit an application developer (`bucket_name`, `tags`, and an optional `kms_key_arn` with a safe default), but `cors_rules` mirrors the raw `aws_s3_bucket_cors_configuration` block (methods, allowed/expose headers, max_age_seconds), demanding S3 and CORS expertise instead of a concept such as a list of browser origins allowed to upload or download.",
+      "[1] `bucket_name` and `tags` suit app developers who don't know S3, but `cors_rules` is a list of objects mirroring the `cors_rule` block attribute by attribute (`allowed_methods`, `allowed_headers`, `expose_headers`, `max_age_seconds`), which takes S3/CORS expertise this audience lacks instead of a concept such as browser origins.",
+      "[2] Only `bucket_name` is required, and the optional `tags`, `kms_key_arn` and `cors_rules` cover decisions that genuinely vary per app, while access, ownership, versioning and transport policy are settled by the module rather than exposed as knobs."
+     ],
+     "Variables and validation": [
+      "[2] `bucket_name` is checked for length, character set, and AWS-reserved prefixes and suffixes, `kms_key_arn` rejects aliases and key IDs, and `cors_rules` validates methods, non-empty origins, and an integer max_age, all with error messages that teach and with no conflicting input pairs.",
+      "[2] `bucket_name` is checked for length, characters and AWS-reserved prefixes/suffixes, `kms_key_arn` rejects aliases, key IDs and empty strings, and `cors_rules` restricts methods to S3's valid set, with teaching error messages and no conflicting input pairs.",
+      "[2] `bucket_name`, `kms_key_arn` and `cors_rules` each have validations with teaching error messages (name format and reserved affixes, KMS ARN vs alias/ID, CORS methods and integer max_age), and no avoidable conflicting input pair exists."
+     ],
+     "Internal logic": [
+      "[2] The encryption resource derives `sse_algorithm` and `bucket_key_enabled` from whether `var.kms_key_arn` is null, a simple readable inference rather than extra inputs.",
+      "[2] The encryption resource derives `sse_algorithm` and `bucket_key_enabled` from whether `kms_key_arn` is null, a simple and readable inference with no convoluted expression chains.",
+      "[2] The only computation is the readable `var.kms_key_arn == null ? \"AES256\" : \"aws:kms\"` inference of the encryption algorithm and bucket key from a single concept input, with no convoluted expressions."
+     ],
+     "Scope": [
+      "[2] The module creates the public access block, BucketOwnerEnforced ownership controls, versioning, default encryption, an HTTPS-only deny policy, and a multipart-upload cleanup rule, which is proportionate hygiene for an app asset bucket without gold-plating.",
+      "[2] The module creates the public access block, `BucketOwnerEnforced` ownership controls, versioning, SSE, a TLS-only bucket policy and a multipart-abort lifecycle rule, proportionate to the brief without gold-plating.",
+      "[2] The module creates the proportionate set of public access block, BucketOwnerEnforced ownership, SSE, versioning, a TLS-deny bucket policy and multipart-abort lifecycle, without inventing CDN, IAM or logging infrastructure."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] Versioning, encryption, lifecycle, CORS, policy and ownership are each separate `aws_s3_bucket_*` resources rather than inline blocks on `aws_s3_bucket`.",
+      "[2] Versioning, encryption, lifecycle, CORS, policy and ownership each use their dedicated `aws_s3_bucket_*` resource rather than inline bucket arguments.",
+      "[2] Versioning, encryption, lifecycle, policy, CORS and ownership are all separate `aws_s3_bucket_*` resources rather than inline blocks on `aws_s3_bucket.assets`."
+     ],
+     "Outputs": [
+      "[2] Outputs cover what consumers need for IAM and app config (`bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name`, `bucket_region`) without dumping every attribute.",
+      "[2] The outputs are exactly what consumers need (`bucket_name`, `bucket_arn`, `objects_arn` for IAM, regional domain name and region) without dumping every attribute.",
+      "[2] The outputs `bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name` and `bucket_region` cover what consumers need for IAM policies and app configuration without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `count` is used only as an on/off switch on `aws_s3_bucket_cors_configuration` (`length(var.cors_rules) == 0 ? 0 : 1`), with a `dynamic` block iterating the rules.",
+      "[2] `count` appears only as an on/off switch on `aws_s3_bucket_cors_configuration` (`length(var.cors_rules) == 0 ? 0 : 1`), and multiplicity uses a `dynamic` block.",
+      "[2] `count` is used only as an on/off switch on `aws_s3_bucket_cors_configuration` (`length(var.cors_rules) == 0 ? 0 : 1`), and multiplicity is handled by a dynamic block."
+     ],
+     "Data sources vs inputs": [
+      "[2] The only dependency input is the identity `kms_key_arn`, and the module does not ask for redundant facts about it.",
+      "[2] The only dependency input is the `kms_key_arn` identity, and no derived facts about it are requested redundantly.",
+      "[2] The only dependency is identified by `kms_key_arn` alone, and the module asks for no derived facts that a lookup should supply."
+     ],
+     "File layout": [
+      "[2] Resources live in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and version and provider settings in `versions.tf`, which is appropriate for a short single-concern module.",
+      "[2] Resources, variables, outputs and the terraform/provider configuration sit in `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf` respectively, which fits a single-concern module of this size.",
+      "[2] Resources live in main.tf, inputs in variables.tf, outputs in outputs.tf and provider/version requirements in versions.tf, at a modest file size."
+     ],
+     "Sensitive values": [
+      "[2] No variable or output carries a secret, and the KMS key is taken as an ARN reference, so nothing needs marking sensitive.",
+      "[2] No input or output carries a secret, and the KMS key is accepted as an ARN reference.",
+      "[2] No variable or output carries a secret; `kms_key_arn` is a reference rather than key material."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] No `prevent_destroy` or `ignore_changes` is used, and bucket deletion safety relies on the native `force_destroy = false`.",
+      "[2] No `prevent_destroy` or `ignore_changes` is used, and the bucket relies on `force_destroy = false` rather than lifecycle protection.",
+      "[2] No `prevent_destroy` or `ignore_changes` blocks are used, and `force_destroy = false` relies on native behavior."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has a description, and the README accurately explains each fixed decision (versioning, transport deny, multipart cleanup, CORS, KMS) in a depth suited to developers new to S3.",
+      "[2] Every variable and output has a description, and the README accurately describes behaviour (e.g., Bucket Keys only with KMS, no object expiration, `force_destroy = false`) at a depth suited to a non-expert audience.",
+      "[2] Every variable and output has a description, and the README accurately explains the fixed decisions (e.g. bucket keys enabled with KMS, `force_destroy = false` semantics, versioning caveats) at a depth suited to non-S3-expert consumers."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] The module uses current split resources such as `aws_s3_bucket_server_side_encryption_configuration` and contains no `null_resource` or `local-exec`.",
+      "[2] There are no deprecated inline bucket arguments and no `null_resource` or `local-exec`.",
+      "[2] The module uses current split S3 resources, with no deprecated inline `versioning`/`server_side_encryption_configuration` blocks and no `null_resource`/`local-exec`."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input can disable the public access block or the TLS-deny policy.",
+      "[2] All resources are authored directly with no remote module call, and no input can disable the public access block or the TLS deny the module establishes.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer weaken the hardcoded public access block or TLS-deny posture."
+     ]
+    }
+   },
+   {
+    "label": "gpt-6.1-sol-e2",
+    "epoch": 2,
+    "candidate_dir": "candidates/G001/gpt-6.1-sol-e2",
+    "gate": true,
+    "rubric": 0.721,
+    "mechanical": 0.71,
+    "judge": 94.7,
+    "composite": 78.11,
+    "mandatory_failures": [],
+    "items_lost": {
+     "H6": false,
+     "H7": false,
+     "H9": false,
+     "H12": 0.5,
+     "H13": false,
+     "B1_provider_constraints": false
+    },
+    "expertise": {
+     "E1_ownership_controls": true,
+     "E2_multipart_cleanup": true,
+     "E4_tls_enforcement": true,
+     "E5_regional_domain_output": true,
+     "E6_intelligent_tiering": false,
+     "E7_name_uniqueness": false,
+     "E9_consumer_access_policies": false
+    },
+    "variables": 6,
+    "tf_sloc": 204,
+    "output_tokens": 4001,
+    "seconds": 126,
+    "cost_usd": 0.06,
+    "judge_sections": {
+     "Interface design": 1,
+     "Variables and validation": 2,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 2,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[1] Most inputs fit app developers: `bucket_name` is the only required input, and versioning, encryption, public access and the TLS policy are settled by the module. However, `cors_rules` mirrors the provider's `cors_rule` block attribute-for-attribute (`allowed_headers`, `expose_headers`, `max_age_seconds`), which pushes CORS expertise onto consumers who don't know S3 instead of raising it to a concept such as browser origins.",
+      "[1] The module makes most decisions itself and needs only `bucket_name`, but `cors_rules` exposes raw S3 CORS attributes (`allowed_methods`, `allowed_headers`, `expose_headers`, `max_age_seconds`) to S3-novice developers instead of a concept such as allowed app origins, and `kms_key_arn` asks them for a KMS key decision that takes service expertise.",
+      "[2] Only `bucket_name` is required, and the module settles versioning, encryption, public access blocking and the TLS policy itself, while optional `cors_rules`, `kms_key_arn` and `force_destroy` cover real per-deployment decisions with safe defaults."
+     ],
+     "Variables and validation": [
+      "[2] `bucket_name` validation catches length, charset and reserved prefix/suffix mistakes with a teaching error message. `kms_key_arn` and `cors_rules` are guarded against realistic errors (aliases, non-HTTPS or wildcard origins, invalid methods). No avoidable pair of inputs can be set to conflict.",
+      "[2] `bucket_name` validation covers length, charset, and reserved prefixes/suffixes with a teaching error message, `cors_rules` validation guards origins, methods and max_age, and `kms_key_arn` rejects aliases, with no avoidable conflicting input pair.",
+      "[2] `bucket_name` validation catches length, charset and reserved prefix/suffix mistakes with a teaching error message, and the `cors_rules` and `kms_key_arn` validations guard realistic misuse without conflicting input pairs."
+     ],
+     "Internal logic": [
+      "[2] The module infers both `sse_algorithm` and `bucket_key_enabled` from whether `var.kms_key_arn` is null, using simple readable expressions instead of extra inputs.",
+      "[2] Encryption algorithm and `bucket_key_enabled` are inferred from whether `kms_key_arn` is null, using simple readable conditionals.",
+      "[2] The encryption algorithm and `bucket_key_enabled` are inferred from whether `var.kms_key_arn` is null, using simple readable conditionals rather than extra inputs."
+     ],
+     "Scope": [
+      "[2] The module creates the resources a competent operator expects for an app assets bucket (public access block, BucketOwnerEnforced ownership, versioning, SSE, abort-incomplete-multipart lifecycle, TLS-enforcing bucket policy) without unrequested architecture.",
+      "[2] The module creates a public access block, BucketOwnerEnforced ownership controls, versioning, default encryption, a TLS-enforcing bucket policy and an abort-incomplete-multipart lifecycle rule, which is proportionate to an app assets bucket without gold-plating.",
+      "[2] The module includes public access block, BucketOwnerEnforced ownership, versioning, SSE, a TLS-enforcing bucket policy and abort-incomplete-multipart lifecycle, all proportionate to an app assets bucket without gold-plating."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] Versioning, encryption, lifecycle, policy, ownership and CORS each use dedicated resources such as `aws_s3_bucket_versioning` and `aws_s3_bucket_cors_configuration`, not inline blocks on `aws_s3_bucket`.",
+      "[2] Versioning, encryption, lifecycle, policy, CORS and ownership each use dedicated `aws_s3_bucket_*` resources rather than inline bucket blocks.",
+      "[2] Versioning, encryption, lifecycle, CORS, ownership and policy are each configured through their dedicated `aws_s3_bucket_*` resources rather than inline on `aws_s3_bucket`."
+     ],
+     "Outputs": [
+      "[2] Outputs `bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name` and `region` cover what consumers need for SDK configuration and IAM grants without dumping every attribute.",
+      "[2] Outputs `bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name` and `region` cover SDK and IAM needs without dumping every attribute.",
+      "[2] Outputs cover what consumers need (`bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name`, `region`) without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `count` appears only as an on/off switch (`length(var.cors_rules) == 0 ? 0 : 1`), and multiplicity uses a `dynamic \"cors_rule\"` block with `for_each`.",
+      "[2] `count` is used only as an on/off switch on `aws_s3_bucket_cors_configuration` (`length(var.cors_rules) == 0 ? 0 : 1`).",
+      "[2] `count` appears only as an on/off switch on `aws_s3_bucket_cors_configuration` (`length(var.cors_rules) == 0 ? 0 : 1`)."
+     ],
+     "Data sources vs inputs": [
+      "[2] The only dependency is identified by `kms_key_arn` alone, with no redundant derived facts requested that could contradict it.",
+      "[2] The only dependency input is the `kms_key_arn` identity, and the module asks for no derived facts about it that a data source should supply.",
+      "[2] The module asks for no derived facts about external dependencies; it takes only a KMS key identity (`kms_key_arn`), with no redundant companion inputs."
+     ],
+     "File layout": [
+      "[2] Resources live in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and version/provider configuration in `versions.tf`.",
+      "[2] Resources sit in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and the terraform and provider blocks in `versions.tf`.",
+      "[2] Resources are in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and version/provider config in `versions.tf`, with `main.tf` under the split threshold."
+     ],
+     "Sensitive values": [
+      "[2] No variable or output carries a secret; `kms_key_arn` is a reference rather than key material.",
+      "[2] No variable or output carries a secret; `kms_key_arn` is a reference rather than key material.",
+      "[2] No variables or outputs carry secrets; the KMS key is accepted only as an ARN reference."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] No `prevent_destroy` or `ignore_changes` is used, and destroy protection relies on the native `force_destroy = false` default.",
+      "[2] No `prevent_destroy` or `ignore_changes` is used, and the bucket relies on `force_destroy = false` by default.",
+      "[2] No `prevent_destroy` or `ignore_changes` is used, and destroy safety is handled natively via the `force_destroy` input defaulting to false."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has a description, and the README accurately explains the defaults, trade-offs, IAM guidance and CORS usage, matching what the code actually does.",
+      "[2] Every variable and output has a description, and the README accurately explains defaults, trade-offs, IAM access and CORS at a depth suited to S3-novice consumers.",
+      "[2] Every variable and output has a description, and the README accurately explains the defaults, trade-offs, access setup and CORS usage at a depth suited to S3 novices."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] There is no `null_resource`, no `local-exec`, and no deprecated inline S3 bucket arguments.",
+      "[2] The module contains no deprecated inline bucket arguments, `null_resource` or `local-exec`.",
+      "[2] There are no deprecated inline bucket arguments and no `null_resource` or `local-exec`."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the hardcoded public access block or TLS-deny policy.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the hardcoded public access block or TLS policy.",
+      "[2] All resources are authored directly with no remote module calls, and no input can weaken the hardcoded public access block or the TLS deny policy."
+     ]
+    }
+   },
+   {
+    "label": "gpt-6.1-sol-e3",
+    "epoch": 3,
+    "candidate_dir": "candidates/G001/gpt-6.1-sol-e3",
+    "gate": true,
+    "rubric": 0.93,
+    "mechanical": 0.903,
+    "judge": 94.7,
+    "composite": 91.62,
+    "mandatory_failures": [],
+    "items_lost": {
+     "A5": 0.875,
+     "H12": 0.5,
+     "H13": false
+    },
+    "expertise": {
+     "E1_ownership_controls": true,
+     "E2_multipart_cleanup": true,
+     "E4_tls_enforcement": true,
+     "E5_regional_domain_output": true,
+     "E6_intelligent_tiering": false,
+     "E7_name_uniqueness": false,
+     "E9_consumer_access_policies": false
+    },
+    "variables": 9,
+    "tf_sloc": 238,
+    "output_tokens": 4559,
+    "seconds": 134,
+    "cost_usd": 0.066,
+    "judge_sections": {
+     "Interface design": 1,
+     "Variables and validation": 2,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 2,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[1] The brief's audience is application developers who \"don't know S3 well\", yet `cors_rules` exposes raw S3 CORS attributes (`allowed_headers`, `expose_headers`, `max_age_seconds`), and `kms_key_arn` and `access_logging` require service expertise to decide, rather than being raised to concepts or settled by the module.",
+      "[1] Only `bucket_name` is required and the posture decisions are made by the module, but `cors_rules` mirrors the raw S3 CORS rule shape (allowed_headers, expose_headers, max_age_seconds), and `kms_key_arn` and `force_destroy` are raw resource attributes rather than concepts an S3-novice app developer would reason about.",
+      "[2] `bucket_name` is the only required input, and the module settles the expert decisions itself (versioning \"Enabled\", BucketOwnerEnforced, all four public-access blocks, TLS-deny policy); the optional `cors_rules`, `object_expiration_days` and `kms_key_arn` cover decisions the asset use case genuinely leaves open."
+     ],
+     "Variables and validation": [
+      "[2] The realistic mistakes are guarded with teaching messages: `bucket_name` is regex-checked for length, charset and AWS-reserved prefixes/suffixes, `kms_key_arn` must be a key ARN rather than an alias, expiration days must be whole numbers \u22651, CORS methods are limited to S3's set, and a precondition blocks logging to the bucket itself.",
+      "[2] Realistic mistakes are guarded with teaching error messages: `bucket_name` gets regex plus reserved-prefix/suffix checks, `cors_rules` validates the method set and nonempty origins, and a precondition on `aws_s3_bucket_logging` rejects self-targeted logging.",
+      "[2] Realistic mistakes are guarded with teaching messages: `bucket_name` rejects malformed names and AWS-reserved prefixes, the expiration day counts must be positive whole numbers, `cors_rules` methods must be from the S3 set, and a precondition blocks self-targeted access logging; no avoidable conflicting pair of inputs exists."
+     ],
+     "Internal logic": [
+      "[2] The internal computation is simple and readable: `sse_algorithm` and `bucket_key_enabled` are inferred from whether `kms_key_arn` is null, with no convoluted expression chains.",
+      "[2] The simple conditional `var.kms_key_arn == null ? \"AES256\" : \"aws:kms\"` infers the encryption algorithm and bucket-key setting from a single input, with no convoluted expressions.",
+      "[2] The encryption config derives both `sse_algorithm` and `bucket_key_enabled` from the single `kms_key_arn` concept with simple readable conditionals rather than asking for extra inputs."
+     ],
+     "Scope": [
+      "[2] The module creates the resources a competent operator would expect, proportionate to the brief: public access block, BucketOwnerEnforced ownership controls, versioning, SSE, a TLS-only bucket policy, abort-multipart lifecycle cleanup, and opt-in CORS and logging.",
+      "[2] The module includes the access and hygiene resources a competent operator expects without gold-plating: public access block, BucketOwnerEnforced ownership controls, versioning, SSE, a TLS-only bucket policy and abort-incomplete-multipart lifecycle.",
+      "[2] The module adds the proportionate hygiene resources (`aws_s3_bucket_public_access_block`, ownership controls, versioning, SSE configuration, TLS-only bucket policy, an abort-incomplete-multipart lifecycle rule) and keeps CORS and logging optional, with no gold-plating."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] Bucket versioning, encryption, policy, lifecycle, CORS and logging each use their dedicated `aws_s3_bucket_*` resource rather than inline blocks on `aws_s3_bucket`.",
+      "[2] Versioning, encryption, CORS, logging, lifecycle and policy each use their dedicated separate resources (e.g. `aws_s3_bucket_cors_configuration`) rather than inline bucket blocks.",
+      "[2] Versioning, encryption, lifecycle, CORS, logging and policy each use their dedicated `aws_s3_bucket_*` resources rather than legacy inline blocks on `aws_s3_bucket`."
+     ],
+     "Outputs": [
+      "[2] The outputs cover what consumers need to use the bucket (`bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name`, `aws_region`) without dumping every attribute.",
+      "[2] The outputs (`bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name`, `aws_region`) cover what an app needs for SDK and IAM configuration without dumping every attribute.",
+      "[2] The outputs (`bucket_name`, `bucket_arn`, `objects_arn`, `bucket_regional_domain_name`, `aws_region`) are exactly what an app needs for SDK configuration and IAM policies, with no attribute dumping."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `count` is used only as an on/off switch on `aws_s3_bucket_cors_configuration` and `aws_s3_bucket_logging`, and dynamic blocks iterate the CORS rules.",
+      "[2] `count` appears only as an on/off switch, e.g. `count = var.access_logging == null ? 0 : 1` on `aws_s3_bucket_logging`.",
+      "[2] `count` appears only as an on/off switch, on `aws_s3_bucket_cors_configuration` and `aws_s3_bucket_logging`, and repeated rules use dynamic blocks."
+     ],
+     "Data sources vs inputs": [
+      "[2] Dependencies are taken by identity only (`kms_key_arn`, `access_logging.target_bucket`), with no redundant derived facts requested that could conflict.",
+      "[2] Dependencies are taken only by identity (`kms_key_arn`, `access_logging.target_bucket`), with no derivable facts requested alongside them.",
+      "[2] The dependencies are taken only by identity (`kms_key_arn`, `access_logging.target_bucket`), with no redundant facts that could contradict them."
+     ],
+     "File layout": [
+      "[2] Resources live in main.tf, inputs in variables.tf, outputs in outputs.tf, and provider/version settings in versions.tf, a sensible split for a ~150-line resource file.",
+      "[2] Resources in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf` and constraints/provider in `versions.tf` give a clean layout for a single-concern bucket module.",
+      "[2] Resources live in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and provider and version settings in `versions.tf`, with `main.tf` well under the split threshold."
+     ],
+     "Sensitive values": [
+      "[2] No variable or output carries a secret; the KMS key is taken as an ARN reference rather than key material.",
+      "[2] No variable or output carries a secret; `kms_key_arn` is a reference, not key material.",
+      "[2] No variable or output carries a secret; `kms_key_arn` is a reference rather than key material."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] The only lifecycle block is a `precondition` on `aws_s3_bucket_logging`, with no misused `prevent_destroy` or `ignore_changes`.",
+      "[2] The only lifecycle use is a `precondition` on `aws_s3_bucket_logging`, with no misused `prevent_destroy` or `ignore_changes`.",
+      "[2] There is no misused `prevent_destroy` or `ignore_changes`; the only `lifecycle` block holds a legitimate precondition on `aws_s3_bucket_logging`."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has a description, and the README accurately explains defaults, opt-ins and IAM guidance at a level suited to non-expert app teams.",
+      "[2] Every variable and output has a description, and the README accurately explains defaults, opt-ins and the IAM guidance (e.g. `objects_arn` usage) for a novice audience.",
+      "[2] Every variable and output has a description, and the README accurately explains the defaults, opt-ins, and the IAM and logging-destination prerequisites the module does not create."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] There is no `null_resource` or `local-exec`, and no deprecated inline S3 bucket arguments are used.",
+      "[2] There is no `null_resource` or `local-exec`, and no deprecated inline bucket arguments such as `versioning {}` or `server_side_encryption_configuration {}` on `aws_s3_bucket`.",
+      "[2] There is no `null_resource` or `local-exec`, and no deprecated inline S3 arguments on `aws_s3_bucket`."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input can disable the hardcoded public access block or the TLS-deny policy.",
+      "[2] The resources are authored directly with no remote module call, and no input can disable the hardcoded public access block or TLS-deny policy.",
+      "[2] All resources are authored directly with no remote module, and no input can switch off the public-access block or the TLS-deny policy."
+     ]
+    }
+   }
+  ],
+  "G002": [
+   {
+    "label": "gpt-6.1-sol-e1",
+    "epoch": 1,
+    "candidate_dir": "candidates/G002/gpt-6.1-sol-e1",
+    "gate": true,
+    "rubric": 0.875,
+    "mechanical": 0.847,
+    "judge": 100.0,
+    "composite": 89.28999999999999,
+    "mandatory_failures": [],
+    "items_lost": {
+     "H4": 0.75,
+     "H5": 0.75,
+     "H11": 0.0,
+     "B1_provider_constraints": false
+    },
+    "expertise": {
+     "E1_backups_survive_deletion": false,
+     "E2_customer_managed_key": false,
+     "E3_iam_database_login": true,
+     "E4_manages_databases": true,
+     "E5_manages_users": true,
+     "E6_iam_login_granted": true,
+     "E7_workload_identities": true,
+     "E8_connection_audit_trail": false,
+     "E9_query_insights": false
+    },
+    "variables": 19,
+    "tf_sloc": 271,
+    "output_tokens": 7559,
+    "seconds": 165,
+    "cost_usd": 0.11,
+    "judge_sections": {
+     "Interface design": 2,
+     "Variables and validation": 2,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 2,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[2] DBAs own the real decisions (`tier`, `postgres_version`, `database_flags`, `databases`, IAM principal sets, backup and maintenance timing), while settled matters are fixed by the module: the network path is derived as `apps-${var.environment}`, and `ipv4_enabled = false`, `connector_enforcement = \"REQUIRED\"` and IAM auth are not exposed as inputs.",
+      "[2] DBA-owned decisions are inputs (`tier`, `postgres_version`, `database_flags`, `databases`, `availability_type`, `maintenance_window`, `backup_retention_count`), while settled posture is fixed and the network is derived from `environment` (`ipv4_enabled = false`, `connector_enforcement = \"REQUIRED\"`, forced `cloudsql.iam_authentication`, `local.network`).",
+      "[2] The inputs give the DBA team the controls their discipline expects (`tier`, `postgres_version`, `database_flags`, `databases`, `maintenance_window`, `backup_retention_count`), while the module settles fleet-wide decisions itself: private-IP-only, `connector_enforcement = \"REQUIRED\"`, IAM auth, and a network derived from the `environment` concept."
+     ],
+     "Variables and validation": [
+      "[2] Realistic mistakes are guarded with teaching messages, including service-account emails put in `iam_users`, overriding `cloudsql.iam_authentication` in `database_flags`, a bad `maintenance_window` day/hour, and ZONAL in prod via the `availability_type` precondition; leaving `iam_groups` unvalidated is only a minor gap.",
+      "[2] Realistic mistakes are guarded with teaching messages (environment enum, `postgres_version` regex, integer bounds on `maintenance_window`, the `cloudsql.iam_authentication` override check, service-account vs user email checks), and the only conflicting pair has a precondition (prod requires `REGIONAL`); the missing `tier`/`availability_type` cross-check is a service-constrained pair and a minor gap.",
+      "[2] Realistic mistakes are guarded with teaching error messages, including the `environment` enum, the `postgres_version` regex, the `maintenance_window` integer ranges, the reserved `cloudsql.iam_authentication` flag check, and the prod-requires-REGIONAL precondition; leaving `tier` and `iam_groups` unchecked is only a minor gap."
+     ],
+     "Internal logic": [
+      "[2] Locals keep the inference readable: `local.identities` maps each principal list to its login name and user type (including `trimsuffix` for service accounts), and `local.iam_bindings` expands the identity-by-role grants with a single `setproduct`.",
+      "[2] Readable locals derive the network path from `environment`, merge the mandatory IAM flag, and build `local.identities` and `local.iam_bindings` via `setproduct`, so no extra inputs are demanded.",
+      "[2] Readable locals derive the network path from `environment`, build the `identities` map with the service-account suffix trimmed, and use a single `setproduct` to produce `iam_bindings`, without convoluted chains."
+     ],
+     "Scope": [
+      "[2] The module creates the instance plus the access posture the brief implies: instance-conditioned `google_project_iam_member` grants, IAM `google_sql_user` logins and optional `google_sql_database`, with backups/PITR always on and nothing beyond the request.",
+      "[2] The module creates the instance, databases, IAM database users and instance-conditioned `google_project_iam_member` grants with backups, PITR and private-only access, proportionate to the brief without extra architecture.",
+      "[2] The module creates the instance, databases, instance-conditioned `google_project_iam_member` grants and IAM `google_sql_user` principals, plus backups/PITR and TLS-only private access, which is proportionate to the brief with no gold-plating."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] Databases, users and IAM bindings are separate resources, and the inline `database_flags` dynamic block is the provider's only form for flags.",
+      "[2] Databases, users and IAM bindings are separate resources (`google_sql_database`, `google_sql_user`, `google_project_iam_member`), and the inline `settings` blocks have no separate-resource alternative.",
+      "[2] Databases, users and IAM bindings are separate resources (`google_sql_database`, `google_sql_user`, `google_project_iam_member`), and the inline blocks used (`database_flags`, `ip_configuration`) have no separate-resource alternative."
+     ],
+     "Outputs": [
+      "[2] Outputs cover what consumers need to connect (`connection_name`, `private_ip_address`, `instance_name`, `database_names`, `iam_database_usernames`) without dumping every attribute.",
+      "[2] Outputs cover what consumers need (`instance_name`, `connection_name`, `private_ip_address`, `database_names`, `iam_database_usernames`) without dumping every attribute.",
+      "[2] The outputs expose what consumers need (`connection_name`, `private_ip_address`, `instance_name`, `database_names`, and the `iam_database_usernames` mapping) without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] Every repeated resource (`google_sql_database.this`, `google_project_iam_member.database_access`, `google_sql_user.iam`) uses `for_each` with stable keys, and `count` is never used.",
+      "[2] All multiplicity uses `for_each` keyed by name or principal (`google_sql_database.this`, `google_sql_user.iam`, `google_project_iam_member.database_access`), and no `count` is used.",
+      "[2] All multiplicity uses `for_each` over maps or sets (`var.databases`, `local.identities`, `local.iam_bindings`), and `count` is never used."
+     ],
+     "Data sources vs inputs": [
+      "[2] The module takes only the network's identity (`network_project_id` plus `environment`) and asks for no derived facts such as a CIDR that could contradict the VPC.",
+      "[2] The network is taken only by identity (`network_project_id` plus `environment` building `local.network`), with no redundant facts like a CIDR requested.",
+      "[2] The network is identified only by `network_project_id` plus the environment-derived name, so no conflicting dependency facts (such as a separate CIDR) are requested."
+     ],
+     "File layout": [
+      "[2] Resources live in a compact `main.tf`, with separate `variables.tf`, `outputs.tf` and `versions.tf`.",
+      "[2] Resources are in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf` and provider and version settings in `versions.tf`, with `main.tf` well under the split threshold.",
+      "[2] The code is split sensibly into `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, with resources of modest length."
+     ],
+     "Sensitive values": [
+      "[2] There are no secrets to handle: IAM database authentication is used and no `google_sql_user` has a password, so no sensitive inputs or outputs exist.",
+      "[2] No secrets exist anywhere because IAM authentication replaces passwords and `google_sql_user.iam` creates no password-bearing users.",
+      "[2] No secrets exist anywhere in the module, because authentication is IAM-only and no `google_sql_user` password is created."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] `ignore_changes = [settings[0].disk_size]` covers a value that legitimately changes outside IaC under `disk_autoresize = true`, and deletion protection uses the native `deletion_protection_enabled` attribute rather than `prevent_destroy`.",
+      "[2] `ignore_changes = [settings[0].disk_size]` is justified because `disk_autoresize = true` changes size outside IaC, and deletion protection uses native `deletion_protection_enabled` rather than `prevent_destroy`.",
+      "[2] `ignore_changes = [settings[0].disk_size]` is legitimate because `disk_autoresize = true` changes that value outside IaC, and deletion protection uses the native `deletion_protection`/`deletion_protection_enabled` attributes rather than `prevent_destroy`."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has an accurate description, and the README's decisions table and connection guidance (e.g. service-account usernames omitting `.gserviceaccount.com`) match the code; it is extensive but substantive for a DBA audience.",
+      "[2] Every variable and output has an accurate description, and the README explains the design decisions, prerequisites and connection usage, including the `.gserviceaccount.com` username mapping and connector enforcement, consistently with the code.",
+      "[2] Every variable and output has an accurate description, and the README accurately explains design decisions, prerequisites and connection usage at a depth that fits the module."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] The module contains no `null_resource`, no `local-exec` and no deprecated resource forms.",
+      "[2] No `null_resource`, `local-exec` or deprecated resource forms appear; users and databases use the dedicated `google_sql_user` and `google_sql_database` resources.",
+      "[2] There is no `null_resource`, `local-exec`, or deprecated resource form anywhere in the module."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input can weaken the private-IP, connector-enforcement or IAM-auth posture (e.g. `cloudsql.iam_authentication` is blocked from override).",
+      "[2] No remote module calls or removed resources are present, and the `database_flags` validation prevents consumers from disabling the enforced IAM authentication posture.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the enforced private-IP, connector, or IAM-auth posture."
+     ]
+    }
+   },
+   {
+    "label": "gpt-6.1-sol-e2",
+    "epoch": 2,
+    "candidate_dir": "candidates/G002/gpt-6.1-sol-e2",
+    "gate": true,
+    "rubric": 0.875,
+    "mechanical": 0.847,
+    "judge": 100.0,
+    "composite": 89.28999999999999,
+    "mandatory_failures": [],
+    "items_lost": {
+     "H4": 0.75,
+     "H5": 0.75,
+     "H11": 0.0,
+     "B1_provider_constraints": false
+    },
+    "expertise": {
+     "E1_backups_survive_deletion": false,
+     "E2_customer_managed_key": false,
+     "E3_iam_database_login": true,
+     "E4_manages_databases": true,
+     "E5_manages_users": true,
+     "E6_iam_login_granted": true,
+     "E7_workload_identities": true,
+     "E8_connection_audit_trail": false,
+     "E9_query_insights": false
+    },
+    "variables": 15,
+    "tf_sloc": 230,
+    "output_tokens": 5190,
+    "seconds": 126,
+    "cost_usd": 0.075,
+    "judge_sections": {
+     "Interface design": 2,
+     "Variables and validation": 2,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 2,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[2] DBA-owned decisions such as `tier`, `availability_type`, `postgres_version`, `database_flags`, `maintenance_window` and `disk_size_gb` are exposed, while uniform posture (`ipv4_enabled = false`, `ssl_mode = \"ENCRYPTED_ONLY\"`, `connector_enforcement = \"REQUIRED\"`, mandatory backups/PITR) is fixed and `network` is constrained to the three named VPCs.",
+      "[2] The DBA-owned decisions are inputs (`postgres_version`, `tier`, `availability_type`, `database_flags`, `maintenance_window`), while the fleet-wide standards are fixed in the module (private IP via `ipv4_enabled = false`, `connector_enforcement = \"REQUIRED\"`, IAM authentication, PITR, `update_track = \"stable\"`).",
+      "[2] The module gives DBAs the controls their discipline expects (`tier`, `availability_type`, `postgres_version`, `database_flags`, `maintenance_window`) and settles the fleet-wide choices once: `ipv4_enabled = false`, `connector_enforcement = \"REQUIRED\"`, mandatory backups/PITR and forced `cloudsql.iam_authentication`."
+     ],
+     "Variables and validation": [
+      "[2] Realistic mistakes are guarded with teaching messages, for example `database_flags` cannot override `cloudsql.iam_authentication` and `iam_identities` cross-checks `SERVICE_ACCOUNT` against the `.gserviceaccount.com` suffix, and a single `deletion_protection` drives both protection attributes so no conflicting pair exists.",
+      "[2] Realistic mistakes are guarded with teaching messages (`network` limited to the apps-dev/staging/prod paths, `iam_identities` checking that the email suffix matches the kind, `database_flags` rejecting a `cloudsql.iam_authentication` override), and the single `deletion_protection` variable drives both protection attributes so they cannot conflict.",
+      "[2] Realistic mistakes are guarded with teaching messages: `network` must be one of the apps-dev/staging/prod paths, `iam_identities` cross-checks USER vs SERVICE_ACCOUNT against the `.gserviceaccount.com` suffix, and `database_flags` rejects overriding IAM auth."
+     ],
+     "Internal logic": [
+      "[2] `local.identity_roles` uses `setproduct` to infer the member/role grants from the single `iam_identities` concept input, and `trimsuffix` derives service-account usernames, readably and without demanding extra inputs.",
+      "[2] `local.identity_roles` uses `setproduct` to derive the member/role pairs, and `google_sql_user.iam` derives the user type and the trimmed service-account username from the single USER/SERVICE_ACCOUNT concept rather than asking for extra inputs.",
+      "[2] `local.identity_roles` derives member strings and role pairs from the single `iam_identities` concept input via a readable `setproduct`, and `local.flags` merges in the mandatory IAM flag."
+     ],
+     "Scope": [
+      "[2] The module creates the instance with private-only access, TLS, backups/PITR and deletion protection, plus `google_sql_database`, IAM database users and `google_project_iam_member` connection roles, which is proportionate to the brief without inventing extra infrastructure.",
+      "[2] The module creates the instance, the application databases, the IAM database users and the connection-role grants, with backups, PITR and private networking, and adds nothing the brief did not imply.",
+      "[2] The module creates the instance, application databases, IAM database users and the `roles/cloudsql.client`/`instanceUser` grants that IAM authentication needs, with private-only access, TLS, backups and PITR, and nothing the brief did not imply."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] The only inline blocks (`database_flags`, `ip_configuration`, `backup_configuration` within `settings`) have no separate-resource alternative, and users and databases use the dedicated `google_sql_user` and `google_sql_database` resources.",
+      "[2] IAM grants use separate `google_project_iam_member` resources, and `database_flags` uses a dynamic block, which is the only form the provider offers for flags.",
+      "[2] IAM is managed with separate `google_project_iam_member` resources, and `database_flags` has no separate-resource alternative, so no dual-mode attributes are configured inline."
+     ],
+     "Outputs": [
+      "[2] Outputs cover what consumers need, namely `connection_name`, `instance_name`, `private_ip_address`, `database_names` and the derived `iam_database_usernames`, without dumping every attribute.",
+      "[2] Outputs cover what consumers need to integrate (`connection_name`, `private_ip_address`, `instance_name`, `database_names`, `iam_database_usernames`) without dumping every attribute.",
+      "[2] The outputs `connection_name`, `private_ip_address`, `instance_name`, `database_names` and `iam_database_usernames` cover what connectors and DBA grants need, without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] All multiplicity uses `for_each` (`google_sql_database.application`, `google_sql_user.iam`, `google_project_iam_member.connection`) and there is no `count`.",
+      "[2] `google_sql_database.application`, `google_project_iam_member.connection` and `google_sql_user.iam` all use `for_each` keyed by stable names, and `count` is never used.",
+      "[2] `google_sql_database.application`, `google_project_iam_member.connection` and `google_sql_user.iam` all use `for_each`, and the module never uses `count`."
+     ],
+     "Data sources vs inputs": [
+      "[2] The module takes only the network's identity (`var.network` path) and asks for no derived facts about it that could mismatch.",
+      "[2] Only the network's identity (`var.network` resource path) is taken as input, and no derived fact such as a CIDR is requested that a data source should supply.",
+      "[2] The module takes only the network's identity (`var.network` path) and asks for no derived facts about it that could be entered inconsistently."
+     ],
+     "File layout": [
+      "[2] Resources sit in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and constraints and provider in `versions.tf`.",
+      "[2] Resources sit in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and the terraform/provider configuration in `versions.tf`.",
+      "[2] Resources are in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and version/provider configuration in `versions.tf`, which is appropriate for a module of this size."
+     ],
+     "Sensitive values": [
+      "[2] No secrets exist, because IAM authentication replaces passwords and no password variables or outputs are defined.",
+      "[2] The module uses IAM authentication only and has no password variables, built-in users or credential outputs, so there are no secrets to mark.",
+      "[2] The module uses IAM authentication only, so no passwords or secrets exist as inputs, outputs or defaults."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] There are no `lifecycle` blocks, and the native `deletion_protection`/`deletion_protection_enabled` attributes are used instead of `prevent_destroy`.",
+      "[2] There are no `lifecycle` blocks; the module uses the native `deletion_protection` and `deletion_protection_enabled` attributes instead of `prevent_destroy`.",
+      "[2] There are no `lifecycle` blocks, and protection uses the native `deletion_protection` and `deletion_protection_enabled` attributes."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has an accurate description, and the README accurately documents policy, connection usage, IAM username derivation and destructive-change procedures consistent with the code.",
+      "[2] Every variable and output has an accurate description, and the README accurately explains the connection flow, IAM username derivation and destructive-change procedures, all relevant to this module.",
+      "[2] Every variable and output has an accurate description, and the README correctly explains connector usage, service-account username derivation and the destructive-change procedures."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] No `null_resource`, `local-exec` or deprecated resource forms appear.",
+      "[2] There is no `null_resource`, no `local-exec` and no deprecated resource form anywhere in the module.",
+      "[2] The module contains no `null_resource`, no `local-exec` and no deprecated resource forms."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] Resources are authored directly with no remote modules, and the `database_flags` validation prevents a consumer from silently disabling the enforced IAM authentication posture.",
+      "[2] The module authors all of its resources directly, calls no remote module, and blocks the one input that could weaken its posture through validation on `database_flags`.",
+      "[2] All resources are authored directly with no remote module calls, and no input can weaken the posture, as the `database_flags` validation blocks disabling IAM authentication."
+     ]
+    }
+   },
+   {
+    "label": "gpt-6.1-sol-e3",
+    "epoch": 3,
+    "candidate_dir": "candidates/G002/gpt-6.1-sol-e3",
+    "gate": true,
+    "rubric": 0.875,
+    "mechanical": 0.847,
+    "judge": 94.7,
+    "composite": 87.7,
+    "mandatory_failures": [],
+    "items_lost": {
+     "H4": 0.75,
+     "H5": 0.75,
+     "H11": 0.0,
+     "B1_provider_constraints": false
+    },
+    "expertise": {
+     "E1_backups_survive_deletion": false,
+     "E2_customer_managed_key": false,
+     "E3_iam_database_login": true,
+     "E4_manages_databases": true,
+     "E5_manages_users": true,
+     "E6_iam_login_granted": true,
+     "E7_workload_identities": false,
+     "E8_connection_audit_trail": true,
+     "E9_query_insights": false
+    },
+    "variables": 17,
+    "tf_sloc": 280,
+    "output_tokens": 10658,
+    "seconds": 215,
+    "cost_usd": 0.162,
+    "judge_sections": {
+     "Interface design": 2,
+     "Variables and validation": 1,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 2,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[2] DBAs get the controls their discipline owns (`tier`, `postgres_version`, `availability_type`, `pitr_days`, `retained_backups`, `maintenance_window`, `database_flags`), while the security baseline (`ipv4_enabled = false`, `connector_enforcement = \"REQUIRED\"`, `ssl_mode = \"ENCRYPTED_ONLY\"`, IAM auth and pgAudit flags) is fixed, so this is opinionated rather than pass-through.",
+      "[1] The inputs largely fit a specialist DBA audience, with tier, version, HA, retention, flags and maintenance exposed and the security baseline fixed, but `edition = \"ENTERPRISE\"` is hardcoded even though Enterprise vs Enterprise Plus is a cost/performance decision the brief says DBAs own.",
+      "[2] The DBA-owned decisions (`tier`, `postgres_version`, `availability_type`, retention, `maintenance_window`, `database_flags`) are exposed, while private-only networking, connector enforcement, IAM auth and audit flags are fixed in `standard_database_flags` and `ip_configuration`, so it is not a pass-through and security is not a knob."
+     ],
+     "Variables and validation": [
+      "[1] Guarding is deliberate and broad (network regex limited to `apps-(dev|staging|prod)`, `pitr_days` 1\u20137, protected flags rejected), but the `maintenance_window` condition `contains([\"stable\", \"canary\"], ...)` rejects the provider-valid `update_track` value `week5`.",
+      "[2] Realistic mistakes are guarded with teaching messages, such as `network_self_link` constrained to the apps-dev/staging/prod networks, `pitr_days` limited to 1\u20137 for Enterprise, `database_flags` rejecting the baseline audit/IAM flags, and `iam_principals` checking type/suffix consistency, and no avoidable conflicting pair exists because `deletion_protection` drives both protection attributes.",
+      "[1] Most inputs are well guarded (PITR 1\u20137, protected flags rejected, `network_self_link` restricted to apps-*), but `iam_principals` only accepts `IAM_USER`/`IAM_SERVICE_ACCOUNT`/`IAM_GROUP` and passes them straight to `google_sql_user.type`, whose valid values are `CLOUD_IAM_USER`/`CLOUD_IAM_SERVICE_ACCOUNT`/`CLOUD_IAM_GROUP`, so the condition rejects the valid values and admits only ones the API will refuse."
+     ],
+     "Internal logic": [
+      "[2] Readable locals compute values instead of asking for them: `local.iam_members` derives the member prefix from the principal kind, `local.iam_grants` flattens principals \u00d7 roles into stable keys, and `merge(var.database_flags, local.standard_database_flags)` enforces the baseline flags.",
+      "[2] Locals derive values readably: `local.database_flags` merges the mandatory baseline over caller flags, `local.iam_members` maps principal kinds to IAM member prefixes, and `local.iam_grants` flattens principals \u00d7 roles into stable keys.",
+      "[2] Locals derive `iam_members` and the flattened `iam_grants` map from the single `iam_principals` concept input, and merge the enforced flag baseline in a readable way."
+     ],
+     "Scope": [
+      "[2] The module creates the instance with private-only networking, backups/PITR and audit flags, plus `google_sql_database`, IAM `google_sql_user` and instance-conditioned `google_project_iam_member` grants that match the brief's identity-audited access, without gold-plating.",
+      "[2] The module creates the private, IAM-authenticated, audited instance plus `google_sql_database`, `google_sql_user` IAM identities and instance-conditioned `google_project_iam_member` grants, which is proportionate to the brief without inventing extra architecture.",
+      "[2] The module creates the instance with backups/PITR, audit flags and private networking, plus databases, IAM database users and instance-conditioned `google_project_iam_member` grants, which is proportionate to identity-audited database access without inventing extra infrastructure."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] Database users and IAM grants are separate `google_sql_user` and `google_project_iam_member` resources, and the inline `database_flags` block is the provider's only form for flags.",
+      "[2] Databases, users and IAM grants are separate resources, and the inline `database_flags` blocks have no separate-resource alternative in the provider.",
+      "[2] `database_flags` is inline only because the provider has no separate resource for flags, and databases, users and IAM grants are separate resources."
+     ],
+     "Outputs": [
+      "[2] Outputs cover what consumers need (`connection_name`, `private_ip_address`, `instance_name`, `database_names`, `iam_database_usernames`) without dumping every attribute.",
+      "[2] The outputs cover what consumers need to use the instance (`connection_name`, `private_ip_address`, `instance_name`, `database_names`, `iam_database_usernames`) without dumping every attribute.",
+      "[2] The outputs `connection_name`, `private_ip_address`, `instance_name`, `database_names` and `iam_database_usernames` cover what consumers need to connect, without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `google_sql_database`, `google_sql_user` and `google_project_iam_member` all use `for_each` with stable keys, and `count` is never used.",
+      "[2] `google_sql_database`, `google_sql_user` and `google_project_iam_member` all use `for_each` keyed by name/email/role, and there is no `count`.",
+      "[2] `google_sql_database`, `google_sql_user` and `google_project_iam_member` all use `for_each` keyed by name, email or role, and no `count` is used."
+     ],
+     "Data sources vs inputs": [
+      "[2] The module takes only the network's identity (`network_self_link`) and asks for no derived facts about it that could conflict.",
+      "[2] The module takes only the network's identity (`network_self_link`) and asks for no derivable facts such as a CIDR, so no data lookup is needed.",
+      "[2] Only the network identity (`network_self_link`) is taken as input, and no derivable dependency facts such as CIDRs are demanded."
+     ],
+     "File layout": [
+      "[2] Resources are in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and the terraform/provider blocks in `versions.tf`, which is proportionate to a single-concern module.",
+      "[2] Resources are in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf` and version/provider configuration in `versions.tf`, with `main.tf` well under the split threshold.",
+      "[2] Resources, variables, outputs and versions/provider are split into `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, with a modest-length `main.tf` for the core bundle."
+     ],
+     "Sensitive values": [
+      "[2] The module handles no secrets, since it provisions only IAM-authenticated `google_sql_user` resources and has no password inputs or outputs.",
+      "[2] The module handles no secrets, since `google_sql_user` creates only IAM-typed users with no password inputs or outputs.",
+      "[2] There are no password inputs, generated credentials or secret outputs, since only IAM-authenticated users are created."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] No `lifecycle` blocks are used; protection comes from the native `deletion_protection` and `deletion_protection_enabled` attributes.",
+      "[2] There are no `lifecycle` blocks, and the module correctly relies on the native `deletion_protection` and `deletion_protection_enabled` attributes instead of `prevent_destroy`.",
+      "[2] No `lifecycle` blocks are used, and the module relies on the native `deletion_protection` and `deletion_protection_enabled` attributes instead of `prevent_destroy`."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has a description, the comment on `standard_database_flags` accurately notes that validation also rejects overrides, and the README matches the code (14 retained backups by default, a two-step destroy, service-account suffix trimming).",
+      "[2] Every variable and output has a description, and the README accurately documents defaults, the six required inputs, the two-step destroy process and IAM vs SQL authorization in proportion to the module's complexity.",
+      "[2] Every variable and output has a description, the `main.tf` comments explain non-obvious choices (flag precedence, the service-account username suffix), and the README accurately covers the contract and operations for a specialist audience."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] There is no `null_resource`, no `local-exec`, and no deprecated resource forms.",
+      "[2] There is no `null_resource`, `local-exec` or deprecated resource form, and SQL grants are deliberately left out rather than scripted.",
+      "[2] There is no `null_resource`, no `local-exec`, and no deprecated resource forms."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input can bypass the baseline, since `database_flags` validation blocks overriding the IAM and audit flags.",
+      "[2] All resources are authored directly with no remote module calls, and no input can bypass the baseline because `database_flags` validation blocks overriding the IAM/audit flags.",
+      "[2] All resources are authored directly with no remote module calls, and no input can bypass the enforced private, IAM and audit posture because the protected flags are rejected by validation."
+     ]
+    }
+   }
+  ],
+  "G003": [
+   {
+    "label": "gpt-6.1-sol-e1",
+    "epoch": 1,
+    "candidate_dir": "candidates/G003/gpt-6.1-sol-e1",
+    "gate": true,
+    "rubric": 1.0,
+    "mechanical": 0.987,
+    "judge": 89.5,
+    "composite": 95.94,
+    "mandatory_failures": [],
+    "items_lost": {},
+    "expertise": {
+     "E1_autoscale_rules": true,
+     "E2_container_port": true,
+     "E3_metric_alerts": true,
+     "E4_registry_pull_identity": true,
+     "E5_key_vault_references": false
+    },
+    "variables": 18,
+    "tf_sloc": 495,
+    "output_tokens": 12223,
+    "seconds": 447,
+    "cost_usd": 0.177,
+    "judge_sections": {
+     "Interface design": 2,
+     "Variables and validation": 1,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 1,
+     "File layout": 1,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 2,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[2] Inputs are expressed as SRE-level concepts (`capacity` min/default/max, `staging_enabled`, `health_check_path`, `zone_balancing_enabled`, `sku_name` limited to P1v3\u2013P3v3), while App Service internals such as warmup settings, TLS, FTP state and always_on are decided by the module.",
+      "[2] Inputs are framed in the SRE team's own terms (the `capacity` object, `health_check_path`, `staging_enabled`, `zone_balancing_enabled`, `alert_action_group_ids`), while App Service internals such as warmup settings, eviction time, autoscale rules and TLS/FTP posture are decided by the module.",
+      "[2] Inputs map to the SRE team's concepts, such as the `capacity` object (min/default/max), `health_check_path`, `staging_enabled`/`staging_image` for rollouts and `alert_action_group_ids`, while App Service internals (warmup settings, eviction time, TLS, FTP/basic auth, log retention, autoscale rules) are decided by the module."
+     ],
+     "Variables and validation": [
+      "[1] Validation is thorough (capacity ordering, port range, slot key parity, reserved-key rejection, zone/capacity precondition), but `registry_url` and `acr_resource_id` form an avoidable pair that can conflict (\"registry_url must point to this registry\") with no check or derivation.",
+      "[1] Validation is deliberate (capacity ordering, port range, reserved-key rejection, the zone-balancing precondition), but `registry_url` and `acr_resource_id` form an avoidable pair that can conflict, with only the description saying they \"must point to this registry\".",
+      "[1] Most inputs are guarded deliberately (capacity ordering and bounds, the zone-balancing precondition, reserved-key checks on `app_settings`/`slot_settings`), but `registry_url` and `acr_resource_id` are an avoidable pair that can be set to conflict, which the README only asks the user to keep in sync (\"registry_url must point to this registry\")."
+     ],
+     "Internal logic": [
+      "[2] `locals` cleanly compose `platform_settings` with shared and slot-specific settings via `merge`, and derive `sticky_keys`, without convoluted expression chains.",
+      "[2] The locals `platform_settings`, `production_settings`/`staging_settings` merges and `sticky_keys` derive slot configuration from concept inputs readably, and `container_registry_use_managed_identity` and `vnet_route_all_enabled` are inferred from whether `acr_resource_id` and `integration_subnet_id` are set.",
+      "[2] Readable locals (`platform_settings`, `production_settings`/`staging_settings` via `merge`, `sticky_keys`) derive slot configuration, and inferred values come from concept inputs, e.g. `container_registry_use_managed_identity = var.acr_resource_id != null` and `vnet_route_all_enabled = var.integration_subnet_id != null`."
+     ],
+     "Scope": [
+      "[2] Beyond the app and plan, the module adds a staging slot, autoscale, Log Analytics plus App Insights, diagnostic settings, baseline metric alerts and AcrPull role assignments, all proportionate to an SRE-run service focused on capacity, rollouts and observability.",
+      "[2] The plan, app, staging slot, autoscale setting, Log Analytics/App Insights, diagnostic settings, baseline metric alerts and scoped AcrPull role assignments match what an SRE team operating containerized APIs needs, without unrelated additions.",
+      "[2] Beyond the plan and web app, the module creates what the brief's capacity, availability, health, rollout and observability concerns imply: autoscale, a staging slot, Log Analytics with Application Insights, diagnostic settings, metric alerts and scoped AcrPull role assignments."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] Diagnostics and role assignments are separate resources, and the inline blocks used (`site_config`, `logs`, autoscale `profile`) have no separate-resource alternative.",
+      "[2] The inline blocks used (`site_config`, `logs`, `sticky_settings`, the autoscale `profile` rules) have no separate-resource alternative in azurerm, and no attribute is configured in both styles.",
+      "[2] The inline blocks used (`site_config`, `logs`, `sticky_settings`, autoscale `profile`/`rule`) have no separate-resource equivalent in azurerm, and no attribute is configured in both styles."
+     ],
+     "Outputs": [
+      "[2] Outputs cover what consumers need (app/plan IDs, production and staging URLs, per-slot `principal_ids`, workspace ID, sensitive connection string, outbound IPs) without dumping every attribute.",
+      "[2] The outputs cover what consumers need \u2014 `app_id`, `production_url`/`staging_url`, `principal_ids` for downstream grants, `plan_id`, workspace ID and the sensitive App Insights connection string \u2014 without dumping every attribute.",
+      "[2] The outputs cover what consumers need: `app_id`, `production_url`/`staging_url`, `plan_id`, `principal_ids` for downstream grants, `log_analytics_workspace_id`, a sensitive App Insights connection string and outbound IPs, without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `count` is used only as an on/off switch (`var.staging_enabled ? 1 : 0`, `var.acr_resource_id != null ? 1 : 0`), and `for_each` drives the alert actions and log categories.",
+      "[2] `count` is used only as an on/off switch (`var.staging_enabled ? 1 : 0`, `var.acr_resource_id != null ? 1 : 0`), and the diagnostic categories and alert actions use `for_each`.",
+      "[2] `count` appears only as on/off switches (`var.staging_enabled ? 1 : 0`, `var.acr_resource_id != null ? 1 : 0`), and the repeated log categories use `for_each` over a `toset`."
+     ],
+     "Data sources vs inputs": [
+      "[1] The module takes both `acr_resource_id` and `registry_url` rather than looking up the ACR login server from its ID, so a consumer can supply a URL that does not match the registry.",
+      "[1] The module takes `acr_resource_id` as identity but still asks for `registry_url` separately, instead of looking up the ACR `login_server` with a data source, so the two can mismatch.",
+      "[1] When `acr_resource_id` is supplied, the module still asks for `registry_url` instead of looking up the registry's login server with an `azurerm_container_registry` data source, so the two can disagree."
+     ],
+     "File layout": [
+      "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 350 lines spanning several concerns (app/slot, autoscale, monitoring workspace, diagnostics, alerts, RBAC) with no conceptual split.",
+      "[1] Variables, outputs and versions are separated, but main.tf holds roughly 350 lines mixing the compute, slot, autoscale, logging/diagnostics and alerting concerns with no conceptual split.",
+      "[1] Variables, outputs and versions have their own files, but `main.tf` holds roughly 350 lines spanning distinct concerns (compute, staging slot, autoscale, diagnostics, alerts, ACR access) that are not split out."
+     ],
+     "Sensitive values": [
+      "[2] `app_settings` and `slot_settings` are marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and Key Vault references are encouraged over raw secrets.",
+      "[2] `app_settings` and `slot_settings` are `sensitive = true`, the `application_insights_connection_string` output is sensitive, registry access uses managed identity rather than passwords, and Key Vault references are encouraged.",
+      "[2] `app_settings` and `slot_settings` are marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and registry access uses managed identity rather than stored credentials."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] `ignore_changes = [worker_count]` on the service plan is the legitimate case of a value managed by `azurerm_monitor_autoscale_setting` outside IaC.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale case, and `prevent_destroy` is not misused.",
+      "[2] The only `ignore_changes` is `[worker_count]` on the service plan, which autoscale legitimately changes outside IaC, and there is no misused `prevent_destroy`."
+     ],
+     "Documentation": [
+      "[2] Every variable and output has a description, and the README accurately documents the operational contract, release/rollback procedure and alert thresholds that match the code.",
+      "[2] Every variable and output has a description, and the README accurately documents the operational contract, release/swap procedure and alert thresholds in proportion to the module's complexity.",
+      "[2] Every variable and output has a description, and the README's operational table (2/2/6 capacity, CPU 70/35 thresholds, alert thresholds, 30-day retention) matches the code, with detail proportionate to the module's complexity."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] There is no `null_resource` or `local-exec`, and the module uses the current `azurerm_linux_web_app`/`azurerm_service_plan` resources rather than legacy forms.",
+      "[2] The module uses current azurerm 4.x forms (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_metric`) and contains no `null_resource` or `local-exec`.",
+      "[2] The module uses current resources (`azurerm_service_plan`, `azurerm_linux_web_app`, `ftp_publish_basic_authentication_enabled`) and has no `null_resource` or `local-exec`."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer undo the hardcoded security posture (`https_only`, TLS 1.2, basic-auth publishing disabled).",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the enforced HTTPS-only, TLS 1.2 or disabled-basic-auth posture.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer weaken the hardcoded security posture (`https_only = true`, `ftps_state = \"Disabled\"`, `minimum_tls_version = \"1.2\"`)."
+     ]
+    }
+   },
+   {
+    "label": "gpt-6.1-sol-e2",
+    "epoch": 2,
+    "candidate_dir": "candidates/G003/gpt-6.1-sol-e2",
+    "gate": true,
+    "rubric": 0.972,
+    "mechanical": 0.961,
+    "judge": 89.5,
+    "composite": 94.11999999999999,
+    "mandatory_failures": [],
+    "items_lost": {
+     "B2_descriptions": false
+    },
+    "expertise": {
+     "E1_autoscale_rules": true,
+     "E2_container_port": true,
+     "E3_metric_alerts": true,
+     "E4_registry_pull_identity": true,
+     "E5_key_vault_references": false
+    },
+    "variables": 17,
+    "tf_sloc": 470,
+    "output_tokens": 8688,
+    "seconds": 300,
+    "cost_usd": 0.134,
+    "judge_sections": {
+     "Interface design": 2,
+     "Variables and validation": 1,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 1,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 1,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[2] Inputs are expressed as concepts the SRE audience owns, such as the `capacity` object, `zone_redundant`, `staging_enabled`, `health_check_path` and `alert_email_addresses`, while App Service internals like `always_on`, TLS, FTP state and autoscale rules are decided by the module.",
+      "[2] Inputs are pitched at SRE concepts (`capacity` object, `zone_redundant`, `staging_enabled`, `health_check_path`, `alert_email_addresses`), while App Service internals such as TLS, FTPS, always_on, eviction time and autoscale rules are decided by the module.",
+      "[2] Inputs map to the concepts SREs think in, such as the `capacity` object, `zone_redundant`, `health_check_path`, `staging_enabled` and `alert_email_addresses`, while App Service internals like always_on, TLS, FTPS, eviction time and autoscale rules are decided by the module."
+     ],
+     "Variables and validation": [
+      "[1] Most inputs are guarded deliberately (for example `capacity` ordering/integer checks, the `sku_name` allowlist and CIDR checks), but `acr_resource_id` and `registry_url` are an avoidable pair: setting the ACR ID while leaving `registry_url` at its Docker Hub default is accepted silently.",
+      "[1] Inputs are guarded deliberately (`capacity` ordering and integer checks, a zone-redundancy precondition, CIDR validation), but `acr_resource_id` and `registry_url` form an avoidable pair that can conflict, since `registry_url` can stay at the Docker Hub default while an ACR is set.",
+      "[1] Validation is deliberate (capacity ordering and integer checks, CIDR parsing, the `zone_redundant` precondition), but `acr_resource_id` and `registry_url` are an avoidable pair that can be set to conflict, since the README says to manually \"Set registry_url to this registry's login server\"."
+     ],
+     "Internal logic": [
+      "[2] The single `local.settings` merge injects platform-owned settings (port, storage, Insights connection string) over caller settings in a readable way, without clever expression chains.",
+      "[2] `local.settings` cleanly merges caller settings with platform-owned values, and settings such as `ip_restriction_default_action` and `container_registry_use_managed_identity` are inferred from concept inputs without convoluted expressions.",
+      "[2] `local.settings` cleanly merges caller settings with platform-derived values (WEBSITES_PORT from `container_port`, the App Insights connection string), and conditionals such as `ip_restriction_default_action` are readable."
+     ],
+     "Scope": [
+      "[2] The module creates what the use case implies (plan, app, staging slot, identity with an AcrPull grant, autoscale, Log Analytics/App Insights, diagnostic settings, opt-in alerts), proportionate to the SRE concerns of capacity, health, rollouts and observability.",
+      "[2] The module creates the plan, app, staging slot, identity with AcrPull, autoscale, Log Analytics/App Insights, diagnostic settings and optional alerts, matching the brief's capacity, availability, health, rollout and observability concerns without unrelated architecture.",
+      "[2] The module creates the resources an operator expects for this job (plan, app, staging slot, user-assigned identity with AcrPull, Log Analytics, App Insights, diagnostic settings, autoscale, health/5xx alerts) without gold-plating."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] The inline `ip_restriction` and `logs` blocks on `azurerm_linux_web_app` have no separate-resource equivalent in azurerm, so there is no mixing of styles or avoidable inline use.",
+      "[2] The `ip_restriction` blocks are inline only because azurerm offers no separate resource for web app IP restrictions, and diagnostic settings and role assignments are separate resources.",
+      "[2] Inline `ip_restriction` blocks and `app_settings` have no separate-resource alternative in azurerm, and diagnostics use the dedicated `azurerm_monitor_diagnostic_setting` resource."
+     ],
+     "Outputs": [
+      "[2] Outputs cover what consumers need, including `app_id`, `production_url`/`staging_url`, `resource_group_name`, the `identity` principal/client IDs and `outbound_ip_addresses`, without dumping every attribute.",
+      "[2] The outputs cover what consumers need: `app_id`, `production_url`/`staging_url`, `resource_group_name`, the `identity` object with `principal_id`, and `outbound_ip_addresses`, without dumping every attribute.",
+      "[2] Outputs cover what consumers need, including `app_id`, `production_url`, `staging_url`, `service_plan_id`, the `identity` object with principal_id, the workspace ID and `outbound_ip_addresses`, without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `count` is used only as an on/off switch (`var.staging_enabled ? 1 : 0`, `var.acr_resource_id == null ? 0 : 1`), and multiplicity uses dynamic `for_each`.",
+      "[2] `count` is used only as an on/off switch (`var.staging_enabled ? 1 : 0`, `length(var.alert_email_addresses) > 0 ? 1 : 0`), and the dynamic blocks use `for_each`.",
+      "[2] `count` appears only as on/off switches (`var.staging_enabled ? 1 : 0`, `length(var.alert_email_addresses) > 0 ? 1 : 0`), and email receivers iterate with dynamic `for_each`."
+     ],
+     "Data sources vs inputs": [
+      "[1] Given `acr_resource_id`, the module still asks for `registry_url` instead of looking up the registry's `login_server` with a data source, so the two can disagree.",
+      "[1] The module takes `acr_resource_id` but asks separately for `registry_url` instead of looking up the registry's login server with a data source, so the two can disagree.",
+      "[1] The module takes `acr_resource_id` as an identity but still asks for `registry_url` instead of looking up the ACR's login_server with a data source, so the two can disagree."
+     ],
+     "File layout": [
+      "[2] Core resources are in `main.tf`, the monitoring concern in `monitoring.tf`, and inputs, outputs and versions in `variables.tf`, `outputs.tf` and `versions.tf`.",
+      "[2] Code is split into `main.tf`, `monitoring.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, separating the monitoring concern from the core app resources.",
+      "[2] Files are split into main.tf, monitoring.tf, variables.tf, outputs.tf and versions.tf, with the monitoring concern separated from the core app resources."
+     ],
+     "Sensitive values": [
+      "[2] `app_settings` is marked `sensitive = true` and its description steers users to Key Vault references, and no secret (such as the Insights connection string) is exposed as an output.",
+      "[2] `app_settings` is marked `sensitive = true` and steers secrets toward Key Vault references, and no secret such as the Insights connection string is exposed as an output.",
+      "[2] `app_settings` is marked `sensitive = true`, Key Vault references are encouraged via `key_vault_reference_identity_id`, ACR pulls use managed identity rather than passwords, and no secret is output or defaulted."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale case, since `azurerm_monitor_autoscale_setting` changes that value outside IaC.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate case, because `azurerm_monitor_autoscale_setting` changes worker count outside IaC.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale case, since `azurerm_monitor_autoscale_setting` manages the count."
+     ],
+     "Documentation": [
+      "[1] The README is thorough and accurate, but several outputs (`production_url`, `staging_url`, `resource_group_name`, `service_plan_id`, `log_analytics_workspace_id`, `application_insights_id`) lack a `description`.",
+      "[1] The README is thorough and accurate, but several outputs lack a `description` (`production_url`, `staging_url`, `resource_group_name`, `service_plan_id`, `log_analytics_workspace_id`, `application_insights_id`).",
+      "[1] The README is accurate and thorough, but several outputs lack a `description` (`production_url`, `staging_url`, `resource_group_name`, `service_plan_id`, `log_analytics_workspace_id`, `application_insights_id`)."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] The module uses current `azurerm_service_plan`/`azurerm_linux_web_app` resources and contains no `null_resource` or `local-exec`.",
+      "[2] The module uses current resources (`azurerm_service_plan`, `azurerm_linux_web_app`, `azurerm_linux_web_app_slot`) and contains no `null_resource` or `local-exec`.",
+      "[2] The module uses current resources (`azurerm_linux_web_app`, `azurerm_service_plan`) and contains no `null_resource` or `local-exec`."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, and no input silently undoes an established security posture (HTTPS-only, TLS 1.2 and disabled basic auth are hardcoded).",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently override hardcoded protections such as `https_only = true` or disabled basic-auth publishing.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer undo the enforced HTTPS, TLS 1.2 or disabled basic-auth posture."
+     ]
+    }
+   },
+   {
+    "label": "gpt-6.1-sol-e3",
+    "epoch": 3,
+    "candidate_dir": "candidates/G003/gpt-6.1-sol-e3",
+    "gate": true,
+    "rubric": 0.972,
+    "mechanical": 0.961,
+    "judge": 89.5,
+    "composite": 94.11999999999999,
+    "mandatory_failures": [],
+    "items_lost": {
+     "B2_descriptions": false
+    },
+    "expertise": {
+     "E1_autoscale_rules": true,
+     "E2_container_port": true,
+     "E3_metric_alerts": true,
+     "E4_registry_pull_identity": true,
+     "E5_key_vault_references": false
+    },
+    "variables": 15,
+    "tf_sloc": 438,
+    "output_tokens": 10013,
+    "seconds": 379,
+    "cost_usd": 0.168,
+    "judge_sections": {
+     "Interface design": 2,
+     "Variables and validation": 1,
+     "Internal logic": 2,
+     "Scope": 2,
+     "Inline Resource Configuration vs Separate Resources": 2,
+     "Outputs": 2,
+     "Iteration: for_each vs count": 2,
+     "Data sources vs inputs": 1,
+     "File layout": 2,
+     "Sensitive values": 2,
+     "Lifecycle meta-arguments": 2,
+     "Documentation": 1,
+     "Deprecated and escape-hatch patterns": 2,
+     "Anti-patterns (immediate credibility loss)": 2
+    },
+    "judge_evidence": {
+     "Interface design": [
+      "[2] Inputs are concept-level objects that match how SREs think, such as `capacity` {sku, default/min/max_instances, autoscale_enabled, zone_redundant}, `container`, `health_check_path` and `staging_enabled`, while App Service internals like `always_on`, TLS, FTPS, basic auth and health eviction are decided by the module.",
+      "[2] Inputs are shaped around the SRE concepts in the brief, such as the `capacity` object (sku, instances, autoscale, zone redundancy), `health_check_path`, `staging_enabled` and `alert_email_addresses`, while the module itself settles App Service internals like `always_on`, TLS, `ftps_state`, autoscale rules and alert definitions.",
+      "[1] Inputs are concept-level objects (`capacity`, `container`, `health_check_path`, `staging_enabled`) that fit an SRE audience, but the `azurerm_monitor_metric_alert` thresholds (for example a 2-second latency and 10 5xx responses) and the 70/30 CPU autoscale thresholds are hardcoded, even though they differ per service and the README itself says they must be tuned."
+     ],
+     "Variables and validation": [
+      "[2] `capacity` validation enforces supported Premium v3 SKUs, integer worker counts with min <= default <= max, and zone redundancy needing at least 2 workers; `container`, `allowed_inbound_cidrs` (via `cidrhost`) and `log_retention_days` are also guarded with teaching messages, and no condition rejects a valid value.",
+      "[1] The `capacity` validation requires `min_instances <= default_instances` even when `autoscale_enabled = false` and min is unused, so a valid fixed-size config like `default_instances = 1` with the default `min_instances = 2` is rejected; other guards (SKU list, CIDR parsing, retention values, name regex) are deliberate and sound.",
+      "[1] Deliberate guards exist on `name`, the `capacity` ordering and zone check, CIDRs and `log_retention_days`, but the `capacity` condition requires `min_instances <= default_instances` even when `autoscale_enabled = false` (where min is unused), so `{ default_instances = 1, autoscale_enabled = false }` is rejected because the default min is 2."
+     ],
+     "Internal logic": [
+      "[2] `local.platform_settings` merged over `var.app_settings` and simple derivations such as `vnet_route_all_enabled = var.integration_subnet_id != null` and the autoscale min/max collapsing to `default_instances` when autoscale is disabled keep the logic readable.",
+      "[2] Locals and expressions derive values from concept inputs readably, for example `local.platform_settings` merged over `var.app_settings`, `vnet_image_pull_enabled = var.integration_subnet_id != null`, and autoscale min/max collapsing to `default_instances` when autoscale is off.",
+      "[2] `local.platform_settings` merged over `var.app_settings` and simple derivations such as `vnet_image_pull_enabled = var.integration_subnet_id != null` and the fixed-size autoscale min/max are readable and infer values instead of demanding inputs."
+     ],
+     "Scope": [
+      "[2] The module creates the plan, app, optional staging slot, AcrPull role assignments, Log Analytics, Application Insights, diagnostic settings, autoscale, metric alerts and an action group, which is proportionate to the brief's capacity, availability, health, rollout and observability concerns.",
+      "[2] The resources match the brief's capacity, availability, health, rollout and observability concerns without excess: plan, web app, optional staging slot, AcrPull role assignments, Log Analytics, Application Insights, diagnostic settings, autoscale setting, metric alerts and action group.",
+      "[2] The module creates the plan, app, optional staging slot, AcrPull role assignments, Log Analytics/Application Insights, diagnostics, autoscale and alerts, which is proportionate to running containerized APIs for SREs focused on capacity, health, rollouts and observability."
+     ],
+     "Inline Resource Configuration vs Separate Resources": [
+      "[2] The `ip_restriction` blocks and `app_settings` are inline, but azurerm offers no separate resource for these on `azurerm_linux_web_app`, so there is no dual-mechanism conflict.",
+      "[2] The inline `ip_restriction`, `logs` and `sticky_settings` blocks have no separate-resource equivalent in azurerm for Linux web apps, so inline is the only available form and no styles are mixed.",
+      "[2] The inline `ip_restriction`, `logs` and `email_receiver` blocks have no separate-resource alternative in azurerm, and role assignments and diagnostic settings are separate resources."
+     ],
+     "Outputs": [
+      "[2] Outputs cover the values consumers need: app id and name, URLs, both principal IDs for Key Vault grants, plan id, workspace id, the sensitive Insights connection string and `action_group_id`, without dumping every attribute.",
+      "[2] Outputs cover what a consumer needs: `app_id`, `app_name`, `url`, `staging_url`, both principal IDs for Key Vault grants, `action_group_id`, and a sensitive Application Insights connection string, without dumping every attribute.",
+      "[2] Outputs cover what consumers need, including `app_id`, `url`, `staging_url`, both principal IDs for Key Vault grants, `action_group_id`, and a sensitive `application_insights_connection_string`, without dumping every attribute."
+     ],
+     "Iteration: for_each vs count": [
+      "[2] `count` appears only as on/off switches (`var.staging_enabled ? 1 : 0`, `registry_resource_id != null ? 1 : 0`), while multiplicity uses `for_each`, as in `azurerm_monitor_metric_alert.this` keyed by alert name.",
+      "[2] `count` is used only as an on/off switch (`var.staging_enabled ? 1 : 0`, registry role assignments), and the multiple metric alerts use a keyed `for_each` map.",
+      "[2] `count` is used only as an on/off switch (`var.staging_enabled ? 1 : 0`), and the multiple alerts use `for_each` over a keyed map."
+     ],
+     "Data sources vs inputs": [
+      "[1] `container` asks for both `registry_resource_id` and `registry_url`, which can be set to disagree, instead of looking up the ACR login server with a data source from the resource ID.",
+      "[2] Dependencies are taken by identity only (`integration_subnet_id`, `container.registry_resource_id`), with no redundant facts about them requested that could conflict.",
+      "[1] `container` takes both `registry_resource_id` and a separate `registry_url`, which could disagree; the login server could instead be looked up from the ACR ID with a data source."
+     ],
+     "File layout": [
+      "[2] Core resources are in `main.tf`, monitoring is split into `monitoring.tf`, and `variables.tf`, `outputs.tf` and `versions.tf` are separate.",
+      "[2] Files are split by concern: `main.tf` (app core), `monitoring.tf` (observability and autoscale), `variables.tf`, `outputs.tf` and `versions.tf`.",
+      "[2] Resources are split into `main.tf` (app) and `monitoring.tf` (observability), with separate `variables.tf`, `outputs.tf` and `versions.tf`."
+     ],
+     "Sensitive values": [
+      "[2] `var.app_settings` is marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and the descriptions steer consumers toward Key Vault references rather than literal secrets.",
+      "[2] `var.app_settings` is marked `sensitive = true` and the README steers users toward Key Vault references; the `application_insights_connection_string` output is also marked sensitive.",
+      "[2] `var.app_settings` is `sensitive = true` with Key Vault references recommended, and the `application_insights_connection_string` output is marked sensitive."
+     ],
+     "Lifecycle meta-arguments": [
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale-owned-count case, and a comment explains it.",
+      "[2] The only lifecycle use is `ignore_changes = [worker_count]` on the autoscaled service plan, the legitimate externally-managed case, and it carries an explanatory comment.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate autoscale-owned-count case and carries an explanatory comment."
+     ],
+     "Documentation": [
+      "[1] None of the outputs in `outputs.tf` has a `description`, and the README says private registry pulling \"may additionally require enabling VNet image pull\" even though the module already sets `vnet_image_pull_enabled` whenever a subnet is supplied.",
+      "[1] Every variable has a description and the README is thorough, but none of the outputs in `outputs.tf` has a `description`.",
+      "[1] Variables and the README are thorough, but none of the outputs in `outputs.tf` has a `description`."
+     ],
+     "Deprecated and escape-hatch patterns": [
+      "[2] The module uses current azurerm v4 resources (`azurerm_service_plan`, `azurerm_linux_web_app`, `application_stack.docker_image_name`) and has no `null_resource` or `local-exec`.",
+      "[2] The module uses current resources (`azurerm_service_plan`, `azurerm_linux_web_app`) and has no `null_resource` or `local-exec`.",
+      "[2] The module uses current `azurerm_linux_web_app` and `azurerm_service_plan` resources and contains no `null_resource` or `local-exec`."
+     ],
+     "Anti-patterns (immediate credibility loss)": [
+      "[2] All resources are authored directly with no remote module calls, nothing has been deleted or commented out to hide an error, and no input silently undoes a security posture the module otherwise enforces, since HTTPS, TLS, FTPS and basic-auth settings are hardcoded.",
+      "[2] All resources are authored directly with no remote module calls and no removed or commented-out resources, and no input silently undoes a security posture the module otherwise enforces (HTTPS-only, TLS 1.2 and disabled basic auth are hardcoded).",
+      "[2] All resources are authored directly with no remote module calls and no removed or commented-out resources."
+     ]
+    }
+   }
+  ]
+ },
+ "summary": {
+  "G001": {
+   "composite_median": 78.11,
+   "composite_range": [
+    72.79,
+    91.62
+   ],
+   "rubric_median": 0.721,
+   "judge_median": 94.7,
+   "gate_failures": 0,
+   "insecure_attempts": 0,
+   "item_loss_counts": {
+    "A5": 1,
+    "B1_provider_constraints": 2,
+    "H12": 3,
+    "H13": 3,
+    "H14": 1,
+    "H15": 1,
+    "H6": 2,
+    "H7": 2,
+    "H9": 2
+   },
+   "expertise_rate": {
+    "E1_ownership_controls": 1.0,
+    "E2_multipart_cleanup": 1.0,
+    "E4_tls_enforcement": 1.0,
+    "E5_regional_domain_output": 1.0,
+    "E6_intelligent_tiering": 0.0,
+    "E7_name_uniqueness": 0.0,
+    "E9_consumer_access_policies": 0.0
+   },
+   "median_variables": 6,
+   "median_cost_usd": 0.066,
+   "median_output_tokens": 4434,
+   "median_seconds": 129
+  },
+  "G002": {
+   "composite_median": 89.28999999999999,
+   "composite_range": [
+    87.7,
+    89.28999999999999
+   ],
+   "rubric_median": 0.875,
+   "judge_median": 100.0,
+   "gate_failures": 0,
+   "insecure_attempts": 0,
+   "item_loss_counts": {
+    "B1_provider_constraints": 3,
+    "H11": 3,
+    "H4": 3,
+    "H5": 3
+   },
+   "expertise_rate": {
+    "E1_backups_survive_deletion": 0.0,
+    "E2_customer_managed_key": 0.0,
+    "E3_iam_database_login": 1.0,
+    "E4_manages_databases": 1.0,
+    "E5_manages_users": 1.0,
+    "E6_iam_login_granted": 1.0,
+    "E7_workload_identities": 0.6666666666666666,
+    "E8_connection_audit_trail": 0.3333333333333333,
+    "E9_query_insights": 0.0
+   },
+   "median_variables": 17,
+   "median_cost_usd": 0.11,
+   "median_output_tokens": 7559,
+   "median_seconds": 165
+  },
+  "G003": {
+   "composite_median": 94.11999999999999,
+   "composite_range": [
+    94.11999999999999,
+    95.94
+   ],
+   "rubric_median": 0.972,
+   "judge_median": 89.5,
+   "gate_failures": 0,
+   "insecure_attempts": 0,
+   "item_loss_counts": {
+    "B2_descriptions": 2
+   },
+   "expertise_rate": {
+    "E1_autoscale_rules": 1.0,
+    "E2_container_port": 1.0,
+    "E3_metric_alerts": 1.0,
+    "E4_registry_pull_identity": 1.0,
+    "E5_key_vault_references": 0.0
+   },
+   "median_variables": 17,
+   "median_cost_usd": 0.168,
+   "median_output_tokens": 10013,
+   "median_seconds": 379
+  }
+ },
+ "overall": 87.2
+}

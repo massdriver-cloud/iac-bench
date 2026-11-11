@@ -1,6 +1,9 @@
 {
   "module_sha": {
-    "fae788cf0a6b2508": "c4cfff1102295291"
+    "fae788cf0a6b2508": "c4cfff1102295291",
+    "869d47f3e923e282": "683bc2a374c1106c",
+    "2fc5cd6ecc30c670": "64f2a210fe767f13",
+    "d6bee121f64bf4d2": "4224f3766d531316"
   },
   "files": [
     {
@@ -64,9 +67,69 @@
       ]
     },
     {
+      "file": "logs/2026-11-10T22-46-27-00-00_generate-module_VwFoefSCnVYf7KkDhwaqRk.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-10T23-04-07-00-00_generate-module_c8EgxKmYoJMjtMDQcCrd3T.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-11T03-38-00-00-00_generate-module_5zhJEKWDG7FFnUHE3bYrh3.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-11T03-38-00-00-00_generate-module_QwyMLkiYDSaTXApkMPMCyF.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-11T03-38-00-00-00_generate-module_S6NMEUacLGFCjEGPuQSyVX.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-11T03-38-00-00-00_generate-module_dGkQxL8WmBWEpSBaYxVM6h.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-11T03-38-00-00-00_generate-module_heayMEXRrjorhgW9UYe2LR.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
       "file": "candidates/G001/claude-fable-5-1-e2/examples/full.tfvars",
       "replaced": [
         "AWS account ID"
+      ]
+    },
+    {
+      "file": "candidates/G001/glm-5.3-e1/full.tfvars",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "candidates/G001/qwen3.8-2.4t-a95b-e1/examples/full.tfvars",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "candidates/G002/glm-5.3-e3/minimal.tfvars",
+      "replaced": [
+        "GCP project ID"
       ]
     }
   ],

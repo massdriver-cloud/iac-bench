@@ -249,13 +249,12 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/kimi-k3-e3",
     "gate": true,
-    "rubric": 0.767,
-    "mechanical": 0.753,
+    "rubric": 0.814,
+    "mechanical": 0.796,
     "judge": 94.7,
-    "composite": 81.12,
+    "composite": 84.13000000000001,
     "mandatory_failures": [],
     "items_lost": {
-     "H9": false,
      "A5": 0.75,
      "H12": 0.5,
      "H15": false,
@@ -1092,12 +1091,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 81.12,
+   "composite_median": 84.13000000000001,
    "composite_range": [
     67.53,
     85.58
    ],
-   "rubric_median": 0.767,
+   "rubric_median": 0.814,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 1,
@@ -1107,8 +1106,7 @@
     "H1": 1,
     "H12": 3,
     "H13": 3,
-    "H15": 3,
-    "H9": 1
+    "H15": 3
    },
    "expertise_rate": {
     "E1_ownership_controls": 1.0,
@@ -1198,5 +1196,5 @@
    "median_seconds": 853
   }
  },
- "overall": 82.4
+ "overall": 83.4
 }
