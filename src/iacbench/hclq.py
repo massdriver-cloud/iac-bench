@@ -238,14 +238,68 @@ def vars_feeding_provider_attr(module_dir: Path, attr_name: str, provider: str |
     return out
 
 
-def value_text_closure(module_dir: Path, value) -> str:
-    """The textual expansion of a value plus every local and data source it
-    (transitively) references — lets checks see through `local.x` and
-    `data.aws_iam_policy_document.x.json`-style indirection."""
+_VAR_ATTR_REF = re.compile(r"\bvar\.([A-Za-z0-9_-]+)(?:\.([A-Za-z0-9_-]+))?")
+_EACH_VALUE_ATTR_REF = re.compile(r"\beach\.value\.([A-Za-z0-9_-]+)")
+
+
+def optional_defaults(type_text: str, attr: str) -> list:
+    """The default expressions of every `attr = optional(TYPE, DEFAULT)` in a
+    variable's type constraint, at any nesting depth."""
+    out: list = []
+    for m in re.finditer(rf"\b{re.escape(attr)}\s*=\s*optional\s*\(", type_text or ""):
+        depth, quote, args, start = 0, None, [], m.end()
+        for i in range(m.end(), len(type_text)):
+            c = type_text[i]
+            if quote:
+                if c == "\\":
+                    continue
+                if c == quote and type_text[i - 1] != "\\":
+                    quote = None
+            elif c == '"':
+                quote = c
+            elif c in "([{":
+                depth += 1
+            elif c in ")]}":
+                if depth == 0:
+                    args.append(type_text[start:i])
+                    break
+                depth -= 1
+            elif c == "," and depth == 0:
+                args.append(type_text[start:i])
+                start = i + 1
+        if len(args) == 2:
+            out.append(args[1].strip())
+    return out
+
+
+def value_text_closure(module_dir: Path, value, each_source=None) -> str:
+    """The textual expansion of a value plus everything it (transitively)
+    reads: locals, data sources such as `data.aws_iam_policy_document.x.json`,
+    and the defaults of the variables it references. `var.x` adds x's
+    default; `var.x.a` adds attribute a of that default and any
+    `a = optional(T, DEFAULT)` default in x's type. With `each_source` (the
+    resource's `for_each` expression), `each.value.a` resolves the same way
+    through every variable that feeds the `for_each`."""
     loc = locals_map(module_dir)
     data = data_map(module_dir)
+    decl = variables(module_dir)
     seen: set = set()
     parts: list = []
+
+    def add_attr_defaults(name: str, attr: str) -> None:
+        meta = decl.get(name) or {}
+        if ("var", name, attr) in seen or not meta:
+            return
+        seen.add(("var", name, attr))
+        for d in optional_defaults(meta.get("type") or "", attr):
+            add(d)
+        default = meta.get("default")
+        items = [default] if isinstance(default, dict) else []
+        if each_source is not None and isinstance(default, (dict, list)):
+            items += [v for v in (default.values() if isinstance(default, dict) else default) if isinstance(v, dict)]
+        for item in items:
+            if attr in item:
+                add(item[attr])
 
     def add(v) -> None:
         text = json.dumps(v, default=str)
@@ -258,6 +312,17 @@ def value_text_closure(module_dir: Path, value) -> str:
             if ("data", ref) not in seen and ref in data:
                 seen.add(("data", ref))
                 add(data[ref])
+        for name, attr in _VAR_ATTR_REF.findall(text):
+            if attr:
+                add_attr_defaults(name, attr)
+            elif ("var", name) not in seen and name in decl:
+                seen.add(("var", name))
+                if decl[name].get("default") is not None:
+                    add(decl[name]["default"])
+        if each_source is not None:
+            for attr in _EACH_VALUE_ATTR_REF.findall(text):
+                for name in _var_closure(loc, each_source, data):
+                    add_attr_defaults(name, attr)
 
     add(value)
     return " ".join(parts)
