@@ -132,6 +132,46 @@ def test_solver_uses_fixture_samples_for_provider_values(tmp_path):
     assert witnesses[0].changed == {"workspace_id": "/subscriptions/0/workspaces/w"}
 
 
+def test_solver_sets_bool_attributes_of_object_inputs(tmp_path):
+    d = module(tmp_path, 'variable "capacity" {\n  type = object({ workers = number, zone_redundant = bool })\n'
+                         '  default = { workers = 2, zone_redundant = false }\n}\n'
+                         'resource "x_plan" "this" {\n  zones = var.capacity.zone_redundant\n}\n')
+    m = solve.Module.load(d)
+    witnesses = solve.solve(m, GOAL, solve.base_inputs(m, {}))
+    assert witnesses[0].changed == {"capacity.zone_redundant": True}
+
+
+def test_solver_raises_sibling_numbers_together(tmp_path):
+    d = module(tmp_path, 'variable "zones" {\n  type = bool\n  default = false\n}\n'
+                         'variable "capacity" {\n  type = object({ minimum = number, default = number })\n'
+                         '  default = { minimum = 2, default = 2 }\n  validation {\n'
+                         '    condition     = var.capacity.minimum <= var.capacity.default\n'
+                         '    error_message = "x"\n  }\n}\n'
+                         'resource "x_plan" "this" {\n  zones = var.zones\n  lifecycle {\n    precondition {\n'
+                         '      condition     = !var.zones || var.capacity.minimum >= 3\n'
+                         '      error_message = "x"\n    }\n  }\n}\n')
+    m = solve.Module.load(d)
+    witnesses = solve.solve(m, GOAL, solve.base_inputs(m, {}))
+    assert witnesses[0].changed == {"capacity.default": 3, "capacity.minimum": 3, "zones": True}
+
+
+def test_solver_builds_null_object_inputs(tmp_path):
+    d = module(tmp_path, 'variable "logging" {\n  type = object({ target_bucket = string, target_prefix = optional(string, "logs/") })\n'
+                         '  default = null\n}\n'
+                         'resource "x_logging" "this" {\n  count  = var.logging == null ? 0 : 1\n'
+                         '  target = var.logging.target_bucket\n  prefix = var.logging.target_prefix\n}\n')
+    m = solve.Module.load(d)
+    witnesses = solve.solve(m, solve.Goal("x_logging", "null"), solve.base_inputs(m, {}))
+    assert witnesses[0].changed == {"logging": {"target_bucket": solve.PROBE_STRING}}
+
+
+def test_solver_leaves_null_objects_it_cannot_fill(tmp_path):
+    d = module(tmp_path, 'variable "logging" {\n  type = object({ targets = list(string) })\n  default = null\n}\n'
+                         'resource "x_logging" "this" {\n  count = var.logging == null ? 0 : 1\n}\n')
+    m = solve.Module.load(d)
+    assert solve.solve(m, solve.Goal("x_logging", "null"), solve.base_inputs(m, {})) == []
+
+
 def test_solver_on_known_answer_solutions():
     goal = solve.Goal("azurerm_service_plan", json.dumps({"zone_balancing_enabled": True}))
     good = solve.Module.load(SOLUTIONS / "G003" / "ref_guarded")

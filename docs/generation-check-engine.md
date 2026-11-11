@@ -162,9 +162,16 @@ for inputs that reach it, and the harness plans what it finds.
   inputs, draws values from the module's own source: the literals it is
   compared against (and their neighbours for ordering comparisons), the
   values a `contains([...])` lists, the keys of maps it indexes, and both
-  values of a bool. Fixtures supply `samples`, keyed by `type.attr`, for
-  values the source cannot provide, such as a well-formed resource ID; an
-  input that feeds that attribute directly tries the sample.
+  values of a bool, at any depth of an object. The numeric attributes of one
+  object share their constants, so a minimum and a default bounded against
+  each other can rise together. Fixtures supply `samples`, keyed by
+  `type.attr`, for values the source cannot provide, such as a well-formed
+  resource ID; an input that feeds that attribute directly tries the sample.
+- **Null objects.** An object input that defaults to `null` is tried as a
+  whole value: required strings from samples, the source's literals or a
+  placeholder, numbers from the source's constants or 1, bools false, and
+  optional attributes omitted. Its attributes vary only once it is set. An
+  object with a required attribute of any other type is left at `null`.
 - **Search.** Assignments are tried with the fewest changed inputs first (at
   most three). A witness meets the goal and fails no variable validation
   and no resource or output precondition. A guard that already fails at
