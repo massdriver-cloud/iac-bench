@@ -263,8 +263,8 @@ def _verb_declares(ctx: CheckContext, spec: dict) -> bool:
 
 
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
-    """Static lens over attribute expressions resolved through locals and
-    data sources.
+    """Static lens over attribute expressions resolved through locals, data
+    sources and variable defaults (see hclq.value_text_closure).
     match: every (default) — every resource of `type` has `attr` matching
     `pattern` or has `or_attr_present`; match: any — at least one resource's
     `attr` matches."""
@@ -276,12 +276,12 @@ def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     if spec.get("match", "every") == "any":
         return any(
             spec["attr"] in inst
-            and pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]]))
+            and pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]], inst.get("for_each")))
             for inst in insts
         )
     for inst in insts:
         if spec["attr"] in inst:
-            if not pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]])):
+            if not pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]], inst.get("for_each"))):
                 return False
         elif not (fallback and fallback in inst):
             return False
