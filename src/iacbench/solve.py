@@ -876,6 +876,50 @@ def _sample_values(m: Module, samples: dict) -> dict:
     return found
 
 
+def _object_leaves(node: dict | None, prefix: tuple) -> list:
+    """(path, type node, optional) for every attribute leaf of an object type."""
+    if not node or node["t"] != "call" or node["name"] != "object" or not node["args"]:
+        return []
+    out: list = []
+    for item in node["args"][0]["items"]:
+        if item["k"]["t"] != "lit":
+            continue
+        t, optional = item["v"], False
+        if t["t"] == "call" and t["name"] == "optional":
+            t, optional = t["args"][0], True
+        path = prefix + (item["k"]["v"],)
+        nested = _object_leaves(t, path)
+        out += nested if nested else [(path, t, optional)]
+    return out
+
+
+# The sweep's placeholder for a string input that defaults to null.
+PROBE_STRING = "probe2"
+
+
+def _object_value(m: Module, name: str, consts: dict) -> dict | None:
+    """One value for an object input that defaults to null: required string
+    attributes from fixture samples or the sweep's placeholder, numbers from
+    the module's own constants, bools off, optional attributes left to their
+    defaults. None when a required attribute has no such value."""
+    value: dict = {}
+    for path, t, optional in _object_leaves(m.variables[name].type, (name,)):
+        if optional:
+            continue
+        kind = _type_name(t)
+        known = consts.get(path, [])
+        if kind == "string":
+            leaf = next((v for v in known if isinstance(v, str)), PROBE_STRING)
+        elif kind == "number":
+            leaf = next((v for v in known if _is_num(v)), 1)
+        elif kind == "bool":
+            leaf = False
+        else:
+            return None
+        value = _set(value, path[1:], leaf)
+    return value
+
+
 def domains(m: Module, base: dict, samples: dict | None = None) -> dict:
     """input path -> candidate values other than the current one."""
     out: dict = {}
@@ -883,13 +927,32 @@ def domains(m: Module, base: dict, samples: dict | None = None) -> dict:
     for path, values in _sample_values(m, samples or {}).items():
         consts.setdefault(path, []).extend(values)
     paths = set(consts)
+    objects: dict = {}
     for name, v in m.variables.items():
         if _type_name(v.type) == "bool":
             paths.add((name,))
+        leaves = _object_leaves(v.type, (name,))
+        paths |= {p for p, t, _ in leaves if _type_name(t) == "bool"}
+        # Sibling numbers bound each other (minimum <= default): each number
+        # attribute may take the constants any number attribute is compared to.
+        numbers = [p for p, t, _ in leaves if _type_name(t) == "number"]
+        shared = [c for p in numbers for c in consts.get(p, []) if _is_num(c)]
+        for p in numbers:
+            for c in shared:
+                if not any(_eq(c, x) for x in consts.get(p, [])):
+                    consts.setdefault(p, []).append(c)
+            if shared:
+                paths.add(p)
+        if leaves and base.get(name) is None:
+            obj = _object_value(m, name, consts)
+            if obj is not None:
+                objects[(name,)] = obj
     for path in paths:
         if path[0] not in m.variables:
             continue
         current = _get(base.get(path[0]), path[1:]) if len(path) > 1 else base.get(path[0])
+        if len(path) > 1 and base.get(path[0]) is None:
+            continue  # attributes of a null object: set through the whole object above
         candidates = list(consts.get(path, []))
         if _type_name(_leaf_type(m, path)) == "bool":
             candidates += [True, False]
@@ -899,6 +962,8 @@ def domains(m: Module, base: dict, samples: dict | None = None) -> dict:
             candidates.sort(key=lambda c: abs(c - current) if _is_num(c) else math.inf)
         if candidates:
             out[path] = candidates
+    for path, obj in objects.items():
+        out[path] = [obj] + [c for c in out.get(path, []) if not _eq(c, obj)]
     return out
 
 
