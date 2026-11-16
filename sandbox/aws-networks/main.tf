@@ -1,5 +1,5 @@
-# Networks the G004 (Aurora global database) brief describes, in every region
-# enabled by default: per environment, one VPC named apps-<env> with private
+# Networks the G004 (Aurora global database) brief describes, in the four US
+# commercial regions: per environment, one VPC named apps-<env> with private
 # subnets tagged tier = database. No gateways, NAT or endpoints: nothing here
 # bills. Applied once per sandbox account; models look these up by name and tag.
 
@@ -29,15 +29,14 @@ variable "environments" {
   }
 }
 
-data "aws_regions" "default" {
-  filter {
-    name   = "opt-in-status"
-    values = ["opt-in-not-required"]
-  }
+variable "regions" {
+  description = "Regions that hold the environment VPCs."
+  type        = set(string)
+  default     = ["us-east-1", "us-east-2", "us-west-1", "us-west-2"]
 }
 
 data "aws_availability_zones" "available" {
-  for_each = data.aws_regions.default.names
+  for_each = var.regions
   region   = each.key
   state    = "available"
   filter {
@@ -48,7 +47,7 @@ data "aws_availability_zones" "available" {
 
 locals {
   vpcs = {
-    for pair in setproduct(data.aws_regions.default.names, keys(var.environments)) :
+    for pair in setproduct(var.regions, keys(var.environments)) :
     "${pair[0]}/${pair[1]}" => { region = pair[0], env = pair[1], cidr = var.environments[pair[1]] }
   }
   # Up to three database subnets per VPC, one per availability zone.
@@ -84,7 +83,7 @@ resource "aws_subnet" "database" {
 
 output "regions" {
   description = "Regions holding the apps-staging and apps-prod VPCs."
-  value       = sort(data.aws_regions.default.names)
+  value       = sort(var.regions)
 }
 
 output "subnet_count" {
