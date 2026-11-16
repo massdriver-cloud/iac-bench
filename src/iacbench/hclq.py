@@ -205,7 +205,8 @@ def vars_feeding_attr(
     restricts the search to one resource type; `through_data` also follows
     data-source lookups keyed by a variable. A value built from `each.key`
     or `each.value` carries the variables feeding the resource's for_each,
-    unless it only uses them as an index into something else."""
+    unless it only uses them as an index into something else. Resources in
+    local submodules count, through the arguments their module calls pass."""
     loc = locals_map(module_dir)
     data = data_map(module_dir) if through_data else None
     out: set = set()
@@ -221,6 +222,25 @@ def vars_feeding_attr(
                         out |= _var_closure(loc, value, data)
                         if each_vars and _EACH_REF.search(_strip_indexes(json.dumps(value, default=str))):
                             out |= each_vars
+    # Local submodules: a child variable that feeds the attribute carries the
+    # variables feeding the argument the module call passes for it.
+    for doc in parse_dir(module_dir):
+        for block in doc.get("module", []) or []:
+            for _name, args in block.items():
+                args = args or {}
+                source = args.get("source")
+                if not isinstance(source, str) or not source.startswith(("./", "../")):
+                    continue
+                child = (Path(module_dir) / source).resolve()
+                if not child.is_dir() or child == Path(module_dir).resolve():
+                    continue
+                each_vars = _var_closure(loc, args["for_each"], data) if "for_each" in args else set()
+                for child_var in vars_feeding_attr(child, attr_name, rtype, through_data):
+                    if child_var not in args:
+                        continue
+                    out |= _var_closure(loc, args[child_var], data)
+                    if each_vars and _EACH_REF.search(_strip_indexes(json.dumps(args[child_var], default=str))):
+                        out |= each_vars
     return out
 
 
