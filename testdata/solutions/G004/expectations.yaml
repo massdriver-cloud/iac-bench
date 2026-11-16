@@ -1,0 +1,49 @@
+# Generation reference matrix (docs/generation-check-engine.md). Bad
+# references are asserted by WHICH items fail, with score bounds as sanity
+# checks on true, uncapped values.
+#
+# Engine coverage: H5/H6 exercise resource min_regions, read from AWS provider
+# 6's planned region (ref_global) and from the provider configuration under
+# provider 5 (ref_lean); H7 exercises min_instances; H13 the gte predicate;
+# H14 and H4 the contains predicate; E1 the matches predicate. H3 passes
+# ref_global through rds.force_ssl in its parameter groups and ref_lean
+# through Aurora PostgreSQL 17's default. A2 exercises through_data across
+# two chained lookups (ref_global finds its subnets through the VPC it looks
+# up by environment).
+ref_global:
+  gate: true
+  min_score: 0.99
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
+              A1, A2, A3, A4, A5, B1_provider_constraints, B2_descriptions,
+              E1_pgaudit, E2_connection_logging, E3_performance_insights, E4_enhanced_monitoring,
+              E5_snapshot_tags, E6_global_writer_endpoint, E7_member_versions_follow_global]
+ref_lean:
+  # A different good design: IDs and CIDRs as inputs, provider 5, TLS from
+  # the engine default. Its generated password lands in state (H9 half
+  # credit) and its final snapshot has no opt-out (H12 0.75); it carries
+  # none of the expertise touches.
+  gate: true
+  min_score: 0.85
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H11, H13, H14, H15, H16, A1, A2, A3, A4, A5]
+  items: {H9: 0.5, H12: 0.75}
+bad_secrets_manager:
+  # ref_global with Secrets Manager managing the primary's password: Aurora
+  # rejects it on a global database member at apply; plan shows nothing.
+  gate: true
+  must_fail: [H9]
+  items: {H9: 0.0}
+bad_no_regional_key:
+  # ref_global whose secondary cluster names no KMS key: an encrypted
+  # secondary cannot join the global database without its own region's key.
+  gate: true
+  must_fail: [H8]
+bad_headless_secondary:
+  # ref_global with no instances in the secondary region: the standby cannot
+  # take over within minutes, and the module plans only two instances.
+  gate: true
+  must_fail: [H6, H7]
+bad_single_region:
+  gate: true
+  max_score: 0.4
+  must_fail: [H1, H2, H3, H4, H5, H6, H8, H9, H10, H13, H14, A4]
+  items: {H9: 0.0, H12: 0.0}
