@@ -54,10 +54,16 @@ ephemeral "random_password" "master" {
   special = false
 }
 
+# Resolving the version fails the plan when AWS does not offer it.
+data "aws_rds_engine_version" "this" {
+  engine  = "aurora-postgresql"
+  version = var.engine_version
+}
+
 resource "aws_rds_global_cluster" "this" {
   global_cluster_identifier = var.name
   engine                    = "aurora-postgresql"
-  engine_version            = var.engine_version
+  engine_version            = data.aws_rds_engine_version.this.version
   storage_encrypted         = true
   deletion_protection       = var.deletion_protection
 }

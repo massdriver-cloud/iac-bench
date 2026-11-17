@@ -310,6 +310,27 @@ items:
         - var_feeds_provider_attr: {provider: aws, attr: region}
         - var_feeds_attr: {attr: region}
 
+  - id: H17
+    weight: 6
+    description: >
+      The engine version the module ships as its default is one AWS offers for
+      Aurora global databases, so a platform engineer who keeps the default
+      gets a database that deploys. A required version input passes: the
+      caller chooses it. The list is the edition's snapshot of
+      describe-db-engine-versions (Aurora PostgreSQL, SupportsGlobalDatabases,
+      status available, in all four US regions, Limitless versions excluded),
+      taken 2026-11-17; a new edition refreshes it.
+    check:
+      any_of:
+        - var_feeds_attr: {type: aws_rds_cluster, attr: engine_version, has_default: false}
+        - var_feeds_attr: {type: aws_rds_global_cluster, attr: engine_version, has_default: false}
+        - resource:
+            type: aws_rds_cluster
+            match: every
+            where:
+              engine_version:
+                in: ["11.9", "11.21", "12.9", "12.22", "13.9", "13.23", "14.6", "14.17", "14.18", "14.19", "14.20", "14.22", "14.23", "14.24", "15.10", "15.12", "15.13", "15.14", "15.15", "15.17", "15.18", "15.19", "16.8", "16.9", "16.10", "16.11", "16.13", "16.14", "16.15", "17.4", "17.5", "17.6", "17.7", "17.9", "17.10", "17.11", "18.3", "18.4", "18.6"]
+
   - id: H16
     weight: 2
     description: >
@@ -443,6 +464,15 @@ expertise:
     discovered_via: draft rubric, 2026-11-16
     check:
       output_named: {name_matches: endpoint, value_contains: aws_rds_global_cluster}
+  - id: E8_engine_version_lookup
+    description: >
+      The engine version is resolved through an aws_rds_engine_version data
+      source, so a version AWS does not offer fails at plan instead of partway
+      through an apply.
+    discovered_via: G004 pilot, 2026-11-17
+    check:
+      source_contains: 'data "aws_rds_engine_version"'
+
   - id: E7_member_versions_follow_global
     description: >
       Member clusters ignore engine_version changes (lifecycle ignore_changes),

@@ -9,14 +9,17 @@
 # ref_global through rds.force_ssl in its parameter groups and ref_lean
 # through Aurora PostgreSQL 17's default. A2 exercises through_data across
 # two chained lookups (ref_global finds its subnets through the VPC it looks
-# up by environment).
+# up by environment). H17 exercises the in predicate on a version resolved
+# through a data source (ref_global) and on a literal (ref_lean), and fails
+# bad_single_region's deprecated 16.6.
 ref_global:
   gate: true
   min_score: 0.99
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17,
               A1, A2, A3, A4, A5, B1_provider_constraints, B2_descriptions,
               E1_pgaudit, E2_connection_logging, E3_performance_insights, E4_enhanced_monitoring,
-              E5_snapshot_tags, E6_global_writer_endpoint, E7_member_versions_follow_global]
+              E5_snapshot_tags, E6_global_writer_endpoint, E7_member_versions_follow_global,
+              E8_engine_version_lookup]
 ref_lean:
   # A different good design: IDs and CIDRs as inputs, provider 5, TLS from
   # the engine default. Its generated password lands in state (H9 half
@@ -24,7 +27,7 @@ ref_lean:
   # (H11 and H12 0.75); it carries none of the expertise touches.
   gate: true
   min_score: 0.85
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H13, H14, H15, H16, A1, A2, A3, A4, A5]
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H13, H14, H15, H16, H17, A1, A2, A3, A4, A5]
   items: {H9: 0.5, H11: 0.75, H12: 0.75}
 bad_secrets_manager:
   # ref_global with Secrets Manager managing the primary's password: Aurora
@@ -49,5 +52,5 @@ bad_headless_secondary:
 bad_single_region:
   gate: true
   max_score: 0.4
-  must_fail: [H1, H2, H3, H4, H5, H6, H8, H9, H10, H13, H14, A4]
+  must_fail: [H1, H2, H3, H4, H5, H6, H8, H9, H10, H13, H14, H17, A4]
   items: {H9: 0.0, H12: 0.0}
