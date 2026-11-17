@@ -165,7 +165,7 @@ items:
       expr_matches: {type: aws_rds_cluster, attr: kms_key_id, pattern: '^(?!\s*null\s*$)'}
 
   - id: H9
-    weight: 6
+    weight: 8
     posture: ladder
     description: >
       The master password is never a raw input, never managed by Secrets
