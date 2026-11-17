@@ -40,6 +40,28 @@ apply_failures:
         - resource: {type: aws_rds_global_cluster}
         - resource: {type: aws_rds_cluster, where: {manage_master_user_password: true}}
 
+  - id: F2_encrypted_secondary_without_regional_key
+    description: >
+      The global database is encrypted, spans two regions, and a member
+      cluster names no KMS key. Aurora rejects an encrypted cross-region
+      secondary that does not name a key from its own region. The check reads
+      the source, which does not say which member is the primary, so it holds
+      whenever any member lacks a key.
+    evidence: >
+      Applied 2026-11-17 in the benchmark AWS account (provider 6, Aurora
+      PostgreSQL 17.5): with the primary and its instance created in
+      us-east-1, CreateDBCluster for the us-east-2 secondary returned 400
+      InvalidParameterCombination, "For encrypted cross-region replica,
+      kmsKeyId should be explicitly specified."
+    check:
+      all_of:
+        - resource: {type: aws_rds_global_cluster}
+        - resource: {type: aws_rds_cluster, min_regions: 2}
+        - any_of:
+            - expr_matches: {type: aws_rds_cluster, attr: storage_encrypted, match: any, pattern: 'true'}
+            - expr_matches: {type: aws_rds_global_cluster, attr: storage_encrypted, match: any, pattern: 'true'}
+        - not: {expr_matches: {type: aws_rds_cluster, attr: kms_key_id, pattern: '^(?!\s*null\s*$)'}}
+
 items:
   - id: H1
     weight: 10
@@ -175,9 +197,9 @@ items:
   - id: H8
     weight: 6
     description: >
-      Every cluster names a KMS key (kms_key_id), never null. An encrypted
-      cluster in a second region needs a key from that region, or it cannot
-      join the global database; plan cannot see the failure.
+      Every cluster names a KMS key (kms_key_id), never null: a
+      customer-managed key in each region. A secondary without one also fails
+      at apply (F2).
     check:
       expr_matches: {type: aws_rds_cluster, attr: kms_key_id, pattern: '^(?!\s*null\s*$)'}
 

@@ -35,9 +35,11 @@ bad_secrets_manager:
   max_score: 0.5
   must_fail: [H9]
 bad_no_regional_key:
-  # ref_global whose secondary cluster names no KMS key: an encrypted
-  # secondary cannot join the global database without its own region's key.
+  # ref_global whose secondary cluster names no KMS key: Aurora rejects an
+  # encrypted cross-region secondary without its own region's key (F2).
   gate: true
+  apply_failures: [F2_encrypted_secondary_without_regional_key]
+  max_score: 0.5
   must_fail: [H8]
 bad_headless_secondary:
   # ref_global with no instances in the secondary region: the standby cannot
