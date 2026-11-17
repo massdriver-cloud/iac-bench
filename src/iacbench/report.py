@@ -35,6 +35,8 @@ class Attempt:
     semantic_score: float | None = None
     mechanical_score: float | None = None
     mandatory_failures: list | None = None
+    apply_failures: list | None = None
+    raw_mechanical_score: float | None = None
     gate: bool | None = None
     module_sha: str | None = None
     rubric_sha: str | None = None
@@ -97,12 +99,25 @@ def collect_attempts(log_dir: Path) -> list:
                     semantic_score=meta.get("semantic_score", score.value if score else None),
                     mechanical_score=meta.get("mechanical_score"),
                     mandatory_failures=meta.get("mandatory_failures"),
+                    apply_failures=meta.get("apply_failures"),
+                    raw_mechanical_score=meta.get("raw_mechanical_score"),
                     gate=meta.get("gate"),
                     module_sha=meta.get("module_sha"),
                     rubric_sha=meta.get("rubric_sha"),
                 )
             )
     return attempts
+
+
+def _composite(a: Attempt, grade: float, w: dict) -> float:
+    """0-100 composite. A known apply failure multiplies the whole composite,
+    judge share included, by APPLY_FAILURE_FACTOR."""
+    from iacbench.generation import APPLY_FAILURE_FACTOR
+
+    if a.apply_failures:
+        mech = a.raw_mechanical_score if a.raw_mechanical_score is not None else a.mechanical_score
+        return APPLY_FAILURE_FACTOR * 100 * (w["mechanical"] * mech + w["grade"] * grade / 100)
+    return 100 * (w["mechanical"] * a.mechanical_score + w["grade"] * grade / 100)
 
 
 def _load_prices() -> dict | None:
@@ -308,7 +323,9 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
             for item in a.mandatory_failures or []:
                 findings[item] = findings.get(item, 0) + 1
         gate_failures = sum(1 for a in group if a.gate is False)
+        apply_failed = sum(1 for a in group if a.apply_failures)
         marks = [f"✗gate({gate_failures}/{len(group)})"] if gate_failures else []
+        marks += [f"✗apply({apply_failed}/{len(group)})"] if apply_failed else []
         marks += [f"⚠{item}({c}/{len(group)})" for item, c in sorted(findings.items())]
         flag = " ".join(marks) or "—"
         base = {
@@ -318,6 +335,7 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
             "mech": statistics.median(mechs),
             "grade_cell": grade_cell, "flag": flag, "findings": findings,
             "gate_failures": gate_failures,
+            "apply_failures": apply_failed,
             "insecure_attempts": sum(1 for a in group if a.mandatory_failures),
         }
         if calibrated_pairs and len(calibrated_pairs) < len(group):
@@ -326,10 +344,7 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
                 "calibrated grade of their own module — composite covers the graded attempts only"
             )
         if grade is not None:
-            composites = sorted(
-                100 * (w["mechanical"] * a.mechanical_score + w["grade"] * g / 100)
-                for a, g in calibrated_pairs
-            )
+            composites = sorted(_composite(a, g, w) for a, g in calibrated_pairs)
             base["composite"] = statistics.median(composites)
             base["range"] = (
                 f"{composites[0]:.0f}–{composites[-1]:.0f}" if len(group) > 1 else "—"
@@ -428,18 +443,24 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
                 f"- **{r['model']}** ({r['fixture']}): failed the gate (module did not plan) "
                 f"in {r['gate_failures']}/{r['n']} attempt(s)"
             )
+        if r["apply_failures"]:
+            findings_lines.append(
+                f"- **{r['model']}** ({r['fixture']}): plans but would fail at apply (a known "
+                f"apply failure; score multiplied by 0.5) in {r['apply_failures']}/{r['n']} attempt(s)"
+            )
         for item, c in sorted(r["findings"].items()):
             findings_lines.append(
                 f"- **{r['model']}** ({r['fixture']}): failed mandatory item `{item}` in {c}/{r['n']} attempt(s)"
             )
     if findings_lines:
-        lines += ["", "### Findings: failed gates and security items", ""]
+        lines += ["", "### Findings: failed gates, apply failures and security items", ""]
         lines += findings_lines
         lines.append("")
         lines.append(
-            "Findings fail the verdict but do not cap scores — the composite above is "
-            "the true measured value, and a module that failed the gate keeps its judge "
-            "grade. Treat any ✗ or ⚠ attempt as unshippable regardless of score."
+            "Findings fail the verdict. Security findings do not cap scores, and a "
+            "module that failed the gate keeps its judge grade. A known apply failure "
+            "multiplies the attempt's composite by 0.5. Treat any ✗ or ⚠ attempt as "
+            "unshippable regardless of score."
         )
     return "\n".join(lines)
 

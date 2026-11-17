@@ -56,10 +56,19 @@ Planning stands in for applying, and some configurations plan cleanly but are
 rejected by the cloud API at create time. A fixture lists the ones its brief
 leads into under `apply_failures`: each entry has an `id`, a `description`,
 the `evidence` of an observed apply error, and a `check` in the same
-vocabulary as rubric items. An entry whose check holds against the defaults
-plan fails the gate, so a module that cannot be applied scores as one that
-cannot be planned. Entries are added only after the failure has been
-reproduced against the real API.
+vocabulary as rubric items, evaluated against the defaults plan. Entries
+are added only after the failure has been reproduced against the real API.
+
+A module that matches an entry passes the gate and is scored in full; its
+rubric, mechanical and composite scores are then multiplied by 0.5
+(`APPLY_FAILURE_FACTOR`), with the unmultiplied values kept as
+`raw_semantic_score` and `raw_mechanical_score`. The attempt fails its
+verdict and is reported as a finding. The factor ranks every module that
+cannot be applied below every working module of passable quality, while
+keeping the quality differences among the failures visible. A plan failure
+stays a gate failure scored 0: the model had `tofu_plan` and could have seen
+it, whereas an apply failure gives the model no signal, and most rubric
+items need a plan to evaluate at all.
 
 The contract requirement is public and functional; stating "ship a
 minimal.tfvars with literal values for required variables" in the prompt

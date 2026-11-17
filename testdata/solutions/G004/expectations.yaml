@@ -28,9 +28,12 @@ ref_lean:
   items: {H9: 0.5, H11: 0.75, H12: 0.75}
 bad_secrets_manager:
   # ref_global with Secrets Manager managing the primary's password: Aurora
-  # rejects it on a global database member at apply, so the gate fails
-  # (F1) although the plan succeeds.
-  gate: false
+  # rejects it on a global database member at apply (F1) although the plan
+  # succeeds. Scored in full, then multiplied by 0.5.
+  gate: true
+  apply_failures: [F1_secrets_manager_on_global_member]
+  max_score: 0.5
+  must_fail: [H9]
 bad_no_regional_key:
   # ref_global whose secondary cluster names no KMS key: an encrypted
   # secondary cannot join the global database without its own region's key.

@@ -46,6 +46,11 @@ class CloudAuthError(RuntimeError):
     """The cloud provider rejected our credentials; not the module's fault."""
 
 
+# A module that plans but matches a known apply failure keeps its full scoring,
+# multiplied by this factor: it ranks below every working module of passable
+# quality and keeps its order among the other failures.
+APPLY_FAILURE_FACTOR = 0.5
+
 # Harvested allowed-value lists (and fixture perturb hints) keep up to this
 # many candidates so distant values like a "prod" tier stay reachable;
 # type-derived perturbation stays at one candidate per variable.
@@ -130,12 +135,21 @@ class GenerationResult:
     # Mandatory (security) items that failed. Scores stay true — these are
     # reported as findings and fail the verdict instead of capping the number.
     mandatory_failures: list = field(default_factory=list)
+    # Known apply failures the module matches at defaults. When non-empty,
+    # semantic_score and mechanical_score carry APPLY_FAILURE_FACTOR and the
+    # raw_* fields keep the unmultiplied values.
+    apply_failures: list = field(default_factory=list)
+    raw_semantic_score: float | None = None
+    raw_mechanical_score: float | None = None
 
     @property
     def verdict(self) -> str:
         return (
             "pass"
-            if self.gate and self.semantic_score >= 0.8 and not self.mandatory_failures
+            if self.gate
+            and self.semantic_score >= 0.8
+            and not self.mandatory_failures
+            and not self.apply_failures
             else "fail"
         )
 
@@ -314,14 +328,14 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         return _gate_failure(fixture, details, stats, sha)
 
     # ---- known apply failures: the module plans, but the cloud API rejects
-    # what it would create. A module that cannot be applied fails the gate
-    # exactly as one that cannot be planned does.
+    # what it would create. Scoring continues; the factor applies at the end.
+    apply_failures: list = []
     if fixture.apply_failures:
         defaults_ctx = checks.CheckContext(module_dir=work, defaults_plan=defaults_plan, sweep_plans=[])
         for entry in fixture.apply_failures:
             if checks.evaluate(defaults_ctx, entry["check"]):
-                details.append(f"gate: {entry['id']}: apply would fail: {entry['description'].strip()}")
-                return _gate_failure(fixture, details, stats, sha)
+                apply_failures.append(entry["id"])
+                details.append(f"apply failure {entry['id']}: {entry['description'].strip()}")
 
     # ---- perturbation sweep: interface-driven — every declared variable,
     # perturbed from its default (or its tfvars value for required ones).
@@ -416,12 +430,19 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     mechanical_score = (
         round((passed_weight + exp_passed) / mech_denominator, 3) if mech_denominator else 0.0
     )
+    raw_semantic, raw_mechanical = round(score, 3), mechanical_score
+    if apply_failures:
+        score *= APPLY_FAILURE_FACTOR
+        mechanical_score = round(mechanical_score * APPLY_FAILURE_FACTOR, 3)
 
     return GenerationResult(
         expertise=expertise,
         expertise_score=expertise_score,
         mechanical_score=mechanical_score,
         mandatory_failures=mandatory_failures,
+        apply_failures=apply_failures,
+        raw_semantic_score=raw_semantic,
+        raw_mechanical_score=raw_mechanical,
         gate=True,
         items=items,
         semantic_score=round(score, 3),

@@ -35,6 +35,8 @@ def _differences(logged, result) -> list:
             diffs.append(f"{k} {before.get(k)} -> {after.get(k)}")
     if sorted(logged.mandatory_failures or []) != sorted(result.mandatory_failures):
         diffs.append(f"findings {logged.mandatory_failures} -> {result.mandatory_failures}")
+    if sorted(logged.apply_failures or []) != sorted(result.apply_failures):
+        diffs.append(f"apply failures {logged.apply_failures} -> {result.apply_failures}")
     return diffs
 
 
