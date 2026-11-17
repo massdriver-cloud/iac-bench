@@ -106,12 +106,15 @@ deletion protection, backups):
 - **0.5** — absent at defaults but reachable through some input (opt-in only).
   The fraction is overridable per item (`partial: 0.4`).
 - **0.0** — absent everywhere; or hardcoded in either polarity. Hardcoded-off
-  never protects; hardcoded-on breaks legitimate operations (a permanently
-  deletion-protected database cannot be destroyed) — the very reason the
-  attribute isn't posture `hardcoded` in the first place. Where hardcoded-on
-  costs only flexibility and blocks nothing (backups: storage cost, no
-  obstacle to retiring the resource), the item sets `hardcoded_on: 0.75` —
-  safer than opt-in, short of a real opt-out.
+  never protects; hardcoded-on blocks legitimate operations (a permanently
+  deletion-protected database cannot be destroyed through OpenTofu) — the
+  very reason the attribute isn't posture `hardcoded` in the first place.
+  An item sets `hardcoded_on: 0.75` when the brief makes that cost minor
+  next to the protection: hardcoded-on costs only flexibility (backups:
+  storage cost, no obstacle to retiring the resource), or the brief
+  describes resources whose loss outweighs the friction of retiring them
+  (deletion protection on production databases holding customer data).
+  That credit sits above opt-in and below a real opt-out.
 
 Where a service offers more than one legitimate mechanism for the same
 protection, `behavior:` may list them; the best-graded alternative counts.

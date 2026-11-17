@@ -205,9 +205,12 @@ items:
   - id: H11
     weight: 6
     posture: default_on
+    hardcoded_on: 0.75
     description: >
-      Deletion protection ships on with a real opt-out, on the clusters or the
-      global cluster. Hardcoded on leaves no way to retire the database.
+      Deletion protection ships on, on the clusters or the global cluster.
+      Full credit with a real opt-out; 0.75 when hardcoded on, which protects
+      the production database but means OpenTofu can never retire it, even
+      intentionally, without editing the module.
     behavior:
       - type: aws_rds_cluster
         where: {deletion_protection: true}

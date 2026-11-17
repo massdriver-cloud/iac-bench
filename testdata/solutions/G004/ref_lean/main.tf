@@ -32,11 +32,6 @@ variable "instance_class" {
   default     = "db.r7g.large"
 }
 
-variable "deletion_protection" {
-  description = "Block deletion; turn off only to retire the database."
-  type        = bool
-  default     = true
-}
 
 variable "tags" {
   description = "Tags applied to every resource."
@@ -69,7 +64,7 @@ resource "aws_rds_global_cluster" "this" {
   engine                    = "aurora-postgresql"
   engine_version            = "17.5"
   storage_encrypted         = true
-  deletion_protection       = var.deletion_protection
+  deletion_protection       = true
 }
 
 resource "aws_db_subnet_group" "primary" {
@@ -121,7 +116,7 @@ resource "aws_rds_cluster" "primary" {
   db_subnet_group_name                = aws_db_subnet_group.primary.name
   vpc_security_group_ids              = [aws_security_group.primary.id]
   backup_retention_period             = 14
-  deletion_protection                 = var.deletion_protection
+  deletion_protection                 = true
   skip_final_snapshot                 = false
   final_snapshot_identifier           = "${var.name}-primary-final"
   enabled_cloudwatch_logs_exports     = ["postgresql"]
@@ -139,7 +134,7 @@ resource "aws_rds_cluster" "secondary" {
   db_subnet_group_name                = aws_db_subnet_group.secondary.name
   vpc_security_group_ids              = [aws_security_group.secondary.id]
   backup_retention_period             = 14
-  deletion_protection                 = var.deletion_protection
+  deletion_protection                 = true
   skip_final_snapshot                 = false
   final_snapshot_identifier           = "${var.name}-secondary-final"
   enabled_cloudwatch_logs_exports     = ["postgresql"]

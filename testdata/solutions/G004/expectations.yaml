@@ -20,12 +20,12 @@ ref_global:
 ref_lean:
   # A different good design: IDs and CIDRs as inputs, provider 5, TLS from
   # the engine default. Its generated password lands in state (H9 half
-  # credit) and its final snapshot has no opt-out (H12 0.75); it carries
-  # none of the expertise touches.
+  # credit), and deletion protection and the final snapshot have no opt-out
+  # (H11 and H12 0.75); it carries none of the expertise touches.
   gate: true
   min_score: 0.85
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H11, H13, H14, H15, H16, A1, A2, A3, A4, A5]
-  items: {H9: 0.5, H12: 0.75}
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H13, H14, H15, H16, A1, A2, A3, A4, A5]
+  items: {H9: 0.5, H11: 0.75, H12: 0.75}
 bad_secrets_manager:
   # ref_global with Secrets Manager managing the primary's password: Aurora
   # rejects it on a global database member at apply; plan shows nothing.
