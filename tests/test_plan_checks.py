@@ -105,3 +105,22 @@ def test_region_follows_an_object_variable_attribute(tmp_path):
         variables={"regions": {"value": {"primary": "us-east-1", "secondary": "us-west-2"}}},
     )
     assert [checks.region_of(p, r) for r in checks.planned(p)] == ["us-west-2"]
+
+
+def test_g004_apply_failure_needs_secrets_manager_on_a_global_member(tmp_path):
+    from pathlib import Path
+
+    from iacbench.generation import GenerationFixture
+
+    fixture = GenerationFixture.load(Path(__file__).parent.parent / "fixtures/generation/G004")
+    (entry,) = [f for f in fixture.apply_failures if f["id"] == "F1_secrets_manager_on_global_member"]
+
+    def hits(resources):
+        return checks.evaluate(checks.CheckContext(tmp_path, plan(resources)), entry["check"])
+
+    glob = res("aws_rds_global_cluster.g", {})
+    sm = res("aws_rds_cluster.p", {"manage_master_user_password": True})
+    pw = res("aws_rds_cluster.p", {"manage_master_user_password": None})
+    assert hits([glob, sm])
+    assert not hits([sm])  # a single-region cluster may use Secrets Manager
+    assert not hits([glob, pw])

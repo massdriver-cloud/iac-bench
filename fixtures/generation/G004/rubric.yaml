@@ -13,7 +13,8 @@
 # (sandbox/aws-networks), so a module that looks its network up plans.
 # Several settings an Aurora global database needs are invisible to plan
 # (Secrets Manager credentials on a member cluster, an encrypted secondary
-# without a regional key); those items read the source.
+# without a regional key); those items read the source, and the ones that
+# make apply fail are listed under apply_failures, which fail the gate.
 
 id: G004
 domain: generation
@@ -22,6 +23,22 @@ cloud: aws
 scoring_policy: v1
 
 mandatory: [H1, H2, H3, H4]
+
+apply_failures:
+  - id: F1_secrets_manager_on_global_member
+    description: >
+      A member cluster of the global database has its master password managed
+      by Secrets Manager (manage_master_user_password). Aurora rejects that
+      for global databases when creating the cluster.
+    evidence: >
+      Applied 2026-11-17 in the benchmark AWS account (provider 6, Aurora
+      PostgreSQL 17.5): CreateDBCluster returned 400 InvalidParameterValue,
+      "ManageMasterUserPassword is not supported for an Aurora global
+      database."
+    check:
+      all_of:
+        - resource: {type: aws_rds_global_cluster}
+        - resource: {type: aws_rds_cluster, where: {manage_master_user_password: true}}
 
 items:
   - id: H1
@@ -165,7 +182,7 @@ items:
       expr_matches: {type: aws_rds_cluster, attr: kms_key_id, pattern: '^(?!\s*null\s*$)'}
 
   - id: H9
-    weight: 8
+    weight: 6
     posture: ladder
     description: >
       The master password is never a raw input, never managed by Secrets

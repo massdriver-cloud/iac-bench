@@ -63,6 +63,9 @@ class GenerationFixture:
     mandatory: list
     items: list  # [{id, weight, description, check | behavior, posture?, partial?}]
     expertise: list  # [{id, description, discovered_via, check}] — unweighted
+    # Known apply failures plan cannot see: [{id, description, evidence, check}].
+    # A check that holds at defaults fails the gate.
+    apply_failures: list
     perturb: dict  # optional per-variable candidate hints for the sweep
     samples: dict  # `type.attr` -> a provider-valid value the solver may try
     path: Path
@@ -92,6 +95,7 @@ class GenerationFixture:
             mandatory=data.get("mandatory", []),
             items=data["items"] + baseline_items,
             expertise=data.get("expertise", []),
+            apply_failures=data.get("apply_failures", []) or [],
             perturb=data.get("perturb", {}) or {},
             samples=data.get("samples", {}) or {},
             path=fixture_dir,
@@ -308,6 +312,16 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     if not ok or defaults_plan is None:
         details.append(f"gate: defaults plan (required-only inputs) failed: {stderr.strip()[-300:]}")
         return _gate_failure(fixture, details, stats, sha)
+
+    # ---- known apply failures: the module plans, but the cloud API rejects
+    # what it would create. A module that cannot be applied fails the gate
+    # exactly as one that cannot be planned does.
+    if fixture.apply_failures:
+        defaults_ctx = checks.CheckContext(module_dir=work, defaults_plan=defaults_plan, sweep_plans=[])
+        for entry in fixture.apply_failures:
+            if checks.evaluate(defaults_ctx, entry["check"]):
+                details.append(f"gate: {entry['id']}: apply would fail: {entry['description'].strip()}")
+                return _gate_failure(fixture, details, stats, sha)
 
     # ---- perturbation sweep: interface-driven — every declared variable,
     # perturbed from its default (or its tfvars value for required ones).

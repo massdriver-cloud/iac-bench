@@ -52,6 +52,15 @@ with its own tfvars filtered to required-only. A tfvars that fails to parse,
 omits a required variable, or plans nonzero fails the gate with a recorded
 reason.
 
+Planning stands in for applying, and some configurations plan cleanly but are
+rejected by the cloud API at create time. A fixture lists the ones its brief
+leads into under `apply_failures`: each entry has an `id`, a `description`,
+the `evidence` of an observed apply error, and a `check` in the same
+vocabulary as rubric items. An entry whose check holds against the defaults
+plan fails the gate, so a module that cannot be applied scores as one that
+cannot be planned. Entries are added only after the failure has been
+reproduced against the real API.
+
 The contract requirement is public and functional; stating "ship a
 minimal.tfvars with literal values for required variables" in the prompt
 leaks no rubric content.
