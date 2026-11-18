@@ -1,0 +1,45 @@
+# Generation reference matrix (docs/generation-check-engine.md). Bad
+# references are asserted by WHICH items fail, with score bounds as sanity
+# checks on true, uncapped values.
+#
+# Engine coverage: H1 exercises the matches predicate on a planned location;
+# H14 the in predicate on a version input's default (bad_pinned_version) and
+# the exists predicate on unset versions; H5 a negative-lookahead matches on a
+# service account email known at plan; A2 through_data (ref_standard looks
+# its subnet up by environment and region).
+ref_standard:
+  gate: true
+  min_score: 0.99
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15,
+              A1, A2, A3, A4, A5, A6, B1_provider_constraints, B2_descriptions,
+              E1_release_channel, E2_google_groups_rbac, E3_binary_authorization,
+              E4_vulnerability_scanning, E5_cost_allocation, E6_surge_upgrades,
+              E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke,
+              E10_dns_endpoint, E11_node_sa_minimal_role]
+ref_autopilot:
+  # A different good design: Autopilot, a private endpoint behind empty
+  # authorized networks, provider configuration from the environment and the
+  # network and subnet passed by name. No secrets-encryption input (H9), no
+  # labels input (A4), deletion protection with an opt-out.
+  gate: true
+  min_score: 0.9
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H11, H12, H13, H14, H15, A1, A2, A3, A5, A6,
+              E1_release_channel, E6_surge_upgrades, E11_node_sa_minimal_role]
+  must_fail: [H9, A4]
+bad_zonal:
+  gate: true
+  must_fail: [H1]
+bad_default_sa:
+  gate: true
+  must_fail: [H4, H5]
+bad_public:
+  gate: true
+  must_fail: [H2, H3, E10_dns_endpoint]
+bad_pinned_version:
+  gate: true
+  must_fail: [H14, E1_release_channel]
+bad_minimal:
+  gate: true
+  max_score: 0.4
+  must_fail: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H13, H15, A6]
+  items: {H11: 0.0}

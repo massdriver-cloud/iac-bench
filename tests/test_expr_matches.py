@@ -138,3 +138,35 @@ resource "aws_db_subnet_group" "this" {
     assert hclq.vars_feeding_attr(root, "subnet_ids", "aws_db_subnet_group", True) == {"environment"}
     assert hclq.vars_feeding_attr(root, "subnet_ids", "aws_db_subnet_group", False) == set()
     assert hclq.vars_feeding_attr(root, "name", "aws_db_subnet_group") == set()
+
+
+def test_dynamic_block_iterator_carries_its_for_each_variables(tmp_path):
+    root = module(tmp_path, '''
+variable "key" {
+  type    = string
+  default = null
+}
+variable "group" {
+  type    = string
+  default = null
+}
+resource "google_container_cluster" "this" {
+  dynamic "database_encryption" {
+    for_each = var.key == null ? [] : [var.key]
+    content {
+      state    = "ENCRYPTED"
+      key_name = database_encryption.value
+    }
+  }
+  dynamic "authenticator_groups_config" {
+    for_each = var.group == null ? [] : [var.group]
+    iterator = g
+    content {
+      security_group = g.value
+    }
+  }
+}
+''')
+    assert hclq.vars_feeding_attr(root, "key_name", "google_container_cluster") == {"key"}
+    assert hclq.vars_feeding_attr(root, "security_group", "google_container_cluster") == {"group"}
+    assert hclq.vars_feeding_attr(root, "state", "google_container_cluster") == set()

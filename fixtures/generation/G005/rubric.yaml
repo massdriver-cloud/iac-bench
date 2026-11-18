@@ -1,0 +1,529 @@
+# G005 rubric — declarative check engine (docs/generation-check-engine.md).
+#
+# HIDDEN CRITERIA: none of these appear in the brief. The brief states that
+# the clusters are shared by several product teams and run production
+# workloads that use other Google Cloud services, names the per-environment
+# VPCs, their GKE subnets and secondary ranges, says the workloads handle
+# customer data and access is audited, and describes the audience (platform
+# engineers who know Kubernetes but are not GKE specialists). Everything else
+# measures what the model volunteers.
+#
+# Planned as a root module at its defaults, then swept across its declared
+# interface. The benchmark project holds apps-staging and apps-prod with a
+# GKE subnet in every US region (sandbox/gcp-networks), so a module that
+# looks its network up plans.
+#
+# Autopilot and Standard are both legitimate designs. Autopilot clusters
+# always run Workload Identity, Dataplane V2, shielded nodes with secure boot,
+# node auto-repair, auto-upgrade and autoscaling, and have no node pools for
+# the module to manage; the items those settings cover pass an Autopilot
+# cluster (enable_autopilot = true) outright.
+
+id: G005
+domain: generation
+suite_version: v0.1.0
+cloud: gcp
+scoring_policy: v1
+
+mandatory: [H1, H2, H4, H5]
+
+items:
+  - id: H1
+    weight: 12
+    description: >
+      The cluster is regional: its location at defaults is a region, so the
+      control plane and nodes are replicated across the region's zones. A
+      zonal cluster loses its control plane during upgrades and its nodes in
+      a zone outage, which a shared production cluster cannot accept.
+    check:
+      resource:
+        type: google_container_cluster
+        match: every
+        where: {location: {matches: '^[a-z]+-[a-z]+[0-9]+$'}}
+
+  - id: H2
+    weight: 10
+    posture: hardcoded
+    description: >
+      Nodes have no public IP addresses, and no input can give them one.
+      Private nodes at the cluster (private_cluster_config) or on every node
+      pool (network_config) both pass; across the sweep, no planned cluster
+      or pool has public nodes.
+    check:
+      all_of:
+        - any_of:
+            - closed_values:
+                type: google_container_cluster
+                attrs:
+                  private_cluster_config.enable_private_nodes: true
+            - closed_values:
+                type: google_container_node_pool
+                attrs:
+                  network_config.enable_private_nodes: true
+        - not:
+            any_of:
+              - resource:
+                  plans: [defaults, sweep]
+                  quantifier: any
+                  type: google_container_cluster
+                  where: {private_cluster_config: {enable_private_nodes: false}}
+              - resource:
+                  plans: [defaults, sweep]
+                  quantifier: any
+                  type: google_container_node_pool
+                  where: {network_config: {enable_private_nodes: false}}
+
+  - id: H3
+    weight: 8
+    description: >
+      The control plane is not open to the internet at defaults: its IP
+      endpoint is private, disabled in favour of the IAM-authenticated DNS
+      endpoint, or restricted by authorized networks that do not include
+      0.0.0.0/0.
+    check:
+      any_of:
+        - resource:
+            type: google_container_cluster
+            match: every
+            where: {private_cluster_config: {enable_private_endpoint: true}}
+        - resource:
+            type: google_container_cluster
+            match: every
+            where: {control_plane_endpoints_config: {ip_endpoints_config: {enabled: false}}}
+        - all_of:
+            - resource:
+                type: google_container_cluster
+                match: every
+                where: {master_authorized_networks_config: {exists: true}}
+            - not:
+                resource:
+                  type: google_container_cluster
+                  where: {master_authorized_networks_config: {cidr_blocks: {cidr_block: 0.0.0.0/0}}}
+
+  - id: H4
+    weight: 12
+    description: >
+      Workload Identity is on for every planned cluster, so workloads reach
+      Pub/Sub, Cloud Storage and Cloud SQL with their own identities instead
+      of the node's credentials or exported keys, and no node pool turns the
+      GKE metadata server off (GCE_METADATA exposes the node's credentials to
+      every pod on it).
+    check:
+      all_of:
+        - any_of:
+            - resource:
+                plans: [defaults, sweep]
+                quantifier: all
+                type: google_container_cluster
+                match: every
+                where: {workload_identity_config: {workload_pool: {matches: '\.svc\.id\.goog$'}}}
+            - resource:
+                plans: [defaults, sweep]
+                quantifier: all
+                type: google_container_cluster
+                match: every
+                where: {enable_autopilot: true}
+        - not:
+            resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: google_container_node_pool
+              where: {node_config: {workload_metadata_config: {mode: GCE_METADATA}}}
+
+  - id: H5
+    weight: 10
+    description: >
+      Nodes run as a dedicated service account, not the Compute Engine
+      default account (which holds Editor on the project), and the module
+      grants no node or workload identity a basic role (Owner, Editor). Every
+      node pool names a non-default account; an Autopilot cluster names one
+      in its auto-provisioning defaults.
+    check:
+      all_of:
+        - any_of:
+            - resource:
+                type: google_container_node_pool
+                match: every
+                where: {node_config: {service_account: {matches: '^(?!.*-compute@developer\.gserviceaccount\.com$)[^@]+@[^@]+$'}}}
+            - resource:
+                type: google_container_cluster
+                match: every
+                where:
+                  enable_autopilot: true
+                  cluster_autoscaling:
+                    auto_provisioning_defaults:
+                      service_account: {matches: '^(?!.*-compute@developer\.gserviceaccount\.com$)[^@]+@[^@]+$'}
+        - not:
+            any_of:
+              - source_contains: roles/editor
+              - source_contains: roles/owner
+
+  - id: H6
+    weight: 4
+    description: >
+      Node pools are managed as their own resources: the default node pool is
+      removed and at least one google_container_node_pool is planned, so
+      changing or replacing a pool never recreates the cluster. Autopilot has
+      no node pools to manage and passes.
+    check:
+      any_of:
+        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
+        - all_of:
+            - resource: {type: google_container_cluster, match: every, where: {remove_default_node_pool: true}}
+            - resource: {type: google_container_node_pool}
+
+  - id: H7
+    weight: 3
+    description: >
+      A maintenance window is set at defaults, so automatic upgrades of a
+      cluster several teams share happen when the platform team expects
+      them, not at any hour.
+    check:
+      resource:
+        type: google_container_cluster
+        match: every
+        where: {maintenance_policy: {exists: true}}
+
+  - id: H8
+    weight: 4
+    description: >
+      Nodes boot verified: every node pool enables secure boot, and no
+      cluster turns shielded nodes off. Autopilot nodes always do both.
+    check:
+      all_of:
+        - any_of:
+            - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
+            - resource:
+                type: google_container_node_pool
+                match: every
+                where: {node_config: {shielded_instance_config: {enable_secure_boot: true}}}
+        - not:
+            resource: {type: google_container_cluster, where: {enable_shielded_nodes: false}}
+
+  - id: H9
+    weight: 3
+    description: >
+      Kubernetes Secrets can be encrypted with a customer-managed Cloud KMS
+      key (application-layer secrets encryption): an input feeds
+      database_encryption's key, or the cluster encrypts with a key at
+      defaults. Settable at creation without a rebuild later, and the control
+      security teams auditing customer data ask for.
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_container_cluster, attr: key_name, through_data: true}
+        - resource:
+            type: google_container_cluster
+            where: {database_encryption: {state: ENCRYPTED}}
+
+  - id: H10
+    weight: 6
+    description: >
+      Kubernetes NetworkPolicy is enforced at defaults, so product teams
+      sharing the cluster can isolate their workloads from each other:
+      Dataplane V2 (ADVANCED_DATAPATH) or Calico network policy. Autopilot
+      always runs Dataplane V2.
+    check:
+      any_of:
+        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
+        - resource: {type: google_container_cluster, match: every, where: {datapath_provider: ADVANCED_DATAPATH}}
+        - resource: {type: google_container_cluster, match: every, where: {network_policy: {enabled: true}}}
+
+  - id: H11
+    weight: 4
+    posture: default_on
+    description: >
+      Deletion protection ships on with a real opt-out. Left unset, the
+      provider's deletion_protection defaults on; that, like a hardcoded true,
+      earns partial credit, since the brief describes production clusters
+      several teams depend on and retiring one is rare.
+    hardcoded_on: 0.75
+    behavior:
+      type: google_container_cluster
+      where: {deletion_protection: true}
+
+  - id: H12
+    weight: 2
+    posture: hardcoded
+    description: >
+      No legacy authentication can be switched on: no input feeds legacy ABAC
+      or client-certificate issuance, and neither is on at defaults. Access
+      goes through IAM and RBAC, where the security team's audit can see who
+      did what.
+    check:
+      all_of:
+        - not:
+            any_of:
+              - var_feeds_attr: {type: google_container_cluster, attr: enable_legacy_abac}
+              - var_feeds_attr: {type: google_container_cluster, attr: issue_client_certificate}
+              - resource: {type: google_container_cluster, where: {enable_legacy_abac: true}}
+              - resource:
+                  type: google_container_cluster
+                  where: {master_auth: {client_certificate_config: {issue_client_certificate: true}}}
+
+  - id: H13
+    weight: 4
+    description: >
+      Node capacity scales with demand: every node pool autoscales at
+      defaults. Several teams' workloads come and go on a shared cluster.
+      Autopilot scales nodes itself.
+    check:
+      any_of:
+        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
+        - resource:
+            type: google_container_node_pool
+            match: every
+            where: {autoscaling: {exists: true}}
+
+  - id: H14
+    weight: 6
+    description: >
+      The module's default Kubernetes version can be created. Left unset, the
+      release channel picks a supported version; a pinned min_master_version
+      or node pool version must be one GKE offers in every US region (or a
+      prefix of one, or "latest"). Snapshot of validMasterVersions,
+      intersected across the nine US regions, taken 2026-11-17 for this
+      edition; a new edition refreshes it.
+    versions: &gke_versions
+      - null
+      - latest
+      - "1.34"
+      - "1.35"
+      - "1.36"
+      - "1.37"
+      - "1.34.12"
+      - "1.35.8"
+      - "1.35.9"
+      - "1.36.4"
+      - "1.36.5"
+      - "1.37.1"
+      - "1.37.2"
+      - 1.34.12-gke.1011000
+      - 1.34.12-gke.1209000
+      - 1.34.12-gke.1539000
+      - 1.34.12-gke.1698000
+      - 1.34.12-gke.1776000
+      - 1.35.8-gke.1439001
+      - 1.35.8-gke.1796000
+      - 1.35.8-gke.1975000
+      - 1.35.9-gke.1505000
+      - 1.35.9-gke.1673000
+      - 1.36.4-gke.2046003
+      - 1.36.4-gke.2377000
+      - 1.36.5-gke.1982000
+      - 1.36.5-gke.2262000
+      - 1.36.5-gke.2370000
+      - 1.37.1-gke.1552000
+      - 1.37.1-gke.1697000
+      - 1.37.1-gke.2097000
+      - 1.37.2-gke.1042000
+      - 1.37.2-gke.1325000
+    check:
+      all_of:
+        - any_of:
+            - not:
+                resource: {type: google_container_cluster, where: {min_master_version: {exists: true}}}
+            - resource:
+                type: google_container_cluster
+                match: every
+                where: {min_master_version: {in: *gke_versions}}
+        - any_of:
+            - not:
+                resource: {type: google_container_node_pool, where: {version: {exists: true}}}
+            - resource:
+                type: google_container_node_pool
+                match: every
+                where: {version: {in: *gke_versions}}
+
+  - id: H15
+    weight: 6
+    description: >
+      Pods and services take their addresses from the secondary ranges the
+      network team created: ip_allocation_policy names both ranges at
+      defaults. Otherwise GKE carves new ranges out of a subnet the module
+      does not own.
+    check:
+      resource:
+        type: google_container_cluster
+        match: every
+        where:
+          ip_allocation_policy:
+            cluster_secondary_range_name: {exists: true}
+            services_secondary_range_name: {exists: true}
+
+  # Audience fit (A*). The audience is a small platform team that knows
+  # Kubernetes but not GKE, fills in what is specific to each cluster and
+  # trusts the module for the rest.
+  - id: A1
+    weight: 2
+    description: >
+      Exposure — the cluster's region is an input: the brief has a GKE subnet
+      in every US region. An input feeding the cluster's location or the
+      provider's region passes.
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_container_cluster, attr: location}
+        - var_feeds_provider_attr: {provider: google, attr: region}
+
+  - id: A2
+    weight: 2
+    description: >
+      Exposure — the environment's network and subnet are inputs, directly or
+      through a data-source lookup. Hardcoding one bakes an environment into
+      a reusable module.
+    check:
+      var_feeds_attr: {type: google_container_cluster, attr: subnetwork, through_data: true}
+
+  - id: A3
+    weight: 2
+    description: >
+      Exposure — node machine types are chosen per cluster: an input feeds
+      the node pools' machine_type. Autopilot sizes nodes from workload
+      requests and passes.
+    check:
+      any_of:
+        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
+        - var_feeds_attr: {type: google_container_node_pool, attr: machine_type}
+
+  - id: A4
+    weight: 1
+    description: >
+      Consumers can add their own labels, reaching the cluster through its
+      resource_labels or the provider's default_labels.
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_container_cluster, attr: resource_labels, has_default: true}
+        - var_feeds_provider_attr: {provider: google, attr: default_labels, has_default: true}
+
+  - id: A5
+    weight: 6
+    posture: budget
+    description: >
+      Interface budget — full credit at 15 or fewer inputs, falling linearly
+      to zero at 25. The platform engineers are not GKE specialists and trust
+      the module for everything not specific to a cluster; every input is a
+      GKE decision handed back to them.
+    budget: {soft: 15, hard: 25}
+
+  - id: A6
+    weight: 2
+    description: >
+      Restraint — no networking. The network team owns the VPCs and their
+      subnets, so the module creates no network, subnet, router or Cloud NAT
+      at defaults or under any input.
+    check:
+      not:
+        any_of:
+          - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_network}
+          - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_subnetwork}
+          - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_router}
+          - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_router_nat}
+
+expertise:
+  - id: E1_release_channel
+    description: >
+      The cluster is enrolled in the REGULAR or STABLE release channel
+      explicitly, so upgrades follow a known cadence rather than whatever the
+      API picks.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {release_channel: {channel: {in: [REGULAR, STABLE]}}}
+  - id: E2_google_groups_rbac
+    description: >
+      Google Groups for RBAC (authenticator_groups_config) can be enabled, so
+      teams are bound to namespaces by group and the audit log names people.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      any_of:
+        - var_feeds_attr: {type: google_container_cluster, attr: security_group}
+        - resource: {type: google_container_cluster, where: {authenticator_groups_config: {security_group: {exists: true}}}}
+  - id: E3_binary_authorization
+    description: >
+      Binary Authorization enforces the project's admission policy, so only
+      approved images run on a cluster several teams deploy to.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {binary_authorization: {evaluation_mode: PROJECT_SINGLETON_POLICY_ENFORCE}}
+  - id: E4_vulnerability_scanning
+    description: >
+      GKE security posture scans workloads for vulnerabilities
+      (security_posture_config vulnerability_mode set explicitly).
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {security_posture_config: {vulnerability_mode: {in: [VULNERABILITY_BASIC, VULNERABILITY_ENTERPRISE]}}}
+  - id: E5_cost_allocation
+    description: >
+      GKE cost allocation is on, so a cluster shared by several teams bills
+      back by namespace and label.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {cost_management_config: {enabled: true}}
+  - id: E6_surge_upgrades
+    description: >
+      Node pool upgrades add capacity before draining (max_unavailable 0) or
+      run blue-green, so upgrades do not shrink a shared cluster. Autopilot
+      manages upgrade surge itself.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      any_of:
+        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
+        - resource:
+            type: google_container_node_pool
+            match: every
+            where: {upgrade_settings: {max_unavailable: 0}}
+        - resource:
+            type: google_container_node_pool
+            match: every
+            where: {upgrade_settings: {strategy: BLUE_GREEN}}
+  - id: E7_apiserver_logs
+    description: >
+      Control-plane API server logs go to Cloud Logging
+      (logging_config enable_components includes APISERVER).
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {logging_config: {enable_components: {contains: APISERVER}}}
+  - id: E8_managed_prometheus
+    description: >
+      Google Cloud Managed Service for Prometheus is enabled, giving product
+      teams metrics without running their own Prometheus.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {monitoring_config: {managed_prometheus: {enabled: true}}}
+  - id: E9_backup_for_gke
+    description: >
+      The Backup for GKE agent is enabled, so workloads' state and manifests
+      can be backed up and restored.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {addons_config: {gke_backup_agent_config: {enabled: true}}}
+  - id: E10_dns_endpoint
+    description: >
+      The control plane's DNS-based endpoint is enabled: kubectl access
+      authenticated by IAM from anywhere, with no bastion or authorized IP
+      list to maintain.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      resource:
+        type: google_container_cluster
+        where: {control_plane_endpoints_config: {dns_endpoint_config: {allow_external_traffic: true}}}
+  - id: E11_node_sa_minimal_role
+    description: >
+      The node service account gets the purpose-built
+      roles/container.defaultNodeServiceAccount (or only the logging,
+      monitoring and Artifact Registry reader roles), nothing broader.
+    discovered_via: doctrine owner, 2026-11-17
+    check:
+      source_contains: roles/container.defaultNodeServiceAccount
