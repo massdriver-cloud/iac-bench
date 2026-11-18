@@ -340,9 +340,24 @@ def _verb_declares(ctx: CheckContext, spec: dict) -> bool:
     return bool(hclq.resource_attrs(ctx.module_dir, spec["type"]))
 
 
+def _path_values(node, path: str) -> list:
+    """Values at a dotted attribute path through nested blocks (parsed as
+    lists of dicts); one entry per block instance that sets the leaf."""
+    nodes = [node]
+    for part in path.split("."):
+        nxt = []
+        for n in nodes:
+            for el in (n if isinstance(n, list) else [n]):
+                if isinstance(el, dict) and part in el:
+                    nxt.append(el[part])
+        nodes = nxt
+    return nodes
+
+
 def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     """Static lens over attribute expressions resolved through locals, data
-    sources and variable defaults (see hclq.value_text_closure).
+    sources and variable defaults (see hclq.value_text_closure). `attr` may
+    be a dotted path through nested blocks.
     match: every (default) — every resource of `type` has `attr` matching
     `pattern` or has `or_attr_present`; match: any — at least one resource's
     `attr` matches."""
@@ -351,15 +366,16 @@ def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
     if not insts:
         return False
     fallback = spec.get("or_attr_present")
+
+    def ok(inst, value) -> bool:
+        return bool(pattern.search(hclq.value_text_closure(ctx.module_dir, value, inst.get("for_each"))))
+
     if spec.get("match", "every") == "any":
-        return any(
-            spec["attr"] in inst
-            and pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]], inst.get("for_each")))
-            for inst in insts
-        )
+        return any(ok(inst, v) for inst in insts for v in _path_values(inst, spec["attr"]))
     for inst in insts:
-        if spec["attr"] in inst:
-            if not pattern.search(hclq.value_text_closure(ctx.module_dir, inst[spec["attr"]], inst.get("for_each"))):
+        values = _path_values(inst, spec["attr"])
+        if values:
+            if not all(ok(inst, v) for v in values):
                 return False
         elif not (fallback and fallback in inst):
             return False

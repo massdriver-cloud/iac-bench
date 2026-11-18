@@ -10,7 +10,7 @@
 ref_standard:
   gate: true
   min_score: 0.99
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
               A1, A2, A3, A4, A5, A6, B1_provider_constraints, B2_descriptions,
               E1_release_channel, E2_google_groups_rbac, E3_binary_authorization,
               E4_vulnerability_scanning, E5_cost_allocation, E6_surge_upgrades,
@@ -24,8 +24,9 @@ bad_autopilot:
   must_pass: [H1, H2, H3, H11, H15]
   must_fail: [H4, H5, H6, H8, H10, H13, A3]
 bad_zonal:
+  # A single zone, and a fixed control-plane range every cluster would share.
   gate: true
-  must_fail: [H1]
+  must_fail: [H1, H16]
 bad_default_sa:
   gate: true
   must_fail: [H4, H5]

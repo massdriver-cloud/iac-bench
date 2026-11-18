@@ -126,18 +126,34 @@ items:
     description: >
       Nodes run as a dedicated service account, not the Compute Engine
       default account (which holds Editor on the project), and the module
-      grants no node or workload identity a basic role (Owner, Editor). Every
-      node pool names a non-default account.
+      grants no identity a basic role (Owner, Editor). Every node pool's
+      service_account is set from a service account the module creates or
+      one passed in; read from the source, since an account's email is often
+      unknown at plan. Across the sweep no node pool plans the default
+      account and no IAM grant plans a basic role.
     check:
       all_of:
-        - resource:
+        - expr_matches:
             type: google_container_node_pool
-            match: every
-            where: {node_config: {service_account: {matches: '^(?!.*-compute@developer\.gserviceaccount\.com$)[^@]+@[^@]+$'}}}
+            attr: node_config.service_account
+            pattern: '^(?!.*-compute@developer)(?=.*(google_service_account\.|var\.|@[a-z0-9-]+\.iam\.gserviceaccount\.com))'
         - not:
             any_of:
-              - source_contains: roles/editor
-              - source_contains: roles/owner
+              - resource:
+                  plans: [defaults, sweep]
+                  quantifier: any
+                  type: google_container_node_pool
+                  where: {node_config: {service_account: {matches: '-compute@developer\.gserviceaccount\.com$'}}}
+              - resource:
+                  plans: [defaults, sweep]
+                  quantifier: any
+                  type: google_project_iam_member
+                  where: {role: {in: [roles/owner, roles/editor]}}
+              - resource:
+                  plans: [defaults, sweep]
+                  quantifier: any
+                  type: google_project_iam_binding
+                  where: {role: {in: [roles/owner, roles/editor]}}
 
   - id: H6
     weight: 4
@@ -320,6 +336,23 @@ items:
           ip_allocation_policy:
             cluster_secondary_range_name: {exists: true}
             services_secondary_range_name: {exists: true}
+
+  - id: H16
+    weight: 4
+    description: >
+      Every cluster the module creates can sit beside the others in its VPC:
+      the control plane's private range is not a fixed default. Leaving
+      master_ipv4_cidr_block unset (GKE then reaches the control plane over
+      Private Service Connect) or requiring it per cluster both pass; a
+      literal CIDR, hardcoded or as an input's default, gives every cluster
+      in a network the same range, and the second one fails to create.
+    check:
+      not:
+        expr_matches:
+          type: google_container_cluster
+          attr: private_cluster_config.master_ipv4_cidr_block
+          match: any
+          pattern: '"[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+"'
 
   # Audience fit (A*). The audience is a small platform team that knows
   # Kubernetes but not GKE, fills in what is specific to each cluster and

@@ -170,3 +170,28 @@ resource "google_container_cluster" "this" {
     assert hclq.vars_feeding_attr(root, "key_name", "google_container_cluster") == {"key"}
     assert hclq.vars_feeding_attr(root, "security_group", "google_container_cluster") == {"group"}
     assert hclq.vars_feeding_attr(root, "state", "google_container_cluster") == set()
+
+
+def test_expr_matches_follows_a_dotted_path_into_nested_blocks(tmp_path):
+    root = module(tmp_path, """
+resource "google_service_account" "nodes" {
+  account_id = "nodes"
+}
+locals {
+  sa = google_service_account.nodes.email
+}
+resource "google_container_node_pool" "a" {
+  node_config {
+    service_account = local.sa
+  }
+}
+resource "google_container_node_pool" "b" {
+  node_config {
+    machine_type = "e2-standard-4"
+  }
+}
+""")
+    spec = {"type": "google_container_node_pool", "attr": "node_config.service_account",
+            "pattern": r"google_service_account\."}
+    assert not matches(root, {"expr_matches": spec})
+    assert matches(root, {"expr_matches": {**spec, "match": "any"}})
