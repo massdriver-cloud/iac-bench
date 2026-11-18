@@ -41,3 +41,9 @@ bad_minimal:
   max_score: 0.4
   must_fail: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H13, H15, A6]
   items: {H11: 0.0}
+bad_cmek_no_grant:
+  # Secrets encryption key input with no grant to the GKE service agent and
+  # no mention of one: supplying a key fails the create (verified 2026-11-18).
+  gate: true
+  must_pass: [H1, H2, H4, H5]
+  must_fail: [H9]

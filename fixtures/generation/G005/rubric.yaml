@@ -158,12 +158,15 @@ items:
   - id: H6
     weight: 4
     description: >
-      Node pools are managed as their own resources: the default node pool is
-      removed and at least one google_container_node_pool is planned, so
-      changing or replacing a pool never recreates the cluster.
+      Node pools are managed as their own resources: the cluster has no
+      default node pool (removed, or never created because
+      initial_node_count is 0) and at least one google_container_node_pool is
+      planned, so changing or replacing a pool never recreates the cluster.
     check:
       all_of:
-        - resource: {type: google_container_cluster, match: every, where: {remove_default_node_pool: true}}
+        - any_of:
+            - resource: {type: google_container_cluster, match: every, where: {remove_default_node_pool: true}}
+            - resource: {type: google_container_cluster, match: every, where: {initial_node_count: 0}}
         - resource: {type: google_container_node_pool}
 
   - id: H7
@@ -199,13 +202,24 @@ items:
       key (application-layer secrets encryption): an input feeds
       database_encryption's key, or the cluster encrypts with a key at
       defaults. Settable at creation without a rebuild later, and the control
-      security teams auditing customer data ask for.
+      security teams auditing customer data ask for. The key works only once
+      the GKE service agent
+      (service-<number>@container-engine-robot.iam.gserviceaccount.com) holds
+      roles/cloudkms.cryptoKeyEncrypterDecrypter on it; without that, GKE
+      rejects the create or update with 400 and the provider retries until it
+      times out. The module grants the role, or names that requirement in its
+      code (the key input's description), since the key may live in a
+      project the platform team doesn't control.
     check:
-      any_of:
-        - var_feeds_attr: {type: google_container_cluster, attr: key_name, through_data: true}
-        - resource:
-            type: google_container_cluster
-            where: {database_encryption: {state: ENCRYPTED}}
+      all_of:
+        - any_of:
+            - var_feeds_attr: {type: google_container_cluster, attr: key_name, through_data: true}
+            - resource:
+                type: google_container_cluster
+                where: {database_encryption: {state: ENCRYPTED}}
+        - any_of:
+            - source_contains: cryptoKeyEncrypterDecrypter
+            - source_contains: container-engine-robot
 
   - id: H10
     weight: 6
