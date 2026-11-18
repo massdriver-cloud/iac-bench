@@ -16,16 +16,13 @@ ref_standard:
               E4_vulnerability_scanning, E5_cost_allocation, E6_surge_upgrades,
               E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke,
               E10_dns_endpoint, E11_node_sa_minimal_role]
-ref_autopilot:
-  # A different good design: Autopilot, a private endpoint behind empty
-  # authorized networks, provider configuration from the environment and the
-  # network and subnet passed by name. No secrets-encryption input (H9), no
-  # labels input (A4), deletion protection with an opt-out.
+bad_autopilot:
+  # An Autopilot cluster where the brief asks for Standard: private,
+  # regional and deletion-protected, but no node pools or explicit Workload
+  # Identity, Dataplane V2 or secure boot.
   gate: true
-  min_score: 0.9
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H11, H12, H13, H14, H15, A1, A2, A3, A5, A6,
-              E1_release_channel, E6_surge_upgrades, E11_node_sa_minimal_role]
-  must_fail: [H9, A4]
+  must_pass: [H1, H2, H3, H11, H15]
+  must_fail: [H4, H5, H6, H8, H10, H13, A3]
 bad_zonal:
   gate: true
   must_fail: [H1]

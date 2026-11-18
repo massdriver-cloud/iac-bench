@@ -12,8 +12,12 @@
 #
 #   AWS_PROFILE, AWS_REGION                  credentials exported from the profile
 #   GOOGLE_PROJECT, GOOGLE_REGION,
-#   GOOGLE_IMPERSONATE_SERVICE_ACCOUNT       one-hour access token minted by
-#                                            impersonating a read-only account
+#   GOOGLE_IMPERSONATE_SERVICE_ACCOUNT,      access token minted by impersonating
+#   GOOGLE_TOKEN_LIFETIME                    a read-only account; lifetime in
+#                                            seconds (default 3600, at most 43200,
+#                                            past 3600 only where the org policy
+#                                            iam.allowServiceAccountCredential-
+#                                            LifetimeExtension lists the account)
 #   AZURE_SP_FILE, ARM_SUBSCRIPTION_ID       service principal JSON written by
 #                                            `az ad sp create-for-rbac`
 set -euo pipefail
@@ -39,8 +43,15 @@ else
 fi
 
 if [[ -n "${GOOGLE_PROJECT:-}" && -n "${GOOGLE_IMPERSONATE_SERVICE_ACCOUNT:-}" ]]; then
-  if token="$(gcloud auth print-access-token \
-    --impersonate-service-account="$GOOGLE_IMPERSONATE_SERVICE_ACCOUNT" 2>/dev/null)"; then
+  lifetime="${GOOGLE_TOKEN_LIFETIME:-3600}"
+  token="$(gcloud auth print-access-token --lifetime="$lifetime" \
+    --impersonate-service-account="$GOOGLE_IMPERSONATE_SERVICE_ACCOUNT" 2>/dev/null)" || token=""
+  if [[ -z "$token" && "$lifetime" != 3600 ]]; then
+    echo "cloud-env: GCP token lifetime $lifetime refused; falling back to one hour" >&2
+    token="$(gcloud auth print-access-token --lifetime=3600 \
+      --impersonate-service-account="$GOOGLE_IMPERSONATE_SERVICE_ACCOUNT" 2>/dev/null)" || token=""
+  fi
+  if [[ -n "$token" ]]; then
     echo "GOOGLE_OAUTH_ACCESS_TOKEN=$token"
     echo "GOOGLE_PROJECT=$GOOGLE_PROJECT"
     echo "GOOGLE_REGION=${GOOGLE_REGION:-us-central1}"

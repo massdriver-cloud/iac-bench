@@ -1,7 +1,6 @@
-# A different good design: an Autopilot cluster, where Google manages nodes,
-# so node hardening, autoscaling and node pools are the platform's job, with
-# a smaller interface, provider configuration from the environment, and the
-# network and subnet passed in by name.
+# An Autopilot cluster where the brief asks for GKE Standard: otherwise
+# private, regional and protected, but with no node pools for the module to
+# manage, harden or scale, and Workload Identity left implicit.
 
 variable "name" {
   description = "Cluster name."

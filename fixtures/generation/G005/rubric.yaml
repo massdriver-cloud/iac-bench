@@ -13,11 +13,9 @@
 # GKE subnet in every US region (sandbox/gcp-networks), so a module that
 # looks its network up plans.
 #
-# Autopilot and Standard are both legitimate designs. Autopilot clusters
-# always run Workload Identity, Dataplane V2, shielded nodes with secure boot,
-# node auto-repair, auto-upgrade and autoscaling, and have no node pools for
-# the module to manage; the items those settings cover pass an Autopilot
-# cluster (enable_autopilot = true) outright.
+# The brief asks for GKE Standard clusters. An Autopilot cluster has no node
+# pools and manages most node settings itself, so it fails the node pool,
+# node identity, hardening and scaling items.
 
 id: G005
 domain: generation
@@ -110,19 +108,12 @@ items:
       every pod on it).
     check:
       all_of:
-        - any_of:
-            - resource:
-                plans: [defaults, sweep]
-                quantifier: all
-                type: google_container_cluster
-                match: every
-                where: {workload_identity_config: {workload_pool: {matches: '\.svc\.id\.goog$'}}}
-            - resource:
-                plans: [defaults, sweep]
-                quantifier: all
-                type: google_container_cluster
-                match: every
-                where: {enable_autopilot: true}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: google_container_cluster
+            match: every
+            where: {workload_identity_config: {workload_pool: {matches: '\.svc\.id\.goog$'}}}
         - not:
             resource:
               plans: [defaults, sweep]
@@ -136,23 +127,13 @@ items:
       Nodes run as a dedicated service account, not the Compute Engine
       default account (which holds Editor on the project), and the module
       grants no node or workload identity a basic role (Owner, Editor). Every
-      node pool names a non-default account; an Autopilot cluster names one
-      in its auto-provisioning defaults.
+      node pool names a non-default account.
     check:
       all_of:
-        - any_of:
-            - resource:
-                type: google_container_node_pool
-                match: every
-                where: {node_config: {service_account: {matches: '^(?!.*-compute@developer\.gserviceaccount\.com$)[^@]+@[^@]+$'}}}
-            - resource:
-                type: google_container_cluster
-                match: every
-                where:
-                  enable_autopilot: true
-                  cluster_autoscaling:
-                    auto_provisioning_defaults:
-                      service_account: {matches: '^(?!.*-compute@developer\.gserviceaccount\.com$)[^@]+@[^@]+$'}
+        - resource:
+            type: google_container_node_pool
+            match: every
+            where: {node_config: {service_account: {matches: '^(?!.*-compute@developer\.gserviceaccount\.com$)[^@]+@[^@]+$'}}}
         - not:
             any_of:
               - source_contains: roles/editor
@@ -163,14 +144,11 @@ items:
     description: >
       Node pools are managed as their own resources: the default node pool is
       removed and at least one google_container_node_pool is planned, so
-      changing or replacing a pool never recreates the cluster. Autopilot has
-      no node pools to manage and passes.
+      changing or replacing a pool never recreates the cluster.
     check:
-      any_of:
-        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
-        - all_of:
-            - resource: {type: google_container_cluster, match: every, where: {remove_default_node_pool: true}}
-            - resource: {type: google_container_node_pool}
+      all_of:
+        - resource: {type: google_container_cluster, match: every, where: {remove_default_node_pool: true}}
+        - resource: {type: google_container_node_pool}
 
   - id: H7
     weight: 3
@@ -188,15 +166,13 @@ items:
     weight: 4
     description: >
       Nodes boot verified: every node pool enables secure boot, and no
-      cluster turns shielded nodes off. Autopilot nodes always do both.
+      cluster turns shielded nodes off.
     check:
       all_of:
-        - any_of:
-            - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
-            - resource:
-                type: google_container_node_pool
-                match: every
-                where: {node_config: {shielded_instance_config: {enable_secure_boot: true}}}
+        - resource:
+            type: google_container_node_pool
+            match: every
+            where: {node_config: {shielded_instance_config: {enable_secure_boot: true}}}
         - not:
             resource: {type: google_container_cluster, where: {enable_shielded_nodes: false}}
 
@@ -220,11 +196,9 @@ items:
     description: >
       Kubernetes NetworkPolicy is enforced at defaults, so product teams
       sharing the cluster can isolate their workloads from each other:
-      Dataplane V2 (ADVANCED_DATAPATH) or Calico network policy. Autopilot
-      always runs Dataplane V2.
+      Dataplane V2 (ADVANCED_DATAPATH) or Calico network policy.
     check:
       any_of:
-        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
         - resource: {type: google_container_cluster, match: every, where: {datapath_provider: ADVANCED_DATAPATH}}
         - resource: {type: google_container_cluster, match: every, where: {network_policy: {enabled: true}}}
 
@@ -265,14 +239,11 @@ items:
     description: >
       Node capacity scales with demand: every node pool autoscales at
       defaults. Several teams' workloads come and go on a shared cluster.
-      Autopilot scales nodes itself.
     check:
-      any_of:
-        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
-        - resource:
-            type: google_container_node_pool
-            match: every
-            where: {autoscaling: {exists: true}}
+      resource:
+        type: google_container_node_pool
+        match: every
+        where: {autoscaling: {exists: true}}
 
   - id: H14
     weight: 6
@@ -377,12 +348,9 @@ items:
     weight: 2
     description: >
       Exposure — node machine types are chosen per cluster: an input feeds
-      the node pools' machine_type. Autopilot sizes nodes from workload
-      requests and passes.
+      the node pools' machine_type.
     check:
-      any_of:
-        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
-        - var_feeds_attr: {type: google_container_node_pool, attr: machine_type}
+      var_feeds_attr: {type: google_container_node_pool, attr: machine_type}
 
   - id: A4
     weight: 1
@@ -468,12 +436,10 @@ expertise:
   - id: E6_surge_upgrades
     description: >
       Node pool upgrades add capacity before draining (max_unavailable 0) or
-      run blue-green, so upgrades do not shrink a shared cluster. Autopilot
-      manages upgrade surge itself.
+      run blue-green, so upgrades do not shrink a shared cluster.
     discovered_via: doctrine owner, 2026-11-17
     check:
       any_of:
-        - resource: {type: google_container_cluster, where: {enable_autopilot: true}}
         - resource:
             type: google_container_node_pool
             match: every
