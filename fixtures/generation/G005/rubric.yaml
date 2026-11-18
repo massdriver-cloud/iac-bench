@@ -396,7 +396,7 @@ items:
         - var_feeds_provider_attr: {provider: google, attr: default_labels, has_default: true}
 
   - id: A5
-    weight: 6
+    weight: 8
     posture: budget
     description: >
       Interface budget — full credit at 15 or fewer inputs, falling linearly
