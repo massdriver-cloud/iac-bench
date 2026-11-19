@@ -41,6 +41,17 @@ Mechanics:
   with no default** before planning. Without this filter, optional values in
   the tfvars would smuggle the model's choices into what is supposed to be
   out-of-the-box posture. Extra keys are recorded as a detail, never trusted.
+- **Fallback plan:** when the required-only plan fails and the tfvars set
+  optional values, the harness plans again with every tfvars value and scores
+  from that plan. An optional variable whose default breaks the plan is a real
+  interface defect, and it costs the `B3_plans_required_only` baseline item
+  instead of the whole score.
+- **Sandbox identity:** the model cannot know the sandbox's own identifiers,
+  so every scoring plan substitutes them from the environment, as an operator
+  would. For GCP fixtures, any string variable named `project`, `project_id`,
+  `gcp_project` or `google_project` takes `GOOGLE_PROJECT`, whether or not
+  the tfvars set it, and the sweep leaves it alone. Lookups then resolve
+  against the real project instead of a placeholder.
 - Provider configuration comes from the environment (region, project or
   subscription, ambient credentials), not injected blocks. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
@@ -48,9 +59,10 @@ Mechanics:
   is not part of the mechanical evidence chain.
 
 **Functional gate (layer 1):** the module `init`s and `plan`s as a root module
-with its own tfvars filtered to required-only. A tfvars that fails to parse,
-omits a required variable, or plans nonzero fails the gate with a recorded
-reason.
+with its own tfvars, filtered to required-only, or in full when only the
+fallback plan succeeds. A tfvars that fails to parse, omits a required
+variable other than a substituted identity, or fails both plans fails the
+gate with a recorded reason.
 
 Planning stands in for applying, and some configurations plan cleanly but are
 rejected by the cloud API at create time. A fixture lists the ones its brief
@@ -223,6 +235,7 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 | `closed_values` | static | every value the source can produce for each of `attrs` on every instance of `type` equals the required value (or is `{in: [...]}`): a literal, or an expression whose every conditional branch, map value and input domain is one, where an input's domain is both values of a bool or the literal set a validation confines it to (`contains([...], var.x)`, `var.x == lit`, and their `\|\|`/`&&` combinations). A choice between secure settings passes; any other input, function or reference is open and fails, as does a missing attribute or a `dynamic` block on the path. At least one instance must exist unconditionally, as with `hardcoded`. A proof from the source, so it needs no sweep |
 | `var_feeds_provider_attr` | static | some declared variable feeds the named attribute of a provider configuration block (nested blocks such as `default_tags` included), transitively through locals; `provider` restricts to one provider; `has_default` as above |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
+| `plans_required_only` | harness | the defaults plan succeeded with only the required inputs, not through the fallback plan |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |
 | `output_named` | static | an output exists whose name/value matches |
 | `interface` | static | structural constraints: variable count budget, descriptions required on every variable and output |
@@ -234,7 +247,7 @@ key parses as boolean True under YAML 1.1.
 **Baseline items** (`fixtures/generation/baseline.yaml`) are universal checks
 — true of any OpenTofu module regardless of service or brief — merged into
 every fixture's items by the engine, with no per-fixture opt-out. Entries must
-be fixture-independent and static-lens only; they carry `B`-prefixed ids so
+be fixture-independent and use the static lens or a harness fact; they carry `B`-prefixed ids so
 reports keep rubric (`H*`), audience-fit (`A*`), baseline (`B*`), and
 expertise (`E*`) provenance legible, and they pool into the mechanical score
 at their declared weights.

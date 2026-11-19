@@ -15,7 +15,7 @@ ref_standard:
               E1_release_channel, E2_google_groups_rbac, E3_binary_authorization,
               E4_vulnerability_scanning, E5_cost_allocation, E6_surge_upgrades,
               E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke,
-              E10_dns_endpoint, E11_node_sa_minimal_role]
+              E10_dns_endpoint, E11_node_sa_minimal_role, B3_plans_required_only]
 bad_autopilot:
   # An Autopilot cluster where the brief asks for Standard: private,
   # regional and deletion-protected, but no node pools or explicit Workload
@@ -47,3 +47,16 @@ bad_cmek_no_grant:
   gate: true
   must_pass: [H1, H2, H4, H5]
   must_fail: [H9]
+ok_placeholder_project:
+  # A required project input with a made-up ID that a data lookup reads:
+  # scoring substitutes the sandbox project, so the module plans and scores
+  # as ref_standard does.
+  gate: true
+  min_score: 0.99
+  must_pass: [H1, H2, H4, H5, A2, B3_plans_required_only]
+bad_optional_default:
+  # An optional input whose default fails its own validation; minimal.tfvars
+  # sets it. Scored from the plan with every tfvars value; only B3 fails.
+  gate: true
+  must_pass: [H1, H2, H3, H4, H5, H9]
+  must_fail: [B3_plans_required_only]
