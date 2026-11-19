@@ -201,6 +201,11 @@ def _attr_values_scoped(node, attr_name: str, scopes: tuple = ()):
                     for label, block in (dyn or {}).items():
                         if not isinstance(block, dict):
                             continue
+                        if label == attr_name:
+                            # The dynamic block generates the attribute: its
+                            # for_each and content are what feed it.
+                            yield block, scopes
+                            continue
                         name = block.get("iterator", label)
                         name = name[2:-1] if isinstance(name, str) and name.startswith("${") else name
                         inner = scopes + ((name, block.get("for_each")),)

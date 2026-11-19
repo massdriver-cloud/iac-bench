@@ -195,3 +195,28 @@ resource "google_container_node_pool" "b" {
             "pattern": r"google_service_account\."}
     assert not matches(root, {"expr_matches": spec})
     assert matches(root, {"expr_matches": {**spec, "match": "any"}})
+
+
+def test_var_feeding_a_dynamic_block_named_for_the_attribute(tmp_path):
+    from iacbench import hclq
+    (tmp_path / "main.tf").write_text('''
+variable "flags" {
+  type    = map(string)
+  default = {}
+}
+locals {
+  flags = merge({ a = "1" }, var.flags)
+}
+resource "google_sql_database_instance" "this" {
+  settings {
+    dynamic "database_flags" {
+      for_each = local.flags
+      content {
+        name  = database_flags.key
+        value = database_flags.value
+      }
+    }
+  }
+}
+''')
+    assert hclq.vars_feeding_attr(tmp_path, "database_flags", "google_sql_database_instance") == {"flags"}

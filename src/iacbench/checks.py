@@ -199,6 +199,9 @@ class CheckContext:
     item_specs: dict = field(default_factory=dict)   # id -> check spec (for ref)
     item_results: dict = field(default_factory=dict)  # id -> bool (memo)
     _resolving: set = field(default_factory=set)      # ref cycle guard
+    # False when the defaults plan needed every minimal.tfvars value: the
+    # required-only plan failed, so an optional variable's default is broken.
+    defaults_required_only: bool = True
 
 
 def _target_plans(ctx: CheckContext, on) -> list:
@@ -340,7 +343,7 @@ def _verb_declares(ctx: CheckContext, spec: dict) -> bool:
     return bool(hclq.resource_attrs(ctx.module_dir, spec["type"]))
 
 
-def _path_values(node, path: str) -> list:
+def _leaf_values(node, path: str) -> list:
     """Values at a dotted attribute path through nested blocks (parsed as
     lists of dicts); one entry per block instance that sets the leaf."""
     nodes = [node]
@@ -371,9 +374,9 @@ def _verb_expr_matches(ctx: CheckContext, spec: dict) -> bool:
         return bool(pattern.search(hclq.value_text_closure(ctx.module_dir, value, inst.get("for_each"))))
 
     if spec.get("match", "every") == "any":
-        return any(ok(inst, v) for inst in insts for v in _path_values(inst, spec["attr"]))
+        return any(ok(inst, v) for inst in insts for v in _leaf_values(inst, spec["attr"]))
     for inst in insts:
-        values = _path_values(inst, spec["attr"])
+        values = _leaf_values(inst, spec["attr"])
         if values:
             if not all(ok(inst, v) for v in values):
                 return False
@@ -510,6 +513,12 @@ def _verb_provider_constraints(ctx: CheckContext, spec: dict) -> bool:
     return True
 
 
+def _verb_plans_required_only(ctx: CheckContext, spec) -> bool:
+    """Harness lens: the module planned with only its required inputs, every
+    optional variable at its default."""
+    return ctx.defaults_required_only
+
+
 def strip_comments(text: str) -> str:
     """Remove #, //, and /* */ comments (outside quoted strings), so a
     substring check cannot be satisfied by a comment mentioning the needle."""
@@ -617,6 +626,7 @@ _VERBS = {
     "var_feeds_attr": _verb_var_feeds_attr,
     "closed_values": _verb_closed_values,
     "provider_constraints": _verb_provider_constraints,
+    "plans_required_only": _verb_plans_required_only,
     "provider_config_attr": _verb_provider_config_attr,
     "var_feeds_provider_attr": _verb_var_feeds_provider_attr,
     "source_contains": _verb_source_contains,
