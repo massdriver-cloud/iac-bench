@@ -390,7 +390,7 @@ items:
           - resource: {plans: [defaults, sweep], quantifier: any, type: aws_nat_gateway}
 
   - id: A5
-    weight: 6
+    weight: 8
     posture: budget
     description: >
       Interface budget — full credit at 15 or fewer inputs, falling linearly to
