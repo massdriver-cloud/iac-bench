@@ -25,6 +25,38 @@ scoring_policy: v1
 
 mandatory: [H1, H2, H4, H5]
 
+apply_failures:
+  - id: F1_no_default_pool_below_1_36
+    description: >
+      The cluster is created without a default node pool (initial_node_count
+      0, not removed afterwards) on a Kubernetes version below 1.36: the
+      STABLE channel, whose default is below 1.36 in this edition, or a
+      pinned min_master_version below 1.36. GKE accepts a cluster with no
+      nodes only from 1.36. A new edition rechecks the STABLE default.
+    evidence: >
+      Applied 2026-11-20 in the benchmark GCP project (provider 7): a
+      regional cluster with initial_node_count 0 on the STABLE channel
+      (default 1.35.8-gke.1796000) returned 400 "Cluster.initial_node_count
+      must be greater than zero for this cluster version." The same module on
+      REGULAR (default 1.36.4-gke.2377000) created, as did a different module
+      with initial_node_count 0 on REGULAR on 2026-11-18.
+    check:
+      all_of:
+        - resource:
+            type: google_container_cluster
+            where: {initial_node_count: 0}
+        - not:
+            resource:
+              type: google_container_cluster
+              where: {remove_default_node_pool: true}
+        - any_of:
+            - resource:
+                type: google_container_cluster
+                where: {release_channel: {channel: STABLE}}
+            - resource:
+                type: google_container_cluster
+                where: {min_master_version: {matches: '^1\.([0-9]|[12][0-9]|3[0-5])(\.|$)'}}
+
 items:
   - id: H1
     weight: 12
@@ -162,6 +194,7 @@ items:
       default node pool (removed, or never created because
       initial_node_count is 0) and at least one google_container_node_pool is
       planned, so changing or replacing a pool never recreates the cluster.
+      A cluster with no default pool needs Kubernetes 1.36 or later (F1).
     check:
       all_of:
         - any_of:

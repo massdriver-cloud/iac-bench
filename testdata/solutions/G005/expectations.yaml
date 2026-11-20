@@ -24,7 +24,7 @@ ref_lean:
   # through resource_labels, and the individual minimal node roles. Its key
   # input names the KMS grant instead of making it. No Google Groups RBAC,
   # Binary Authorization, security posture, cost allocation, API server logs,
-  # managed Prometheus or Backup for GKE.
+  # managed Prometheus or Backup for GKE. Applied 2026-11-20.
   gate: true
   min_score: 0.99
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
@@ -33,6 +33,14 @@ ref_lean:
               E10_dns_endpoint, E11_node_sa_minimal_role]
   must_fail: [E2_google_groups_rbac, E3_binary_authorization, E4_vulnerability_scanning,
               E5_cost_allocation, E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke]
+bad_no_pool_stable:
+  # ref_lean on the STABLE channel: no default pool below Kubernetes 1.36,
+  # which GKE rejects at create (F1, verified 2026-11-20) although the plan
+  # succeeds. Scored in full, then multiplied by 0.5.
+  gate: true
+  apply_failures: [F1_no_default_pool_below_1_36]
+  max_score: 0.5
+  must_pass: [H6, E1_release_channel]
 bad_autopilot:
   # An Autopilot cluster where the brief asks for Standard: private,
   # regional and deletion-protected, but no node pools or explicit Workload
