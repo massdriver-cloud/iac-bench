@@ -16,6 +16,23 @@ ref_standard:
               E4_vulnerability_scanning, E5_cost_allocation, E6_surge_upgrades,
               E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke,
               E10_dns_endpoint, E11_node_sa_minimal_role, B3_plans_required_only]
+ref_lean:
+  # A different good design: network and subnet names as inputs, one node
+  # pool, eight inputs. Private nodes on the pool (network_config), the IP
+  # endpoints off in favour of the DNS endpoint, no default pool ever created
+  # (initial_node_count 0), Calico network policy, blue-green upgrades, labels
+  # through resource_labels, and the individual minimal node roles. Its key
+  # input names the KMS grant instead of making it. No Google Groups RBAC,
+  # Binary Authorization, security posture, cost allocation, API server logs,
+  # managed Prometheus or Backup for GKE.
+  gate: true
+  min_score: 0.99
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
+              A1, A2, A3, A4, A5, A6, B1_provider_constraints, B2_descriptions,
+              B3_plans_required_only, E1_release_channel, E6_surge_upgrades,
+              E10_dns_endpoint, E11_node_sa_minimal_role]
+  must_fail: [E2_google_groups_rbac, E3_binary_authorization, E4_vulnerability_scanning,
+              E5_cost_allocation, E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke]
 bad_autopilot:
   # An Autopilot cluster where the brief asks for Standard: private,
   # regional and deletion-protected, but no node pools or explicit Workload

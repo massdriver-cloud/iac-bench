@@ -539,4 +539,8 @@ expertise:
       monitoring and Artifact Registry reader roles), nothing broader.
     discovered_via: doctrine owner, 2026-11-17
     check:
-      source_contains: roles/container.defaultNodeServiceAccount
+      any_of:
+        - source_contains: roles/container.defaultNodeServiceAccount
+        - all_of:
+            - source_contains: roles/logging.logWriter
+            - source_contains: roles/monitoring.metricWriter
