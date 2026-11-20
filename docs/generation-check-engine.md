@@ -52,11 +52,17 @@ Mechanics:
   `gcp_project` or `google_project` takes `GOOGLE_PROJECT`. For Azure
   fixtures, any string variable named `resource_group`,
   `resource_group_name`, `rg` or `rg_name` takes `AZURE_RESOURCE_GROUP`, the
-  sandbox's application resource group. The value applies whether or not the
+  sandbox's application resource group, and any named `subscription`,
+  `subscription_id`, `azure_subscription_id` or `arm_subscription_id` takes
+  `ARM_SUBSCRIPTION_ID`. The value applies whether or not the
   tfvars set it, and the sweep leaves it alone. Lookups then resolve against
   the real project or resource group instead of a placeholder.
 - Provider configuration comes from the environment (region, project or
-  subscription, ambient credentials), not injected blocks. The Azure provider
+  subscription, ambient credentials), not injected blocks, with one
+  exception: azurerm cannot plan without a `features {}` block, which no
+  environment variable supplies, so an Azure root module that declares no
+  azurerm provider is planned with that minimal block added. The static lens
+  reads the module as written. The Azure provider
   reaches storage data planes with Entra ID (`ARM_STORAGE_USE_AZUREAD`), so a
   storage account with shared-key access disabled can be created. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.

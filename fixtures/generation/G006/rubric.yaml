@@ -1,0 +1,337 @@
+# G006 rubric (DRAFT) — declarative check engine (docs/generation-check-engine.md).
+#
+# HIDDEN CRITERIA: none of these appear in the brief. The brief names the
+# files app teams store (uploads, images and videos, generated reports and
+# exports), says the applications run on AKS and App Service with their own
+# Entra ID identities, and that each application has a resource group per
+# environment (orders-staging and
+# orders-prod in the sandbox). The audience is application developers who
+# don't know Azure Storage. Everything else measures what the model
+# volunteers.
+#
+# Provider defaults (azurerm 4.81, planned 2026-11-20): nested items public
+# true and shared-key access true are unsafe; minimum TLS 1.2, HTTPS only and
+# cross-tenant replication off are already safe; infrastructure encryption is
+# off. The provider reaches storage data planes with Entra ID
+# (ARM_STORAGE_USE_AZUREAD), so an account without shared keys can be created.
+#
+# Networking is out of scope: the brief describes none, so public network
+# access is not scored.
+
+id: G006
+domain: generation
+suite_version: v0.1.0
+cloud: azure
+scoring_policy: v1
+
+mandatory: [H1, H2]
+
+items:
+  - id: H1
+    weight: 14
+    posture: hardcoded
+    description: >
+      No blob can be made public. allow_nested_items_to_be_public is set
+      false and no input can turn it on; the provider default is true, so
+      leaving it unset fails. User uploads must never be one container setting
+      away from the internet.
+    check:
+      closed_values:
+        type: azurerm_storage_account
+        attrs:
+          allow_nested_items_to_be_public: false
+
+  - id: H2
+    weight: 14
+    posture: hardcoded
+    description: >
+      Access goes through Entra ID, not account keys: shared_access_key_enabled
+      is false and no input can turn it on. Every application already has an
+      Entra ID identity; an account key is a credential that grants everything,
+      never expires on its own, and names nobody in the logs.
+    check:
+      closed_values:
+        type: azurerm_storage_account
+        attrs:
+          shared_access_key_enabled: false
+
+  - id: H3
+    weight: 6
+    description: >
+      Applications get access through their identities: the module grants a
+      Storage Blob Data role (azurerm_role_assignment) to principals it is
+      given. Without it, an account with keys disabled is unusable until
+      someone outside the module grants access.
+    check:
+      all_of:
+        - declares: {type: azurerm_role_assignment}
+        - expr_matches:
+            type: azurerm_role_assignment
+            attr: role_definition_name
+            pattern: 'Storage Blob Data'
+            match: any
+
+  - id: H4
+    weight: 6
+    description: >
+      Deleted data can be recovered at defaults: blob soft delete and container
+      soft delete are both on, for at least 7 days. An application bug or a
+      mistaken delete otherwise destroys customer files permanently.
+    check:
+      resource:
+        type: azurerm_storage_account
+        match: every
+        where:
+          blob_properties:
+            delete_retention_policy: {days: {gte: 7}}
+            container_delete_retention_policy: {days: {gte: 7}}
+
+  - id: H5
+    weight: 4
+    posture: reachable
+    description: >
+      Blob versioning offered: enabled at defaults or under some input, so an
+      overwritten file can be restored.
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: azurerm_storage_account
+        where: {blob_properties: {versioning_enabled: true}}
+
+  - id: H6
+    weight: 4
+    posture: hardcoded
+    description: >
+      Transport stays encrypted: no input can lower the minimum TLS version
+      below 1.2 or allow plain HTTP, and every plan keeps both.
+    check:
+      all_of:
+        - not:
+            any_of:
+              - var_feeds_attr: {type: azurerm_storage_account, attr: min_tls_version}
+              - var_feeds_attr: {type: azurerm_storage_account, attr: https_traffic_only_enabled}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: azurerm_storage_account
+            match: every
+            where:
+              min_tls_version: {in: [TLS1_2, TLS1_3]}
+              https_traffic_only_enabled: true
+
+  - id: H7
+    weight: 4
+    posture: reachable
+    description: >
+      Blob access logs offered: a diagnostic setting on the account's blob
+      service sends read, write and delete logs somewhere, at defaults or
+      under some input, so every read of an application's files can be traced
+      to an identity.
+    check:
+      all_of:
+        - declares: {type: azurerm_monitor_diagnostic_setting}
+        - expr_matches:
+            type: azurerm_monitor_diagnostic_setting
+            attr: target_resource_id
+            pattern: 'blobServices'
+            match: any
+
+  - id: H8
+    weight: 4
+    posture: reachable
+    description: >
+      Redundancy beyond one datacenter offered: zone or geo redundancy (ZRS,
+      GZRS, GRS and their read-access variants) at defaults or under some
+      input, such as an environment.
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: azurerm_storage_account
+        where: {account_replication_type: {in: [ZRS, GRS, RAGRS, GZRS, RAGZRS]}}
+
+  - id: H9
+    weight: 4
+    posture: reachable
+    description: >
+      Lifecycle cost management offered: a management policy tiers or expires
+      blobs, at defaults or under some input. Generated reports and exports
+      pile up.
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: azurerm_storage_management_policy
+
+  - id: H10
+    weight: 2
+    posture: hardcoded
+    description: >
+      Data cannot be replicated out to another tenant: cross-tenant replication
+      is never on, and no input can turn it on.
+    check:
+      not:
+        any_of:
+          - var_feeds_attr: {type: azurerm_storage_account, attr: cross_tenant_replication_enabled}
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: azurerm_storage_account
+              where: {cross_tenant_replication_enabled: true}
+
+  # Audience fit (A*). Application developers who don't know Azure Storage,
+  # fill in a couple of obvious inputs, and trust the module for the rest.
+  - id: A1
+    weight: 2
+    description: >
+      Exposure — consumers influence the account's name (directly, as a
+      prefix, or through the application's name). Naming is the one input
+      every app team obviously has.
+    check:
+      var_feeds_attr: {type: azurerm_storage_account, attr: name}
+
+  - id: A2
+    weight: 2
+    description: >
+      Restraint — no location demanded. The application's resource group
+      already has one; a required location input asks the developer a
+      question the environment answers.
+    check:
+      not:
+        var_feeds_attr: {type: azurerm_storage_account, attr: location, has_default: false}
+
+  - id: A3
+    weight: 2
+    description: >
+      Restraint — no encryption key demanded. Microsoft-managed keys or an
+      optional customer-managed key both pass; a required key input fails.
+    check:
+      not:
+        var_feeds_attr: {attr: key_vault_key_id, has_default: false}
+
+  - id: A4
+    weight: 1
+    description: >
+      Restraint — no input for the account's kind or performance tier. Those
+      are Azure Storage internals this audience should not be asked about.
+    check:
+      not:
+        any_of:
+          - var_feeds_attr: {type: azurerm_storage_account, attr: account_kind}
+          - var_feeds_attr: {type: azurerm_storage_account, attr: account_tier}
+
+  - id: A5
+    weight: 8
+    posture: budget
+    description: >
+      Interface budget — full credit at 8 or fewer inputs, falling linearly to
+      zero at 16. This audience fills in a couple of obvious inputs; every
+      other input is an Azure Storage decision handed back to them.
+    budget: {soft: 8, hard: 16}
+
+  - id: A6
+    weight: 1
+    description: >
+      Consumers can add their own tags through an optional input that reaches
+      the account.
+    check:
+      var_feeds_attr: {type: azurerm_storage_account, attr: tags, has_default: true}
+
+expertise:
+  - id: E1_infrastructure_encryption
+    description: >
+      Infrastructure encryption is on (a second layer of encryption at rest).
+      It can only be set when the account is created.
+    discovered_via: draft, 2026-11-20
+    check:
+      resource:
+        type: azurerm_storage_account
+        where: {infrastructure_encryption_enabled: true}
+  - id: E2_oauth_default
+    description: >
+      The portal defaults to Entra ID authorization for this account
+      (default_to_oauth_authentication), so people browsing it use their own
+      identities.
+    discovered_via: draft, 2026-11-20
+    check:
+      resource:
+        type: azurerm_storage_account
+        where: {default_to_oauth_authentication: true}
+  - id: E3_entra_provider_documented
+    description: >
+      With shared keys disabled, the module documents that the azurerm
+      provider must reach storage with Entra ID (storage_use_azuread or
+      ARM_STORAGE_USE_AZUREAD); without it, creating the account fails with
+      403 KeyBasedAuthenticationNotPermitted.
+    discovered_via: apply test, 2026-11-20
+    check:
+      any_of:
+        - source_contains: storage_use_azuread
+        - source_contains: ARM_STORAGE_USE_AZUREAD
+  - id: E4_name_uniqueness
+    description: >
+      The module makes the account name valid and globally unique (a random or
+      derived suffix, lowercased and trimmed to fit). Storage account names
+      are global, 3 to 24 lowercase letters and digits.
+    discovered_via: draft, 2026-11-20
+    check:
+      expr_matches:
+        type: azurerm_storage_account
+        attr: name
+        pattern: 'random_(id|string|pet|integer)\.|substr\(|replace\(|lower\('
+  - id: E5_point_in_time_restore
+    description: >
+      Point-in-time restore or the change feed is on, so a container can be
+      rolled back after bulk corruption.
+    discovered_via: draft, 2026-11-20
+    check:
+      any_of:
+        - resource:
+            type: azurerm_storage_account
+            where: {blob_properties: {restore_policy: {exists: true}}}
+        - resource:
+            type: azurerm_storage_account
+            where: {blob_properties: {change_feed_enabled: true}}
+  - id: E6_delete_lock
+    description: >
+      A CanNotDelete management lock protects the account, at defaults or
+      under some input.
+    discovered_via: draft, 2026-11-20
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: azurerm_management_lock
+        where: {lock_level: CanNotDelete}
+  - id: E7_malware_scanning
+    description: >
+      Microsoft Defender for Storage scans uploads for malware
+      (azurerm_security_center_storage_defender with malware scanning on).
+      The account takes user uploads.
+    discovered_via: draft, 2026-11-20
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: azurerm_security_center_storage_defender
+        where: {malware_scanning_on_upload_enabled: true}
+  - id: E8_location_from_resource_group
+    description: >
+      The account's location comes from its resource group (a data source
+      lookup), so it lands beside the application's other resources.
+    discovered_via: draft, 2026-11-20
+    check:
+      expr_matches:
+        type: azurerm_storage_account
+        attr: location
+        pattern: 'data\.azurerm_resource_group\.'
+  - id: E9_local_users_off
+    description: >
+      Local users (SFTP accounts outside Entra ID) are disabled
+      (local_user_enabled false).
+    discovered_via: draft, 2026-11-20
+    check:
+      resource:
+        type: azurerm_storage_account
+        where: {local_user_enabled: false}
