@@ -20,6 +20,9 @@
 #                                            LifetimeExtension lists the account)
 #   AZURE_SP_FILE, ARM_SUBSCRIPTION_ID       service principal JSON written by
 #                                            `az ad sp create-for-rbac`
+#   AZURE_RESOURCE_GROUP                     sandbox resource group that scoring
+#                                            substitutes for a module's resource
+#                                            group input
 set -euo pipefail
 
 config="${IACBENCH_CLOUD_CONFIG:-$HOME/.config/iacbench/clouds.env}"
@@ -71,6 +74,7 @@ print(f"ARM_CLIENT_SECRET={sp['password']}")
 print(f"ARM_TENANT_ID={sp['tenant']}")
 PY
   echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
+  if [[ -n "${AZURE_RESOURCE_GROUP:-}" ]]; then echo "AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP"; fi
 else
   echo "cloud-env: Azure skipped (AZURE_SP_FILE or ARM_SUBSCRIPTION_ID unset)" >&2
 fi

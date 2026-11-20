@@ -49,9 +49,12 @@ Mechanics:
 - **Sandbox identity:** the model cannot know the sandbox's own identifiers,
   so every scoring plan substitutes them from the environment, as an operator
   would. For GCP fixtures, any string variable named `project`, `project_id`,
-  `gcp_project` or `google_project` takes `GOOGLE_PROJECT`, whether or not
-  the tfvars set it, and the sweep leaves it alone. Lookups then resolve
-  against the real project instead of a placeholder.
+  `gcp_project` or `google_project` takes `GOOGLE_PROJECT`. For Azure
+  fixtures, any string variable named `resource_group`,
+  `resource_group_name`, `rg` or `rg_name` takes `AZURE_RESOURCE_GROUP`, the
+  sandbox's application resource group. The value applies whether or not the
+  tfvars set it, and the sweep leaves it alone. Lookups then resolve against
+  the real project or resource group instead of a placeholder.
 - Provider configuration comes from the environment (region, project or
   subscription, ambient credentials), not injected blocks. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.

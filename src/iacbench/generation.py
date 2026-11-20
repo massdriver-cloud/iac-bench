@@ -58,29 +58,28 @@ APPLY_FAILURE_FACTOR = 0.5
 _MAX_SWEEP_VALUES = checks.SWEEP_ALTERNATIVES
 _TFVARS_NAMES = ("minimal.tfvars.json", "minimal.tfvars")
 
-# Inputs naming the sandbox's own identity. A model cannot know the real
-# value, so scoring plans substitute it from the environment, the way an
-# operator would fill it in. Keyed by fixture cloud: (name pattern, env var).
+# Inputs naming the sandbox's own identity: its GCP project, or the Azure
+# resource group an application's resources go in. A model cannot know the
+# real value, so scoring plans substitute it from the environment, the way an
+# operator would fill it in. Keyed by fixture cloud: [(name pattern, env var)].
 _ENV_IDENTITY = {
-    "gcp": (re.compile(r"(gcp_|google_)?project(_id)?"), "GOOGLE_PROJECT"),
+    "gcp": [(re.compile(r"(gcp_|google_)?project(_id)?"), "GOOGLE_PROJECT")],
+    "azure": [(re.compile(r"(rg|resource_group)(_name)?"), "AZURE_RESOURCE_GROUP")],
 }
 
 
 def _identity_inputs(cloud: str, varmeta: dict) -> dict:
     """{variable: sandbox value} for string inputs that name the sandbox's
-    project; empty when the environment does not set one."""
-    entry = _ENV_IDENTITY.get(cloud)
-    if not entry:
-        return {}
-    pattern, env_var = entry
-    value = os.environ.get(env_var)
-    if not value:
-        return {}
-    return {
-        name: value
-        for name, meta in varmeta.items()
-        if pattern.fullmatch(name) and meta.get("type") in (None, "string")
-    }
+    identity; an identity the environment does not set is left alone."""
+    found = {}
+    for pattern, env_var in _ENV_IDENTITY.get(cloud, []):
+        value = os.environ.get(env_var)
+        if not value:
+            continue
+        for name, meta in varmeta.items():
+            if pattern.fullmatch(name) and meta.get("type") in (None, "string"):
+                found[name] = value
+    return found
 
 
 @dataclass
