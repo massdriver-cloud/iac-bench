@@ -56,7 +56,9 @@ Mechanics:
   tfvars set it, and the sweep leaves it alone. Lookups then resolve against
   the real project or resource group instead of a placeholder.
 - Provider configuration comes from the environment (region, project or
-  subscription, ambient credentials), not injected blocks. Whether the model writes its own provider
+  subscription, ambient credentials), not injected blocks. The Azure provider
+  reaches storage data planes with Entra ID (`ARM_STORAGE_USE_AZUREAD`), so a
+  storage account with shared-key access disabled can be created. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
 - `examples/` may be shipped as documentation (the judge reads source), but it
   is not part of the mechanical evidence chain.

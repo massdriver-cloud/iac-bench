@@ -23,6 +23,10 @@
 #   AZURE_RESOURCE_GROUP                     sandbox resource group that scoring
 #                                            substitutes for a module's resource
 #                                            group input
+#
+# The Azure provider also gets ARM_STORAGE_USE_AZUREAD=true: it reaches
+# storage data planes with Entra ID, as the provider configuration of an
+# organisation that disables shared-key access does.
 set -euo pipefail
 
 config="${IACBENCH_CLOUD_CONFIG:-$HOME/.config/iacbench/clouds.env}"
@@ -74,6 +78,7 @@ print(f"ARM_CLIENT_SECRET={sp['password']}")
 print(f"ARM_TENANT_ID={sp['tenant']}")
 PY
   echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
+  echo "ARM_STORAGE_USE_AZUREAD=true"
   if [[ -n "${AZURE_RESOURCE_GROUP:-}" ]]; then echo "AZURE_RESOURCE_GROUP=$AZURE_RESOURCE_GROUP"; fi
 else
   echo "cloud-env: Azure skipped (AZURE_SP_FILE or ARM_SUBSCRIPTION_ID unset)" >&2
