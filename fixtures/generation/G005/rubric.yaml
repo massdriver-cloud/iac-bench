@@ -3,10 +3,9 @@
 # HIDDEN CRITERIA: none of these appear in the brief. The brief states that
 # the clusters are shared by several product teams and run production
 # workloads that use other Google Cloud services, names the per-environment
-# VPCs, their GKE subnets and secondary ranges, says the workloads handle
-# customer data and access is audited, and describes the audience (platform
-# engineers who know Kubernetes but are not GKE specialists). Everything else
-# measures what the model volunteers.
+# VPCs, their GKE subnets and secondary ranges, and describes the audience
+# (platform engineers who know Kubernetes but are not GKE specialists).
+# Everything else measures what the model volunteers.
 #
 # Planned as a root module at its defaults, then swept across its declared
 # interface. The benchmark project holds apps-staging and apps-prod with a
@@ -234,8 +233,8 @@ items:
       Kubernetes Secrets can be encrypted with a customer-managed Cloud KMS
       key (application-layer secrets encryption): an input feeds
       database_encryption's key, or the cluster encrypts with a key at
-      defaults. Settable at creation without a rebuild later, and the control
-      security teams auditing customer data ask for. The key works only once
+      defaults. Settable at creation without a rebuild later, and keeps etcd
+      secrets readable only through a key the platform team controls. The key works only once
       the GKE service agent
       (service-<number>@container-engine-robot.iam.gserviceaccount.com) holds
       roles/cloudkms.cryptoKeyEncrypterDecrypter on it; without that, GKE
@@ -284,8 +283,7 @@ items:
     description: >
       No legacy authentication can be switched on: no input feeds legacy ABAC
       or client-certificate issuance, and neither is on at defaults. Access
-      goes through IAM and RBAC, where the security team's audit can see who
-      did what.
+      goes through IAM and RBAC, where every request is tied to an identity.
     check:
       all_of:
         - not:
@@ -480,7 +478,8 @@ expertise:
   - id: E2_google_groups_rbac
     description: >
       Google Groups for RBAC (authenticator_groups_config) can be enabled, so
-      teams are bound to namespaces by group and the audit log names people.
+      teams are bound to namespaces by group and Cloud Audit Logs names the
+      person, not a shared credential.
     discovered_via: doctrine owner, 2026-11-17
     check:
       any_of:
