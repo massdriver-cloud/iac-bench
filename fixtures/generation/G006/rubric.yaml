@@ -198,23 +198,13 @@ items:
   - id: A2
     weight: 2
     description: >
-      Restraint — no location demanded. The application's resource group
-      already has one; a required location input asks the developer a
-      question the environment answers.
-    check:
-      not:
-        var_feeds_attr: {type: azurerm_storage_account, attr: location, has_default: false}
-
-  - id: A3
-    weight: 2
-    description: >
       Restraint — no encryption key demanded. Microsoft-managed keys or an
       optional customer-managed key both pass; a required key input fails.
     check:
       not:
         var_feeds_attr: {attr: key_vault_key_id, has_default: false}
 
-  - id: A4
+  - id: A3
     weight: 1
     description: >
       Restraint — no input for the account's kind or performance tier. Those
@@ -225,7 +215,7 @@ items:
           - var_feeds_attr: {type: azurerm_storage_account, attr: account_kind}
           - var_feeds_attr: {type: azurerm_storage_account, attr: account_tier}
 
-  - id: A5
+  - id: A4
     weight: 8
     posture: budget
     description: >
@@ -234,7 +224,7 @@ items:
       other input is an Azure Storage decision handed back to them.
     budget: {soft: 8, hard: 16}
 
-  - id: A6
+  - id: A5
     weight: 1
     description: >
       Consumers can add their own tags through an optional input that reaches

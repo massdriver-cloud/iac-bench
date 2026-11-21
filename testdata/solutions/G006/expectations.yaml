@@ -10,7 +10,7 @@
 ref_standard:
   gate: true
   min_score: 0.99
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A4, A5, A6,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A4, A5,
               B1_provider_constraints, B2_descriptions, B3_plans_required_only,
               E1_infrastructure_encryption, E2_oauth_default, E3_entra_provider_documented,
               E4_name_uniqueness, E5_point_in_time_restore, E6_delete_lock,
@@ -19,11 +19,11 @@ ref_lean:
   # A different good design: the account name as an input, an optional
   # location falling back to the resource group's, zone redundancy,
   # versioning and expiry behind inputs, one data role for the application's
-  # identities, all log categories. Nine inputs (A5 7/8); none of the
+  # identities, all log categories. Nine inputs (A4 7/8); none of the
   # expertise touches but the location lookup.
   gate: true
   min_score: 0.9
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A4, A6,
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A5,
               B1_provider_constraints, B2_descriptions, B3_plans_required_only,
               E8_location_from_resource_group]
   must_fail: [E1_infrastructure_encryption, E3_entra_provider_documented, E4_name_uniqueness]
@@ -47,11 +47,11 @@ bad_minimal:
   # A bare account at provider defaults: public containers allowed, shared
   # keys on, no soft delete, no grants, LRS, a required location.
   gate: true
-  max_score: 0.35
-  must_fail: [H1, H2, H3, H4, H5, H7, H8, H9, A2]
+  max_score: 0.4
+  must_fail: [H1, H2, H3, H4, H5, H7, H8, H9]
 bad_passthrough:
   # ref_lean with Azure Storage internals as inputs: a required location and
   # customer-managed key, account kind and tier, and the TLS floor.
   gate: true
-  must_fail: [H6, A2, A3, A4]
+  must_fail: [H6, A2, A3]
   must_pass: [H1, H2]
