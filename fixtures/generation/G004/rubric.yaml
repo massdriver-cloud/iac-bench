@@ -4,8 +4,8 @@
 # recovery target (serving from another region within minutes, losing at most
 # seconds of writes), the audience (platform engineers who are not database
 # specialists), the per-environment VPCs and subnet tag, and that the data is
-# customer and payment data under audit. Everything else measures what the
-# model volunteers.
+# customer and payment data. Everything else measures what the model
+# volunteers.
 #
 # Planned as a root module at its defaults, then swept across its declared
 # interface. The sandbox account holds the apps-staging and apps-prod VPCs,
@@ -233,8 +233,8 @@ items:
     weight: 4
     description: >
       IAM database authentication is on for every cluster at defaults. The
-      services already reach AWS through IAM roles, and the security team
-      audits access by identity.
+      services already reach AWS through IAM roles, so database access can
+      use the same identities instead of shared passwords.
     check:
       resource:
         type: aws_rds_cluster
@@ -292,7 +292,8 @@ items:
     weight: 4
     description: >
       Every cluster exports its PostgreSQL log to CloudWatch at defaults, so
-      the security team's audit trail outlives the instance.
+      the record of activity on a database holding payment data outlives
+      the instance.
     check:
       resource:
         type: aws_rds_cluster
@@ -404,8 +405,9 @@ items:
 expertise:
   - id: E1_pgaudit
     description: >
-      pgaudit is loaded (shared_preload_libraries), giving the security team
-      a statement-level audit trail of who changed what.
+      pgaudit is loaded (shared_preload_libraries), giving a statement-level
+      audit trail of who changed what, the record payment-data compliance
+      expects.
     discovered_via: draft rubric, 2026-11-16
     check:
       resource:
