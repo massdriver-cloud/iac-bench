@@ -27,6 +27,11 @@ ref_lean:
               B1_provider_constraints, B2_descriptions, B3_plans_required_only,
               E8_location_from_resource_group]
   must_fail: [E1_infrastructure_encryption, E3_entra_provider_documented, E4_name_uniqueness]
+ok_role_map:
+  # ref_lean with its role assignment iterating a locals map that holds the
+  # role name, as several models write it: H3 reads the name from the code.
+  gate: true
+  must_pass: [H3]
 bad_public:
   # ref_standard without allow_nested_items_to_be_public: the provider's
   # default lets containers be made public.

@@ -61,15 +61,19 @@ items:
       Applications get access through their identities: the module grants a
       Storage Blob Data role (azurerm_role_assignment) to principals it is
       given. Without it, an account with keys disabled is unusable until
-      someone outside the module grants access.
+      someone outside the module grants access. The role name is read from
+      the role assignment, or from the module's code when the assignment
+      takes it from a locals map.
     check:
       all_of:
         - declares: {type: azurerm_role_assignment}
-        - expr_matches:
-            type: azurerm_role_assignment
-            attr: role_definition_name
-            pattern: 'Storage Blob Data'
-            match: any
+        - any_of:
+            - expr_matches:
+                type: azurerm_role_assignment
+                attr: role_definition_name
+                pattern: 'Storage Blob Data'
+                match: any
+            - source_contains: Storage Blob Data
 
   - id: H4
     weight: 6
