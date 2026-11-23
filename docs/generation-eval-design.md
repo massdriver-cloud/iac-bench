@@ -14,7 +14,7 @@ index") are SLOC-like proxies — they describe the population, not the instance
 
 | Layer | What | Nature | Contributes to score |
 |-------|------|--------|----------------------|
-| 1 | Functional gate: the module plans as a root module with its own `minimal.tfvars`, filtered to required variables | mechanical, boolean | prerequisite — quality layers only run if this passes |
+| 1 | Functional gate: the module plans as a root module with its own `minimal.tfvars`, filtered to required variables; a module that plans but matches one of the fixture's known apply failures is scored in full and multiplied by 0.5 | mechanical, boolean | prerequisite — quality layers only run if this passes |
 | 2 | Brief-specific semantic checks (the rubric), declared in each fixture's `rubric.yaml` and evaluated by the check engine — see `generation-check-engine.md` | mechanical, itemized, weighted | yes — the main mechanical score |
 | 3 | LLM judge, validated against human verdicts: absolute 0–100 grading on the `good-opentofu.md` sections the rubric does not score, with blind pairwise comparison as a discovery tool | LLM-judge, gated | yes — separate column, never silently merged |
 | 4 | Generic stats (var counts, validation %, locals depth, SLOC, cost) | mechanical, scalar | no — descriptive columns only |

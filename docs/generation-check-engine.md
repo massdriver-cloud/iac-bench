@@ -52,6 +52,24 @@ with its own tfvars filtered to required-only. A tfvars that fails to parse,
 omits a required variable, or plans nonzero fails the gate with a recorded
 reason.
 
+Planning stands in for applying, and some configurations plan cleanly but are
+rejected by the cloud API at create time. A fixture lists the ones its brief
+leads into under `apply_failures`: each entry has an `id`, a `description`,
+the `evidence` of an observed apply error, and a `check` in the same
+vocabulary as rubric items, evaluated against the defaults plan. Entries
+are added only after the failure has been reproduced against the real API.
+
+A module that matches an entry passes the gate and is scored in full; its
+rubric, mechanical and composite scores are then multiplied by 0.5
+(`APPLY_FAILURE_FACTOR`), with the unmultiplied values kept as
+`raw_semantic_score` and `raw_mechanical_score`. The attempt fails its
+verdict and is reported as a finding. The factor ranks every module that
+cannot be applied below every working module of passable quality, while
+keeping the quality differences among the failures visible. A plan failure
+stays a gate failure scored 0: the model had `tofu_plan` and could have seen
+it, whereas an apply failure gives the model no signal, and most rubric
+items need a plan to evaluate at all.
+
 The contract requirement is public and functional; stating "ship a
 minimal.tfvars with literal values for required variables" in the prompt
 leaks no rubric content.
@@ -106,12 +124,15 @@ deletion protection, backups):
 - **0.5** — absent at defaults but reachable through some input (opt-in only).
   The fraction is overridable per item (`partial: 0.4`).
 - **0.0** — absent everywhere; or hardcoded in either polarity. Hardcoded-off
-  never protects; hardcoded-on breaks legitimate operations (a permanently
-  deletion-protected database cannot be destroyed) — the very reason the
-  attribute isn't posture `hardcoded` in the first place. Where hardcoded-on
-  costs only flexibility and blocks nothing (backups: storage cost, no
-  obstacle to retiring the resource), the item sets `hardcoded_on: 0.75` —
-  safer than opt-in, short of a real opt-out.
+  never protects; hardcoded-on blocks legitimate operations (a permanently
+  deletion-protected database cannot be destroyed through OpenTofu) — the
+  very reason the attribute isn't posture `hardcoded` in the first place.
+  An item sets `hardcoded_on: 0.75` when the brief makes that cost minor
+  next to the protection: hardcoded-on costs only flexibility (backups:
+  storage cost, no obstacle to retiring the resource), or the brief
+  describes resources whose loss outweighs the friction of retiring them
+  (deletion protection on production databases holding customer data).
+  That credit sits above opt-in and below a real opt-out.
 
 Where a service offers more than one legitimate mechanism for the same
 protection, `behavior:` may list them; the best-graded alternative counts.
@@ -194,7 +215,7 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 
 | Verb | Lens | Asserts |
 |---|---|---|
-| `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, `{exists: true}`, literal equality); `match: any\|every` over instances; `plans: [defaults, sweep]` with `quantifier: any\|all` over plans; `if_present: true` lets a plan without the type pass, so an optional resource is held to `where` only when it is planned |
+| `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, literal equality, `{exists: true}`, `{in: [...]}`, `{gte: n}`/`{lte: n}` on numbers and numeric strings, `{contains: x}` on lists, `{matches: regex}` on strings); `match: any\|every` over instances; `min_instances: n` requires that many matching instances and `min_regions: n` that they sit in that many distinct regions (the planned `region` attribute, or else the resource's provider configuration: a literal, a variable or an attribute of one, or the environment's `AWS_REGION` when it sets none); `plans: [defaults, sweep]` with `quantifier: any\|all` over plans; `if_present: true` lets a plan without the type pass, so an optional resource is held to `where` only when it is planned |
 | `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence). Attribute names may be dotted paths through nested blocks; a `dynamic` block on the path is a knob; `{in: [...]}` accepts any listed literal |
 | `declares` | static | the source declares at least one resource of `type`, gated or not — lets an item pass modules that never create the thing it guards |
 | `expr_matches` | static | every resource's `attr` expression, resolved through locals, data sources and variable defaults (`var.x` reaches x's default; `var.x.a` and, through the resource's `for_each`, `each.value.a` reach attribute a of that default and any `optional(T, DEFAULT)` default for a in x's type), matches `pattern` — or the resource has `or_attr_present` instead |

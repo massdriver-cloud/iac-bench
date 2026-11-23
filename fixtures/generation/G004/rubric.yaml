@@ -1,0 +1,485 @@
+# G004 rubric — declarative check engine (docs/generation-check-engine.md).
+#
+# HIDDEN CRITERIA: none of these appear in the brief. The brief states a
+# recovery target (serving from another region within minutes, losing at most
+# seconds of writes), the audience (platform engineers who are not database
+# specialists), the per-environment VPCs and subnet tag, and that the data is
+# customer and payment data. Everything else measures what the model
+# volunteers.
+#
+# Planned as a root module at its defaults, then swept across its declared
+# interface. The sandbox account holds the apps-staging and apps-prod VPCs,
+# with tier = database subnets, in the four US regions
+# (sandbox/aws-networks), so a module that looks its network up plans.
+# Several settings an Aurora global database needs are invisible to plan
+# (Secrets Manager credentials on a member cluster, an encrypted secondary
+# without a regional key); those items read the source, and the ones that
+# make apply fail are listed under apply_failures, which fail the gate.
+
+id: G004
+domain: generation
+suite_version: v0.1.0
+cloud: aws
+scoring_policy: v1
+
+mandatory: [H1, H2, H3, H4]
+
+apply_failures:
+  - id: F1_secrets_manager_on_global_member
+    description: >
+      A member cluster of the global database has its master password managed
+      by Secrets Manager (manage_master_user_password). Aurora rejects that
+      for global databases when creating the cluster.
+    evidence: >
+      Applied 2026-11-17 in the benchmark AWS account (provider 6, Aurora
+      PostgreSQL 17.5): CreateDBCluster returned 400 InvalidParameterValue,
+      "ManageMasterUserPassword is not supported for an Aurora global
+      database."
+    check:
+      all_of:
+        - resource: {type: aws_rds_global_cluster}
+        - resource: {type: aws_rds_cluster, where: {manage_master_user_password: true}}
+
+  - id: F2_encrypted_secondary_without_regional_key
+    description: >
+      The global database is encrypted, spans two regions, and a member
+      cluster names no KMS key. Aurora rejects an encrypted cross-region
+      secondary that does not name a key from its own region. The check reads
+      the source, which does not say which member is the primary, so it holds
+      whenever any member lacks a key.
+    evidence: >
+      Applied 2026-11-17 in the benchmark AWS account (provider 6, Aurora
+      PostgreSQL 17.5): with the primary and its instance created in
+      us-east-1, CreateDBCluster for the us-east-2 secondary returned 400
+      InvalidParameterCombination, "For encrypted cross-region replica,
+      kmsKeyId should be explicitly specified."
+    check:
+      all_of:
+        - resource: {type: aws_rds_global_cluster}
+        - resource: {type: aws_rds_cluster, min_regions: 2}
+        - any_of:
+            - expr_matches: {type: aws_rds_cluster, attr: storage_encrypted, match: any, pattern: 'true'}
+            - expr_matches: {type: aws_rds_global_cluster, attr: storage_encrypted, match: any, pattern: 'true'}
+        - not: {expr_matches: {type: aws_rds_cluster, attr: kms_key_id, pattern: '^(?!\s*null\s*$)'}}
+
+items:
+  - id: H1
+    weight: 10
+    posture: hardcoded
+    description: >
+      Storage encryption is on for every cluster, and no input can turn it
+      off. Customer and payment data is encrypted at rest whoever runs the
+      module.
+    check:
+      closed_values:
+        type: aws_rds_cluster
+        attrs:
+          storage_encrypted: true
+
+  - id: H2
+    weight: 10
+    posture: hardcoded
+    description: >
+      No instance is publicly accessible, at defaults or under any input, and
+      no variable feeds publicly_accessible. Network reachability is never a
+      knob. The module sets it false itself: left unset, AWS decides at
+      creation from the subnets' routes, and plan cannot say which.
+    check:
+      all_of:
+        - not: {var_feeds_attr: {type: aws_rds_cluster_instance, attr: publicly_accessible}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: all
+            type: aws_rds_cluster_instance
+            match: every
+            where: {publicly_accessible: false}
+
+  - id: H3
+    weight: 8
+    posture: hardcoded
+    description: >
+      Encrypted connections are required. Either every cluster parameter group
+      sets rds.force_ssl to 1 in every plan and every cluster names a
+      parameter group, or every cluster runs Aurora PostgreSQL 17 or later
+      (where rds.force_ssl defaults on) and no parameter group turns it off.
+    check:
+      any_of:
+        - all_of:
+            - resource:
+                plans: [defaults, sweep]
+                quantifier: all
+                type: aws_rds_cluster_parameter_group
+                match: every
+                where:
+                  parameter: {name: rds.force_ssl, value: "1"}
+            - expr_matches: {type: aws_rds_cluster, attr: db_cluster_parameter_group_name, pattern: '\S'}
+        - all_of:
+            - resource:
+                plans: [defaults, sweep]
+                quantifier: all
+                type: aws_rds_cluster
+                match: every
+                where:
+                  engine_version: {matches: '^(1[7-9]|[2-9][0-9])(\.|$)'}
+            - not:
+                resource:
+                  plans: [defaults, sweep]
+                  quantifier: any
+                  type: aws_rds_cluster_parameter_group
+                  where:
+                    parameter: {name: rds.force_ssl, value: "0"}
+
+  - id: H4
+    weight: 8
+    posture: hardcoded
+    description: >
+      No ingress from the whole internet (0.0.0.0/0 or ::/0) in any security
+      group or rule the module creates, at defaults or under any input.
+    check:
+      not:
+        any_of:
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_security_group
+              where: {ingress: {cidr_blocks: {contains: 0.0.0.0/0}}}
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_security_group
+              where: {ingress: {ipv6_cidr_blocks: {contains: "::/0"}}}
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_vpc_security_group_ingress_rule
+              where: {cidr_ipv4: 0.0.0.0/0}
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_vpc_security_group_ingress_rule
+              where: {cidr_ipv6: "::/0"}
+          - resource:
+              plans: [defaults, sweep]
+              quantifier: any
+              type: aws_security_group_rule
+              where: {type: ingress, cidr_blocks: {contains: 0.0.0.0/0}}
+
+  - id: H5
+    weight: 14
+    description: >
+      An Aurora global database: an aws_rds_global_cluster whose member
+      clusters sit in two different regions at defaults. A cross-region read
+      replica or snapshot copy cannot fail over within minutes with seconds of
+      data loss; a global database can.
+    check:
+      all_of:
+        - resource: {type: aws_rds_global_cluster}
+        - resource: {type: aws_rds_cluster, min_regions: 2}
+        - expr_matches: {type: aws_rds_cluster, attr: global_cluster_identifier, pattern: '\S'}
+
+  - id: H6
+    weight: 6
+    description: >
+      The standby region has instances at defaults, so it can take writes
+      within minutes. A headless secondary must first have an instance
+      created and started after the region fails.
+    check:
+      resource: {type: aws_rds_cluster_instance, min_regions: 2}
+
+  - id: H7
+    weight: 4
+    description: >
+      At least three instances at defaults across the two regions, so a
+      region holds a writer and a reader in different availability zones.
+    check:
+      resource: {type: aws_rds_cluster_instance, min_instances: 3}
+
+  - id: H8
+    weight: 6
+    description: >
+      Every cluster names a KMS key (kms_key_id), never null: a
+      customer-managed key in each region. A secondary without one also fails
+      at apply (F2).
+    check:
+      expr_matches: {type: aws_rds_cluster, attr: kms_key_id, pattern: '^(?!\s*null\s*$)'}
+
+  - id: H9
+    weight: 6
+    posture: ladder
+    description: >
+      The master password is never a raw input, never managed by Secrets
+      Manager on a member cluster (Aurora does not support that for global
+      databases, and plan cannot see it), and, for full credit, never stored
+      in state: a write-only password (master_password_wo) generated by the
+      module. A generated password written to master_password lands in state
+      and earns half credit.
+    ladder:
+      - score: 1.0
+        check:
+          all_of:
+            - not: {expr_matches: {type: aws_rds_cluster, attr: manage_master_user_password, match: any, pattern: 'true'}}
+            - not: {var_feeds_attr: {type: aws_rds_cluster, attr: master_password}}
+            - not: {var_feeds_attr: {type: aws_rds_cluster, attr: master_password_wo}}
+            - not: {expr_matches: {type: aws_rds_cluster, attr: master_password, match: any, pattern: '^(?!\s*null\s*$)'}}
+            - expr_matches: {type: aws_rds_cluster, attr: master_password_wo, match: any, pattern: '\S'}
+      - score: 0.5
+        check:
+          all_of:
+            - not: {expr_matches: {type: aws_rds_cluster, attr: manage_master_user_password, match: any, pattern: 'true'}}
+            - not: {var_feeds_attr: {type: aws_rds_cluster, attr: master_password}}
+            - not: {var_feeds_attr: {type: aws_rds_cluster, attr: master_password_wo}}
+
+  - id: H10
+    weight: 4
+    description: >
+      IAM database authentication is on for every cluster at defaults. The
+      services already reach AWS through IAM roles, so database access can
+      use the same identities instead of shared passwords.
+    check:
+      resource:
+        type: aws_rds_cluster
+        match: every
+        where: {iam_database_authentication_enabled: true}
+
+  - id: H11
+    weight: 6
+    posture: default_on
+    hardcoded_on: 0.75
+    description: >
+      Deletion protection ships on, on the clusters or the global cluster.
+      Full credit with a real opt-out; 0.75 when hardcoded on, which protects
+      the production database but means OpenTofu can never retire it, even
+      intentionally, without editing the module.
+    behavior:
+      - type: aws_rds_cluster
+        where: {deletion_protection: true}
+      - type: aws_rds_global_cluster
+        where: {deletion_protection: true}
+
+  - id: H12
+    weight: 4
+    posture: ladder
+    description: >
+      Destroying a cluster takes a final snapshot: skip_final_snapshot is false
+      on every cluster at defaults and a final_snapshot_identifier is set.
+      Full credit with an opt-out (an input feeds skip_final_snapshot); 0.75
+      when always on.
+    ladder:
+      - score: 1.0
+        check:
+          all_of:
+            - resource: {type: aws_rds_cluster, match: every, where: {skip_final_snapshot: false}}
+            - expr_matches: {type: aws_rds_cluster, attr: final_snapshot_identifier, match: any, pattern: '\S'}
+            - var_feeds_attr: {type: aws_rds_cluster, attr: skip_final_snapshot}
+      - score: 0.75
+        check:
+          all_of:
+            - resource: {type: aws_rds_cluster, match: every, where: {skip_final_snapshot: false}}
+            - expr_matches: {type: aws_rds_cluster, attr: final_snapshot_identifier, match: any, pattern: '\S'}
+
+  - id: H13
+    weight: 4
+    description: >
+      Every cluster keeps at least seven days of automated backups at
+      defaults. The provider's default is one day.
+    check:
+      resource:
+        type: aws_rds_cluster
+        match: every
+        where: {backup_retention_period: {gte: 7}}
+
+  - id: H14
+    weight: 4
+    description: >
+      Every cluster exports its PostgreSQL log to CloudWatch at defaults, so
+      the record of activity on a database holding payment data outlives
+      the instance.
+    check:
+      resource:
+        type: aws_rds_cluster
+        match: every
+        where: {enabled_cloudwatch_logs_exports: {contains: postgresql}}
+
+  - id: H15
+    weight: 4
+    description: >
+      The regions are inputs: a variable feeds a provider configuration's
+      region (or a resource's region argument). The brief names no region,
+      and the module serves services in different region pairs.
+    check:
+      any_of:
+        - var_feeds_provider_attr: {provider: aws, attr: region}
+        - var_feeds_attr: {attr: region}
+
+  - id: H17
+    weight: 6
+    description: >
+      The engine version the module ships as its default is one AWS offers for
+      Aurora global databases, so a platform engineer who keeps the default
+      gets a database that deploys. A required version input passes: the
+      caller chooses it. The list is the edition's snapshot of
+      describe-db-engine-versions (Aurora PostgreSQL, SupportsGlobalDatabases,
+      status available, in all four US regions, Limitless versions excluded),
+      taken 2026-11-17; a new edition refreshes it.
+    check:
+      any_of:
+        - var_feeds_attr: {type: aws_rds_cluster, attr: engine_version, has_default: false}
+        - var_feeds_attr: {type: aws_rds_global_cluster, attr: engine_version, has_default: false}
+        - resource:
+            type: aws_rds_cluster
+            match: every
+            where:
+              engine_version:
+                in: ["11.9", "11.21", "12.9", "12.22", "13.9", "13.23", "14.6", "14.17", "14.18", "14.19", "14.20", "14.22", "14.23", "14.24", "15.10", "15.12", "15.13", "15.14", "15.15", "15.17", "15.18", "15.19", "16.8", "16.9", "16.10", "16.11", "16.13", "16.14", "16.15", "17.4", "17.5", "17.6", "17.7", "17.9", "17.10", "17.11", "18.3", "18.4", "18.6"]
+
+  - id: H16
+    weight: 2
+    description: >
+      Consumers can add their own tags through an optional input, via the
+      provider's default_tags or the clusters' tags.
+    check:
+      any_of:
+        - var_feeds_provider_attr: {provider: aws, attr: default_tags, has_default: true}
+        - var_feeds_attr: {type: aws_rds_cluster, attr: tags, has_default: true}
+
+  # Audience fit (A*). Platform engineers who know AWS but are not database
+  # specialists: they fill in what is specific to each service and trust the
+  # module for the rest.
+  - id: A1
+    weight: 2
+    description: Exposure — the instance class (sizing) is set per service.
+    check:
+      var_feeds_attr: {type: aws_rds_cluster_instance, attr: instance_class}
+
+  - id: A2
+    weight: 2
+    description: >
+      Exposure — the network is an input, directly (subnet IDs) or through a
+      lookup keyed by a variable such as the environment. The brief names one
+      VPC per environment; hardcoding one bakes an environment into the module.
+    check:
+      var_feeds_attr: {type: aws_db_subnet_group, attr: subnet_ids, through_data: true}
+
+  - id: A3
+    weight: 2
+    description: >
+      Exposure — which clients may connect is an input: source security groups
+      or CIDRs on an ingress rule, or the security groups attached to the
+      clusters.
+    check:
+      any_of:
+        - var_feeds_attr: {type: aws_vpc_security_group_ingress_rule, attr: referenced_security_group_id}
+        - var_feeds_attr: {type: aws_vpc_security_group_ingress_rule, attr: cidr_ipv4}
+        - var_feeds_attr: {type: aws_security_group, attr: security_groups}
+        - var_feeds_attr: {type: aws_security_group, attr: cidr_blocks}
+        - var_feeds_attr: {type: aws_security_group_rule, attr: source_security_group_id}
+        - var_feeds_attr: {type: aws_security_group_rule, attr: cidr_blocks}
+        - var_feeds_attr: {type: aws_rds_cluster, attr: vpc_security_group_ids}
+
+  - id: A4
+    weight: 2
+    description: >
+      Restraint — no networking setup. The network team owns the VPCs and
+      subnets, so the module creates no VPC, subnet, internet gateway or NAT
+      gateway, at defaults or under any input.
+    check:
+      not:
+        any_of:
+          - resource: {plans: [defaults, sweep], quantifier: any, type: aws_vpc}
+          - resource: {plans: [defaults, sweep], quantifier: any, type: aws_subnet}
+          - resource: {plans: [defaults, sweep], quantifier: any, type: aws_internet_gateway}
+          - resource: {plans: [defaults, sweep], quantifier: any, type: aws_nat_gateway}
+
+  - id: A5
+    weight: 8
+    posture: budget
+    description: >
+      Interface budget — full credit at 15 or fewer inputs, falling linearly to
+      zero at 25. The audience is not database specialists; a module that
+      hands them every Aurora setting has made none of the decisions they
+      trust it to make.
+    budget: {soft: 15, hard: 25}
+
+# Expertise checklist — service-specific touches, each weighing 1, pooled into
+# the mechanical score.
+expertise:
+  - id: E1_pgaudit
+    description: >
+      pgaudit is loaded (shared_preload_libraries), giving a statement-level
+      audit trail of who changed what, the record payment-data compliance
+      expects.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      resource:
+        plans: [defaults, sweep]
+        quantifier: any
+        type: aws_rds_cluster_parameter_group
+        where:
+          parameter: {name: shared_preload_libraries, value: {matches: '\bpgaudit\b'}}
+  - id: E2_connection_logging
+    description: >
+      Connections and disconnections are logged (log_connections and
+      log_disconnections), so every session is recorded.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      all_of:
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_rds_cluster_parameter_group
+            where: {parameter: {name: log_connections, value: "1"}}
+        - resource:
+            plans: [defaults, sweep]
+            quantifier: any
+            type: aws_rds_cluster_parameter_group
+            where: {parameter: {name: log_disconnections, value: "1"}}
+  - id: E3_performance_insights
+    description: >
+      Performance Insights or Database Insights is on, giving per-query load
+      and wait analysis without the team running its own tooling.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      any_of:
+        - resource: {type: aws_rds_cluster_instance, where: {performance_insights_enabled: true}}
+        - resource: {type: aws_rds_cluster, where: {performance_insights_enabled: true}}
+        - resource: {type: aws_rds_cluster, where: {database_insights_mode: advanced}}
+  - id: E4_enhanced_monitoring
+    description: >
+      Enhanced monitoring is on (a monitoring interval above zero), giving
+      OS-level metrics at second-level granularity.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      any_of:
+        - resource: {type: aws_rds_cluster_instance, where: {monitoring_interval: {gte: 1}}}
+        - resource: {type: aws_rds_cluster, where: {monitoring_interval: {gte: 1}}}
+  - id: E5_snapshot_tags
+    description: >
+      Snapshots carry the cluster's tags (copy_tags_to_snapshot), so cost and
+      ownership tags survive into backups.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      resource: {type: aws_rds_cluster, match: every, where: {copy_tags_to_snapshot: true}}
+  - id: E6_global_writer_endpoint
+    description: >
+      An output exposes the global writer endpoint, which follows the primary
+      through a failover, so services need no endpoint change.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      output_named: {name_matches: endpoint, value_contains: aws_rds_global_cluster}
+  - id: E8_engine_version_lookup
+    description: >
+      The engine version is resolved through an aws_rds_engine_version data
+      source, so a version AWS does not offer fails at plan instead of partway
+      through an apply.
+    discovered_via: G004 pilot, 2026-11-17
+    check:
+      source_contains: 'data "aws_rds_engine_version"'
+
+  - id: E7_member_versions_follow_global
+    description: >
+      Member clusters ignore engine_version changes (lifecycle ignore_changes),
+      so a version upgraded through the global cluster does not make every
+      later plan try to downgrade the members.
+    discovered_via: draft rubric, 2026-11-16
+    check:
+      expr_matches: {type: aws_rds_cluster, attr: lifecycle, match: any, pattern: engine_version}

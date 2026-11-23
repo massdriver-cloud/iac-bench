@@ -101,3 +101,40 @@ variable "settings" {
 def test_a_required_variable_matches_nothing(tmp_path):
     d = module(tmp_path, 'variable "p" {\n  type = string\n}\n' + database("var.p"))
     assert not matches(d)
+
+
+def test_a_variable_reaches_a_submodule_attribute_through_the_module_call(tmp_path):
+    root = module(tmp_path / "root", """
+variable "environment" {
+  type = string
+}
+locals {
+  vpc = "apps-${var.environment}"
+}
+module "regional" {
+  source   = "./modules/regional"
+  vpc_name = local.vpc
+  fixed    = "x"
+}
+""")
+    module(root / "modules" / "regional", """
+variable "vpc_name" {
+  type = string
+}
+variable "fixed" {
+  type = string
+}
+data "aws_vpc" "this" {
+  filter {
+    name   = "tag:Name"
+    values = [var.vpc_name]
+  }
+}
+resource "aws_db_subnet_group" "this" {
+  name       = var.fixed
+  subnet_ids = [data.aws_vpc.this.id]
+}
+""")
+    assert hclq.vars_feeding_attr(root, "subnet_ids", "aws_db_subnet_group", True) == {"environment"}
+    assert hclq.vars_feeding_attr(root, "subnet_ids", "aws_db_subnet_group", False) == set()
+    assert hclq.vars_feeding_attr(root, "name", "aws_db_subnet_group") == set()

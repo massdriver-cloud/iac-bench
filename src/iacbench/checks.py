@@ -15,6 +15,7 @@ Two lenses:
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -52,7 +53,7 @@ def _present(value) -> bool:
     return True
 
 
-_LEAF_OPS = {"exists", "nonempty", "in"}
+_LEAF_OPS = {"exists", "nonempty", "in", "gte", "lte", "contains", "matches"}
 
 
 def _is_leaf_predicate(spec) -> bool:
@@ -67,6 +68,13 @@ def _match_value(value, spec) -> bool:
             return False
         if "in" in spec and value not in spec["in"]:
             return False
+        for op, cmp in (("gte", lambda a, b: a >= b), ("lte", lambda a, b: a <= b)):
+            if op in spec and not (_number(value) is not None and cmp(_number(value), spec[op])):
+                return False
+        if "contains" in spec and not (isinstance(value, list) and spec["contains"] in value):
+            return False
+        if "matches" in spec and not (isinstance(value, str) and re.search(spec["matches"], value)):
+            return False
         return True
     if isinstance(spec, dict):
         if isinstance(value, dict):
@@ -75,6 +83,66 @@ def _match_value(value, spec) -> bool:
             return any(isinstance(el, dict) and _match_where(el, spec) for el in value)
         return False
     return value == spec  # literal equality (bool/number/string/list)
+
+
+def _number(value):
+    """A plan value as a number: numbers pass through, numeric strings parse
+    (parameter values are strings in plan JSON), anything else is None."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    if isinstance(value, str):
+        try:
+            return float(value)
+        except ValueError:
+            return None
+    return None
+
+
+def _config_resources(module: dict, prefix: str = ""):
+    """(address, config resource) for every resource in plan JSON's
+    `configuration`, module calls included."""
+    for res in module.get("resources") or []:
+        yield prefix + res["address"], res
+    for name, call in (module.get("module_calls") or {}).items():
+        yield from _config_resources(call.get("module") or {}, f"{prefix}module.{name}.")
+
+
+def region_of(plan_json: dict, inst: dict):
+    """The region a planned resource lands in. AWS provider 6 records it on
+    every regional resource; for older providers it is resolved from the
+    resource's provider configuration: a literal region, a variable's planned
+    value, or, when the configuration sets none, the environment's
+    AWS_REGION. None when it cannot be resolved (for example via a local)."""
+    values = inst.get("values") or {}
+    if isinstance(values.get("region"), str):
+        return values["region"]
+    config = plan_json.get("configuration") or {}
+    address = re.sub(r"\[[^\]]*\]", "", inst.get("address", ""))
+    key = next((r.get("provider_config_key") for a, r in _config_resources(config.get("root_module") or {})
+                if a == address), None)
+    if key is None:
+        return None
+    configs = config.get("provider_config") or {}
+    if key not in configs and ":" in key:
+        key = key.split(":")[-1]
+    provider = configs.get(key) or {}
+    expr = (provider.get("expressions") or {}).get("region")
+    if expr is None:
+        return os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+    if "constant_value" in expr:
+        return expr["constant_value"]
+    # `var.regions.primary` arrives as ["var.regions.primary", "var.regions"]:
+    # the longest reference names the value, walked through object attributes.
+    refs = [r for r in expr.get("references") or [] if r.startswith("var.")]
+    if not refs or any(not r.startswith("var.") for r in expr.get("references") or []):
+        return None
+    name, *path = max(refs, key=len)[4:].split(".")
+    value = ((plan_json.get("variables") or {}).get(name) or {}).get("value")
+    for key in path:
+        value = value.get(key) if isinstance(value, dict) else None
+    return value if isinstance(value, str) else None
 
 
 def _where_leaf_values(node, where: dict):
@@ -154,7 +222,9 @@ def _verb_resource(ctx: CheckContext, spec: dict) -> bool:
     """Plan lens: resources of `type` exist / match `where` across the target
     plans. quantifier: all|any over plans; match: any|every over instances.
     if_present: a plan without the type passes — for optional resources whose
-    instances, when planned, must still match."""
+    instances, when planned, must still match. min_instances: at least N
+    matching instances; min_regions: matching instances in at least N
+    distinct regions (region_of)."""
     plans = _target_plans(ctx, spec.get("plans", "defaults"))
     if not plans:
         return False
@@ -169,10 +239,18 @@ def _verb_resource(ctx: CheckContext, spec: dict) -> bool:
             return if_present or not exists
         if not exists:
             return False
-        if where is None:
-            return True
-        matched = [_match_where(i.get("values") or {}, where) for i in insts]
-        return all(matched) if match == "every" else any(matched)
+        matched = [i for i in insts if where is None or _match_where(i.get("values") or {}, where)]
+        if match == "every" and len(matched) != len(insts):
+            return False
+        if not matched:
+            return False
+        if len(matched) < spec.get("min_instances", 1):
+            return False
+        if "min_regions" in spec:
+            regions = {region_of(plan, i) for i in matched} - {None}
+            if len(regions) < spec["min_regions"]:
+                return False
+        return True
 
     results = [plan_ok(p) for p in plans]
     return any(results) if spec.get("quantifier", "all") == "any" else all(results)

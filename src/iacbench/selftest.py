@@ -63,7 +63,7 @@ def _selftest_generation(fixture_dir: Path, work_root: Path) -> list:
         shutil.copytree(ref_dir, module_copy)
         result = score_generation(fixture, module_copy, work_root / name / "work")
         scores[name] = result.semantic_score
-        summary = f"gate={result.gate} score={result.semantic_score} items={result.items}"
+        summary = f"gate={result.gate} score={result.semantic_score} apply_failures={result.apply_failures} items={result.items}"
         if result.gate != expect.get("gate", True):
             failures.append(Failure(fixture.id, name, f"expected gate={expect.get('gate', True)}: {summary}"))
             continue
@@ -71,6 +71,8 @@ def _selftest_generation(fixture_dir: Path, work_root: Path) -> list:
             failures.append(Failure(fixture.id, name, f"score below {expect['min_score']}: {summary} details={result.details}"))
         if "max_score" in expect and result.semantic_score > expect["max_score"]:
             failures.append(Failure(fixture.id, name, f"score above {expect['max_score']}: {summary}"))
+        if sorted(expect.get("apply_failures", []) or []) != sorted(result.apply_failures):
+            failures.append(Failure(fixture.id, name, f"expected apply_failures={expect.get('apply_failures', [])}: got {result.apply_failures}"))
         # Graded (default_on) items report floats; full credit means >= 1.
         # Expertise items are asserted by the same lists.
         outcomes = {**result.items, **result.expertise}

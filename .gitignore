@@ -24,3 +24,5 @@ __pycache__/
 # Built HCL helper (tools/hclast)
 tools/hclast/hclast
 tools/hclast/hclast.sha256
+*.tfstate
+*.tfstate.*
