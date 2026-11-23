@@ -49,11 +49,22 @@ Mechanics:
 - **Sandbox identity:** the model cannot know the sandbox's own identifiers,
   so every scoring plan substitutes them from the environment, as an operator
   would. For GCP fixtures, any string variable named `project`, `project_id`,
-  `gcp_project` or `google_project` takes `GOOGLE_PROJECT`, whether or not
-  the tfvars set it, and the sweep leaves it alone. Lookups then resolve
-  against the real project instead of a placeholder.
+  `gcp_project` or `google_project` takes `GOOGLE_PROJECT`. For Azure
+  fixtures, any string variable named `resource_group`,
+  `resource_group_name`, `rg` or `rg_name` takes `AZURE_RESOURCE_GROUP`, the
+  sandbox's application resource group, and any named `subscription`,
+  `subscription_id`, `azure_subscription_id` or `arm_subscription_id` takes
+  `ARM_SUBSCRIPTION_ID`. The value applies whether or not the
+  tfvars set it, and the sweep leaves it alone. Lookups then resolve against
+  the real project or resource group instead of a placeholder.
 - Provider configuration comes from the environment (region, project or
-  subscription, ambient credentials), not injected blocks. Whether the model writes its own provider
+  subscription, ambient credentials), not injected blocks, with one
+  exception: azurerm cannot plan without a `features {}` block, which no
+  environment variable supplies, so an Azure root module that declares no
+  azurerm provider is planned with that minimal block added. The static lens
+  reads the module as written. The Azure provider
+  reaches storage data planes with Entra ID (`ARM_STORAGE_USE_AZUREAD`), so a
+  storage account with shared-key access disabled can be created. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
 - `examples/` may be shipped as documentation (the judge reads source), but it
   is not part of the mechanical evidence chain.

@@ -58,29 +58,51 @@ APPLY_FAILURE_FACTOR = 0.5
 _MAX_SWEEP_VALUES = checks.SWEEP_ALTERNATIVES
 _TFVARS_NAMES = ("minimal.tfvars.json", "minimal.tfvars")
 
-# Inputs naming the sandbox's own identity. A model cannot know the real
-# value, so scoring plans substitute it from the environment, the way an
-# operator would fill it in. Keyed by fixture cloud: (name pattern, env var).
+# Inputs naming the sandbox's own identity: its GCP project, or the Azure
+# resource group an application's resources go in. A model cannot know the
+# real value, so scoring plans substitute it from the environment, the way an
+# operator would fill it in. Keyed by fixture cloud: [(name pattern, env var)].
 _ENV_IDENTITY = {
-    "gcp": (re.compile(r"(gcp_|google_)?project(_id)?"), "GOOGLE_PROJECT"),
+    "gcp": [(re.compile(r"(gcp_|google_)?project(_id)?"), "GOOGLE_PROJECT")],
+    "azure": [
+        (re.compile(r"(rg|resource_group)(_name)?"), "AZURE_RESOURCE_GROUP"),
+        (re.compile(r"(azure_|arm_)?subscription(_id)?"), "ARM_SUBSCRIPTION_ID"),
+    ],
 }
+
+# The azurerm provider cannot plan without a features block, and no
+# environment variable supplies one. A root module that declares no azurerm
+# provider is planned with the minimal block an operator would add; the
+# static lens keeps reading the module as written.
+_AZURERM_PROVIDER = 'provider "azurerm" {\n  features {}\n}\n'
+
+
+def _plan_dir(cloud: str, work: Path, work_root: Path) -> tuple:
+    """(directory to plan in, whether a provider block was added)."""
+    if cloud != "azure" or any(name == "azurerm" for name, _ in hclq.provider_blocks(work)):
+        return work, False
+    if not any("azurerm_" in tf.read_text(errors="replace") for tf in work.glob("*.tf")):
+        return work, False
+    plan_dir = work_root / "plan"
+    if plan_dir.exists():
+        shutil.rmtree(plan_dir)
+    shutil.copytree(work, plan_dir, symlinks=True)
+    (plan_dir / "_iacbench_provider.tf").write_text(_AZURERM_PROVIDER)
+    return plan_dir, True
 
 
 def _identity_inputs(cloud: str, varmeta: dict) -> dict:
     """{variable: sandbox value} for string inputs that name the sandbox's
-    project; empty when the environment does not set one."""
-    entry = _ENV_IDENTITY.get(cloud)
-    if not entry:
-        return {}
-    pattern, env_var = entry
-    value = os.environ.get(env_var)
-    if not value:
-        return {}
-    return {
-        name: value
-        for name, meta in varmeta.items()
-        if pattern.fullmatch(name) and meta.get("type") in (None, "string")
-    }
+    identity; an identity the environment does not set is left alone."""
+    found = {}
+    for pattern, env_var in _ENV_IDENTITY.get(cloud, []):
+        value = os.environ.get(env_var)
+        if not value:
+            continue
+        for name, meta in varmeta.items():
+            if pattern.fullmatch(name) and meta.get("type") in (None, "string"):
+                found[name] = value
+    return found
 
 
 @dataclass
@@ -185,7 +207,8 @@ class RootProbeHarness:
     """Plans the module as a root module: one init, then repeated
     `tofu plan -var-file=<generated>.tfvars.json` runs in the same dir.
     Provider configuration comes from the environment (region, project or
-    subscription, ambient credentials) — never injected."""
+    subscription, ambient credentials); the one block ever added is azurerm's
+    features block (see _plan_dir)."""
 
     def __init__(self, module_dir: Path, timeout_s: int = 180):
         self.module_dir = Path(module_dir).resolve()
@@ -344,10 +367,13 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         details.append(f"note: {tfvars_path.name} sets optional variable(s) ignored by scoring: {', '.join(extra)}")
 
     if identity:
-        details.append(f"note: sandbox project substituted for: {', '.join(sorted(identity))}")
+        details.append(f"note: sandbox identity substituted for: {', '.join(sorted(identity))}")
     defaults_inputs = {**defaults_inputs, **identity}
 
-    harness = RootProbeHarness(work)
+    plan_dir, provider_added = _plan_dir(fixture.cloud, work, work_root)
+    if provider_added:
+        details.append("note: no azurerm provider block; planned with features {} added")
+    harness = RootProbeHarness(plan_dir)
     init_res = harness.init()
     if init_res.exit_code != 0:
         details.append(f"gate: tofu init failed: {init_res.stderr.strip()[-300:]}")

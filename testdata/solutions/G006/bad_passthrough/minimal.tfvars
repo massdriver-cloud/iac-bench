@@ -1,0 +1,5 @@
+storage_account_name = "orderspassthru0001"
+resource_group_name  = "orders-staging"
+location             = "eastus2"
+key_vault_key_id     = "https://example-kv.vault.azure.net/keys/storage/0123456789abcdef0123456789abcdef"
+key_identity_id      = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/orders-staging/providers/Microsoft.ManagedIdentity/userAssignedIdentities/storage-key"
