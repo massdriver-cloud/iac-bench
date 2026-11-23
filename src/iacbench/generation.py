@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -56,6 +57,52 @@ APPLY_FAILURE_FACTOR = 0.5
 # type-derived perturbation stays at one candidate per variable.
 _MAX_SWEEP_VALUES = checks.SWEEP_ALTERNATIVES
 _TFVARS_NAMES = ("minimal.tfvars.json", "minimal.tfvars")
+
+# Inputs naming the sandbox's own identity: its GCP project, or the Azure
+# resource group an application's resources go in. A model cannot know the
+# real value, so scoring plans substitute it from the environment, the way an
+# operator would fill it in. Keyed by fixture cloud: [(name pattern, env var)].
+_ENV_IDENTITY = {
+    "gcp": [(re.compile(r"(gcp_|google_)?project(_id)?"), "GOOGLE_PROJECT")],
+    "azure": [
+        (re.compile(r"(rg|resource_group)(_name)?"), "AZURE_RESOURCE_GROUP"),
+        (re.compile(r"(azure_|arm_)?subscription(_id)?"), "ARM_SUBSCRIPTION_ID"),
+    ],
+}
+
+# The azurerm provider cannot plan without a features block, and no
+# environment variable supplies one. A root module that declares no azurerm
+# provider is planned with the minimal block an operator would add; the
+# static lens keeps reading the module as written.
+_AZURERM_PROVIDER = 'provider "azurerm" {\n  features {}\n}\n'
+
+
+def _plan_dir(cloud: str, work: Path, work_root: Path) -> tuple:
+    """(directory to plan in, whether a provider block was added)."""
+    if cloud != "azure" or any(name == "azurerm" for name, _ in hclq.provider_blocks(work)):
+        return work, False
+    if not any("azurerm_" in tf.read_text(errors="replace") for tf in work.glob("*.tf")):
+        return work, False
+    plan_dir = work_root / "plan"
+    if plan_dir.exists():
+        shutil.rmtree(plan_dir)
+    shutil.copytree(work, plan_dir, symlinks=True)
+    (plan_dir / "_iacbench_provider.tf").write_text(_AZURERM_PROVIDER)
+    return plan_dir, True
+
+
+def _identity_inputs(cloud: str, varmeta: dict) -> dict:
+    """{variable: sandbox value} for string inputs that name the sandbox's
+    identity; an identity the environment does not set is left alone."""
+    found = {}
+    for pattern, env_var in _ENV_IDENTITY.get(cloud, []):
+        value = os.environ.get(env_var)
+        if not value:
+            continue
+        for name, meta in varmeta.items():
+            if pattern.fullmatch(name) and meta.get("type") in (None, "string"):
+                found[name] = value
+    return found
 
 
 @dataclass
@@ -160,7 +207,8 @@ class RootProbeHarness:
     """Plans the module as a root module: one init, then repeated
     `tofu plan -var-file=<generated>.tfvars.json` runs in the same dir.
     Provider configuration comes from the environment (region, project or
-    subscription, ambient credentials) — never injected."""
+    subscription, ambient credentials); the one block ever added is azurerm's
+    features block (see _plan_dir)."""
 
     def __init__(self, module_dir: Path, timeout_s: int = 180):
         self.module_dir = Path(module_dir).resolve()
@@ -306,26 +354,46 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
 
     varmeta = hclq.variables(work)
     required = {name for name, m in varmeta.items() if not m["has_default"]}
-    missing = sorted(required - set(tfvars))
+    identity = _identity_inputs(fixture.cloud, varmeta)
+    missing = sorted(required - set(tfvars) - set(identity))
     if missing:
         details.append(f"gate: {tfvars_path.name} missing required variable(s): {', '.join(missing)}")
         return _gate_failure(fixture, details, stats, sha)
     # Optional values in the tfvars never reach the defaults plan — that would
     # smuggle the model's choices back into out-of-the-box posture.
-    defaults_inputs = {name: tfvars[name] for name in sorted(required)}
+    defaults_inputs = {name: tfvars[name] for name in sorted(required) if name in tfvars}
     extra = sorted(set(tfvars) - required)
     if extra:
         details.append(f"note: {tfvars_path.name} sets optional variable(s) ignored by scoring: {', '.join(extra)}")
 
-    harness = RootProbeHarness(work)
+    if identity:
+        details.append(f"note: sandbox identity substituted for: {', '.join(sorted(identity))}")
+    defaults_inputs = {**defaults_inputs, **identity}
+
+    plan_dir, provider_added = _plan_dir(fixture.cloud, work, work_root)
+    if provider_added:
+        details.append("note: no azurerm provider block; planned with features {} added")
+    harness = RootProbeHarness(plan_dir)
     init_res = harness.init()
     if init_res.exit_code != 0:
         details.append(f"gate: tofu init failed: {init_res.stderr.strip()[-300:]}")
         return _gate_failure(fixture, details, stats, sha)
+    required_only = True
     ok, defaults_plan, stderr = harness.plan_with(defaults_inputs)
+    if (not ok or defaults_plan is None) and extra:
+        # The required-only plan failed but the model's tfvars set optional
+        # values: plan with all of them. Scoring continues from that plan;
+        # the broken default costs the plans_required_only baseline item.
+        details.append(f"note: required-only plan failed: {stderr.strip()[-300:]}")
+        defaults_inputs = {**tfvars, **identity}
+        ok, defaults_plan, stderr = harness.plan_with(defaults_inputs)
+        required_only = False
+        if ok and defaults_plan is not None:
+            details.append(f"note: scored from the plan with every {tfvars_path.name} value")
     if not ok or defaults_plan is None:
-        details.append(f"gate: defaults plan (required-only inputs) failed: {stderr.strip()[-300:]}")
+        details.append(f"gate: defaults plan failed: {stderr.strip()[-300:]}")
         return _gate_failure(fixture, details, stats, sha)
+    stats["planned_required_only"] = required_only
 
     # ---- known apply failures: the module plans, but the cloud API rejects
     # what it would create. Scoring continues; the factor applies at the end.
@@ -346,6 +414,8 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
     rejected = 0
     unswept: list = []
     for name, meta in sorted(varmeta.items()):
+        if name in identity:
+            continue  # the sandbox's own identity; any other value is fiction
         base = defaults_inputs.get(name, meta["default"])
         candidates = fixture.perturb.get(name) or _candidates(meta, base)
         if not candidates:
@@ -382,6 +452,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         defaults_plan=defaults_plan,
         sweep_plans=sweep_plans,
         item_specs={i["id"]: i.get("check") for i in fixture.items if i.get("check")},
+        defaults_required_only=required_only,
     )
     items: dict = {}
     total_weight = sum(i["weight"] for i in fixture.items)

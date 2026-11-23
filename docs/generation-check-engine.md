@@ -41,16 +41,39 @@ Mechanics:
   with no default** before planning. Without this filter, optional values in
   the tfvars would smuggle the model's choices into what is supposed to be
   out-of-the-box posture. Extra keys are recorded as a detail, never trusted.
+- **Fallback plan:** when the required-only plan fails and the tfvars set
+  optional values, the harness plans again with every tfvars value and scores
+  from that plan. An optional variable whose default breaks the plan is a real
+  interface defect, and it costs the `B3_plans_required_only` baseline item
+  instead of the whole score.
+- **Sandbox identity:** the model cannot know the sandbox's own identifiers,
+  so every scoring plan substitutes them from the environment, as an operator
+  would. For GCP fixtures, any string variable named `project`, `project_id`,
+  `gcp_project` or `google_project` takes `GOOGLE_PROJECT`. For Azure
+  fixtures, any string variable named `resource_group`,
+  `resource_group_name`, `rg` or `rg_name` takes `AZURE_RESOURCE_GROUP`, the
+  sandbox's application resource group, and any named `subscription`,
+  `subscription_id`, `azure_subscription_id` or `arm_subscription_id` takes
+  `ARM_SUBSCRIPTION_ID`. The value applies whether or not the
+  tfvars set it, and the sweep leaves it alone. Lookups then resolve against
+  the real project or resource group instead of a placeholder.
 - Provider configuration comes from the environment (region, project or
-  subscription, ambient credentials), not injected blocks. Whether the model writes its own provider
+  subscription, ambient credentials), not injected blocks, with one
+  exception: azurerm cannot plan without a `features {}` block, which no
+  environment variable supplies, so an Azure root module that declares no
+  azurerm provider is planned with that minimal block added. The static lens
+  reads the module as written. The Azure provider
+  reaches storage data planes with Entra ID (`ARM_STORAGE_USE_AZUREAD`), so a
+  storage account with shared-key access disabled can be created. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
 - `examples/` may be shipped as documentation (the judge reads source), but it
   is not part of the mechanical evidence chain.
 
 **Functional gate (layer 1):** the module `init`s and `plan`s as a root module
-with its own tfvars filtered to required-only. A tfvars that fails to parse,
-omits a required variable, or plans nonzero fails the gate with a recorded
-reason.
+with its own tfvars, filtered to required-only, or in full when only the
+fallback plan succeeds. A tfvars that fails to parse, omits a required
+variable other than a substituted identity, or fails both plans fails the
+gate with a recorded reason.
 
 Planning stands in for applying, and some configurations plan cleanly but are
 rejected by the cloud API at create time. A fixture lists the ones its brief
@@ -218,11 +241,12 @@ and a dispatcher into the verb vocabulary. All service knowledge lives in
 | `resource` | plan | resources of `type` exist and match `where` predicates (nested blocks, literal equality, `{exists: true}`, `{in: [...]}`, `{gte: n}`/`{lte: n}` on numbers and numeric strings, `{contains: x}` on lists, `{matches: regex}` on strings); `match: any\|every` over instances; `min_instances: n` requires that many matching instances and `min_regions: n` that they sit in that many distinct regions (the planned `region` attribute, or else the resource's provider configuration: a literal, a variable or an attribute of one, or the environment's `AWS_REGION` when it sets none); `plans: [defaults, sweep]` with `quantifier: any\|all` over plans; `if_present: true` lets a plan without the type pass, so an optional resource is held to `where` only when it is planned |
 | `hardcoded` | static | at least one resource of `type` exists whose existence is unconditional (no variable taint on `count`/`for_each`) and whose `attrs` are literals equal to the required values (`attrs_exist` only requires presence). Attribute names may be dotted paths through nested blocks; a `dynamic` block on the path is a knob; `{in: [...]}` accepts any listed literal |
 | `declares` | static | the source declares at least one resource of `type`, gated or not — lets an item pass modules that never create the thing it guards |
-| `expr_matches` | static | every resource's `attr` expression, resolved through locals, data sources and variable defaults (`var.x` reaches x's default; `var.x.a` and, through the resource's `for_each`, `each.value.a` reach attribute a of that default and any `optional(T, DEFAULT)` default for a in x's type), matches `pattern` — or the resource has `or_attr_present` instead |
-| `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals and through `each.key`/`each.value` to the resource's `for_each` (an index such as `x[each.key]` does not carry it); `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
+| `expr_matches` | static | every resource's `attr` expression (a dotted path reaches into nested blocks), resolved through locals, data sources and variable defaults (`var.x` reaches x's default; `var.x.a` and, through the resource's `for_each`, `each.value.a` reach attribute a of that default and any `optional(T, DEFAULT)` default for a in x's type), matches `pattern` — or the resource has `or_attr_present` instead |
+| `var_feeds_attr` | static | some declared variable feeds the named attribute (at any nesting depth, dynamic blocks included), transitively through locals, through `each.key`/`each.value` to the resource's `for_each`, and through a dynamic block's iterator to that block's `for_each` (an index such as `x[each.key]` does not carry it); `has_default: true` restricts to optional variables; `type` restricts to one resource type; `through_data: true` also follows data-source lookups keyed by a variable |
 | `closed_values` | static | every value the source can produce for each of `attrs` on every instance of `type` equals the required value (or is `{in: [...]}`): a literal, or an expression whose every conditional branch, map value and input domain is one, where an input's domain is both values of a bool or the literal set a validation confines it to (`contains([...], var.x)`, `var.x == lit`, and their `\|\|`/`&&` combinations). A choice between secure settings passes; any other input, function or reference is open and fails, as does a missing attribute or a `dynamic` block on the path. At least one instance must exist unconditionally, as with `hardcoded`. A proof from the source, so it needs no sweep |
 | `var_feeds_provider_attr` | static | some declared variable feeds the named attribute of a provider configuration block (nested blocks such as `default_tags` included), transitively through locals; `provider` restricts to one provider; `has_default` as above |
 | `provider_constraints` | static | required_providers is declared and every constraint excludes the next major version |
+| `plans_required_only` | harness | the defaults plan succeeded with only the required inputs, not through the fallback plan |
 | `source_contains` | static | needle appears in module source (policy principals, condition keys) |
 | `output_named` | static | an output exists whose name/value matches |
 | `interface` | static | structural constraints: variable count budget, descriptions required on every variable and output |
@@ -234,7 +258,7 @@ key parses as boolean True under YAML 1.1.
 **Baseline items** (`fixtures/generation/baseline.yaml`) are universal checks
 — true of any OpenTofu module regardless of service or brief — merged into
 every fixture's items by the engine, with no per-fixture opt-out. Entries must
-be fixture-independent and static-lens only; they carry `B`-prefixed ids so
+be fixture-independent and use the static lens or a harness fact; they carry `B`-prefixed ids so
 reports keep rubric (`H*`), audience-fit (`A*`), baseline (`B*`), and
 expertise (`E*`) provenance legible, and they pool into the mechanical score
 at their declared weights.

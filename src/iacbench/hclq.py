@@ -188,6 +188,39 @@ def _attr_values(node, attr_name: str):
             yield from _attr_values(item, attr_name)
 
 
+def _attr_values_scoped(node, attr_name: str, scopes: tuple = ()):
+    """(value, scopes) for every value assigned to `attr_name`, as
+    _attr_values, where scopes lists the (iterator name, for_each) of every
+    `dynamic` block enclosing the value."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == attr_name:
+                yield value, scopes
+            if key == "dynamic" and isinstance(value, list):
+                for dyn in value:
+                    for label, block in (dyn or {}).items():
+                        if not isinstance(block, dict):
+                            continue
+                        if label == attr_name:
+                            # The dynamic block generates the attribute: its
+                            # for_each and content are what feed it.
+                            yield block, scopes
+                            continue
+                        name = block.get("iterator", label)
+                        name = name[2:-1] if isinstance(name, str) and name.startswith("${") else name
+                        inner = scopes + ((name, block.get("for_each")),)
+                        for k, v in block.items():
+                            if k == attr_name:
+                                yield v, scopes
+                            elif k == "content":
+                                yield from _attr_values_scoped(v, attr_name, inner)
+                continue
+            yield from _attr_values_scoped(value, attr_name, scopes)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _attr_values_scoped(item, attr_name, scopes)
+
+
 def _strip_indexes(text: str) -> str:
     """Drop bracketed index expressions: `x[each.key]` selects an instance of
     something else, it does not pass the for_each value through."""
@@ -205,7 +238,8 @@ def vars_feeding_attr(
     restricts the search to one resource type; `through_data` also follows
     data-source lookups keyed by a variable. A value built from `each.key`
     or `each.value` carries the variables feeding the resource's for_each,
-    unless it only uses them as an index into something else. Resources in
+    and one built from a dynamic block's iterator those feeding that block's
+    for_each, unless it only uses them as an index into something else. Resources in
     local submodules count, through the arguments their module calls pass."""
     loc = locals_map(module_dir)
     data = data_map(module_dir) if through_data else None
@@ -218,10 +252,16 @@ def vars_feeding_attr(
                 for _name, attrs in instances.items():
                     attrs = attrs or {}
                     each_vars = _var_closure(loc, attrs["for_each"], data) if "for_each" in attrs else set()
-                    for value in _attr_values(attrs, attr_name):
+                    for value, scopes in _attr_values_scoped(attrs, attr_name):
                         out |= _var_closure(loc, value, data)
-                        if each_vars and _EACH_REF.search(_strip_indexes(json.dumps(value, default=str))):
+                        text = _strip_indexes(json.dumps(value, default=str))
+                        if each_vars and _EACH_REF.search(text):
                             out |= each_vars
+                        # A dynamic block's iterator carries the variables
+                        # feeding that block's for_each.
+                        for name, for_each in scopes:
+                            if isinstance(name, str) and re.search(rf"\b{re.escape(name)}\.(value|key)\b", text):
+                                out |= _var_closure(loc, for_each, data)
     # Local submodules: a child variable that feeds the attribute carries the
     # variables feeding the argument the module call passes for it.
     for doc in parse_dir(module_dir):

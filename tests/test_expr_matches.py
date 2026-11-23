@@ -138,3 +138,85 @@ resource "aws_db_subnet_group" "this" {
     assert hclq.vars_feeding_attr(root, "subnet_ids", "aws_db_subnet_group", True) == {"environment"}
     assert hclq.vars_feeding_attr(root, "subnet_ids", "aws_db_subnet_group", False) == set()
     assert hclq.vars_feeding_attr(root, "name", "aws_db_subnet_group") == set()
+
+
+def test_dynamic_block_iterator_carries_its_for_each_variables(tmp_path):
+    root = module(tmp_path, '''
+variable "key" {
+  type    = string
+  default = null
+}
+variable "group" {
+  type    = string
+  default = null
+}
+resource "google_container_cluster" "this" {
+  dynamic "database_encryption" {
+    for_each = var.key == null ? [] : [var.key]
+    content {
+      state    = "ENCRYPTED"
+      key_name = database_encryption.value
+    }
+  }
+  dynamic "authenticator_groups_config" {
+    for_each = var.group == null ? [] : [var.group]
+    iterator = g
+    content {
+      security_group = g.value
+    }
+  }
+}
+''')
+    assert hclq.vars_feeding_attr(root, "key_name", "google_container_cluster") == {"key"}
+    assert hclq.vars_feeding_attr(root, "security_group", "google_container_cluster") == {"group"}
+    assert hclq.vars_feeding_attr(root, "state", "google_container_cluster") == set()
+
+
+def test_expr_matches_follows_a_dotted_path_into_nested_blocks(tmp_path):
+    root = module(tmp_path, """
+resource "google_service_account" "nodes" {
+  account_id = "nodes"
+}
+locals {
+  sa = google_service_account.nodes.email
+}
+resource "google_container_node_pool" "a" {
+  node_config {
+    service_account = local.sa
+  }
+}
+resource "google_container_node_pool" "b" {
+  node_config {
+    machine_type = "e2-standard-4"
+  }
+}
+""")
+    spec = {"type": "google_container_node_pool", "attr": "node_config.service_account",
+            "pattern": r"google_service_account\."}
+    assert not matches(root, {"expr_matches": spec})
+    assert matches(root, {"expr_matches": {**spec, "match": "any"}})
+
+
+def test_var_feeding_a_dynamic_block_named_for_the_attribute(tmp_path):
+    from iacbench import hclq
+    (tmp_path / "main.tf").write_text('''
+variable "flags" {
+  type    = map(string)
+  default = {}
+}
+locals {
+  flags = merge({ a = "1" }, var.flags)
+}
+resource "google_sql_database_instance" "this" {
+  settings {
+    dynamic "database_flags" {
+      for_each = local.flags
+      content {
+        name  = database_flags.key
+        value = database_flags.value
+      }
+    }
+  }
+}
+''')
+    assert hclq.vars_feeding_attr(tmp_path, "database_flags", "google_sql_database_instance") == {"flags"}

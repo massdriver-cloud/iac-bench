@@ -2,8 +2,8 @@
 # rubric by the engine. There is no per-fixture opt-out.
 #
 # Rules for entries: fixture-independent (true of any OpenTofu module,
-# regardless of service or brief) and static-lens only (they run against
-# modules whose fixture context varies). Service knowledge never goes here —
+# regardless of service or brief) and static-lens or harness-lens only (they
+# run against modules whose fixture context varies). Service knowledge never goes here —
 # it belongs in the fixture's rubric or expertise checklist. Items pool into
 # the mechanical score at their declared weights, alongside rubric items
 # and expertise items (which always weigh exactly 1).
@@ -24,3 +24,14 @@ items:
       Every variable and output carries a description.
     check:
       interface: {require_descriptions: true}
+
+  - id: B3_plans_required_only
+    weight: 5
+    description: >
+      The module plans with only its required inputs, every optional variable
+      at its default. An optional variable whose default fails the plan (for
+      example, its own validation rejects it) breaks every caller who leaves
+      it out; it should be required. A module that plans only with every
+      minimal.tfvars value is scored from that plan and fails this item.
+    check:
+      plans_required_only: {}

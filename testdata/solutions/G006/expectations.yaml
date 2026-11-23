@@ -1,0 +1,57 @@
+# Generation reference matrix (docs/generation-check-engine.md). Bad
+# references are asserted by WHICH items fail, with score bounds as sanity
+# checks on true, uncapped values.
+#
+# Engine coverage: ref_standard declares no azurerm provider and is planned
+# with the features block added; ref_lean declares its own. Resource group
+# substitution runs on every module. H8, H5 and H9 are reached through the
+# sweep in ref_lean (a bool, a bool and a number) and at defaults in
+# ref_standard; H4 at ref_lean's 7-day boundary.
+ref_standard:
+  gate: true
+  min_score: 0.99
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A4, A5,
+              B1_provider_constraints, B2_descriptions, B3_plans_required_only,
+              E1_infrastructure_encryption, E2_oauth_default, E3_entra_provider_documented,
+              E4_name_uniqueness, E5_point_in_time_restore, E6_delete_lock,
+              E7_malware_scanning, E8_location_from_resource_group, E9_local_users_off]
+ref_lean:
+  # A different good design: the account name as an input, an optional
+  # location falling back to the resource group's, zone redundancy,
+  # versioning and expiry behind inputs, one data role for the application's
+  # identities, all log categories. Nine inputs (A4 7/8); none of the
+  # expertise touches but the location lookup.
+  gate: true
+  min_score: 0.9
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, A1, A2, A3, A5,
+              B1_provider_constraints, B2_descriptions, B3_plans_required_only,
+              E8_location_from_resource_group]
+  must_fail: [E1_infrastructure_encryption, E3_entra_provider_documented, E4_name_uniqueness]
+ok_role_map:
+  # ref_lean with its role assignment iterating a locals map that holds the
+  # role name, as several models write it: H3 reads the name from the code.
+  gate: true
+  must_pass: [H3]
+bad_public:
+  # ref_standard without allow_nested_items_to_be_public: the provider's
+  # default lets containers be made public.
+  gate: true
+  must_fail: [H1]
+  must_pass: [H2, H3, H4]
+bad_key_knob:
+  # ref_standard with an input that turns shared-key access back on.
+  gate: true
+  must_fail: [H2]
+  must_pass: [H1, H3]
+bad_minimal:
+  # A bare account at provider defaults: public containers allowed, shared
+  # keys on, no soft delete, no grants, LRS, a required location.
+  gate: true
+  max_score: 0.4
+  must_fail: [H1, H2, H3, H4, H5, H7, H8, H9]
+bad_passthrough:
+  # ref_lean with Azure Storage internals as inputs: a required location and
+  # customer-managed key, account kind and tier, and the TLS floor.
+  gate: true
+  must_fail: [H6, A2, A3]
+  must_pass: [H1, H2]
