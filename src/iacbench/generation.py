@@ -131,10 +131,13 @@ class GenerationFixture:
         # there is no per-fixture opt-out (fixtures/generation/baseline.yaml).
         baseline_path = fixture_dir.parent / "baseline.yaml"
         baseline_items = []
+        baseline_mandatory = []
         rubric_bytes = (fixture_dir / "rubric.yaml").read_bytes()
         if baseline_path.is_file():
             rubric_bytes += baseline_path.read_bytes()
-            baseline_items = (yaml.safe_load(baseline_path.read_text()) or {}).get("items", [])
+            baseline = yaml.safe_load(baseline_path.read_text()) or {}
+            baseline_items = baseline.get("items", [])
+            baseline_mandatory = baseline.get("mandatory", [])
             collisions = {i["id"] for i in baseline_items} & {i["id"] for i in data["items"]}
             if collisions:
                 raise ValueError(f"fixture {data['id']} redeclares baseline item(s): {collisions}")
@@ -144,7 +147,7 @@ class GenerationFixture:
             suite_version=data["suite_version"],
             cloud=data["cloud"],
             scoring_policy=data.get("scoring_policy", "v1"),
-            mandatory=data.get("mandatory", []),
+            mandatory=data.get("mandatory", []) + baseline_mandatory,
             items=data["items"] + baseline_items,
             expertise=data.get("expertise", []),
             apply_failures=data.get("apply_failures", []) or [],

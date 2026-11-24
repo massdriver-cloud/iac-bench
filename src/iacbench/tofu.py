@@ -13,6 +13,25 @@ DEFAULT_TIMEOUT_S = 120  # scaffold contract v1: single tofu invocation timeout
 
 _VERSION_CACHE: str | None = None
 
+# tofu runs with the provider configuration variables (AWS_*, GOOGLE_*, ARM_*),
+# its own TF_* settings and the basic process variables; nothing else from
+# the harness environment reaches it or the modules it evaluates.
+_ENV_PREFIXES = ("AWS_", "GOOGLE_", "ARM_", "TF_")
+_ENV_NAMES = {
+    "PATH", "HOME", "USER", "TMPDIR", "TZ", "LANG", "LC_ALL", "LC_CTYPE",
+    "SSL_CERT_FILE", "SSL_CERT_DIR", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY",
+    "http_proxy", "https_proxy", "no_proxy",
+}
+
+
+def tofu_environment(source) -> dict:
+    """The environment tofu runs with: provider configuration, TF_* settings
+    and basic process variables from `source`. API keys are never passed."""
+    return {
+        k: v for k, v in source.items()
+        if (k in _ENV_NAMES or k.startswith(_ENV_PREFIXES)) and not k.endswith("_API_KEY")
+    }
+
 
 def tofu_version() -> str:
     """The tofu binary's version, recorded into every score."""
@@ -55,7 +74,7 @@ class Tofu:
     history: list = field(default_factory=list)
 
     def _env(self) -> dict:
-        env = dict(os.environ)
+        env = tofu_environment(os.environ)
         env["TF_IN_AUTOMATION"] = "1"
         if self.cache_dir:
             Path(self.cache_dir).mkdir(parents=True, exist_ok=True)

@@ -66,6 +66,9 @@ Mechanics:
   reaches storage data planes with Entra ID (`ARM_STORAGE_USE_AZUREAD`), so a
   storage account with shared-key access disabled can be created. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
+- `tofu` runs with the provider configuration variables (`AWS_*`, `GOOGLE_*`,
+  `ARM_*`), its own `TF_*` settings and basic process variables such as
+  `PATH` and `HOME`; nothing else from the harness environment reaches it.
 - `examples/` may be shipped as documentation (the judge reads source), but it
   is not part of the mechanical evidence chain.
 
@@ -261,7 +264,8 @@ every fixture's items by the engine, with no per-fixture opt-out. Entries must
 be fixture-independent and use the static lens or a harness fact; they carry `B`-prefixed ids so
 reports keep rubric (`H*`), audience-fit (`A*`), baseline (`B*`), and
 expertise (`E*`) provenance legible, and they pool into the mechanical score
-at their declared weights.
+at their declared weights. A baseline `mandatory:` list joins every fixture's
+mandatory items.
 
 Rules that keep this from rotting:
 
