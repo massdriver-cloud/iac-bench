@@ -33,6 +33,29 @@ variable "instance_class" {
 }
 
 
+variable "engine_version" {
+  description = "Aurora PostgreSQL engine version for the global database and both clusters."
+  type        = string
+  default     = "17.5"
+}
+
+variable "readers_per_region" {
+  description = "Reader instances in each region; the primary region adds its writer."
+  type        = number
+  default     = 1
+}
+
+variable "backup_retention_days" {
+  description = "Days of automated backups each cluster keeps."
+  type        = number
+  default     = 14
+
+  validation {
+    condition     = var.backup_retention_days >= 7 && var.backup_retention_days <= 35
+    error_message = "Keep between 7 and 35 days of backups."
+  }
+}
+
 variable "tags" {
   description = "Tags applied to every resource."
   type        = map(string)
@@ -62,7 +85,7 @@ resource "random_password" "master" {
 resource "aws_rds_global_cluster" "this" {
   global_cluster_identifier = var.name
   engine                    = "aurora-postgresql"
-  engine_version            = "17.5"
+  engine_version            = var.engine_version
   storage_encrypted         = true
   deletion_protection       = true
 }
@@ -107,7 +130,7 @@ resource "aws_rds_cluster" "primary" {
   cluster_identifier                  = "${var.name}-primary"
   global_cluster_identifier           = aws_rds_global_cluster.this.id
   engine                              = "aurora-postgresql"
-  engine_version                      = "17.5"
+  engine_version                      = var.engine_version
   master_username                     = "postgres_admin"
   master_password                     = random_password.master.result
   iam_database_authentication_enabled = true
@@ -115,7 +138,7 @@ resource "aws_rds_cluster" "primary" {
   kms_key_id                          = var.network["primary"].kms_key_arn
   db_subnet_group_name                = aws_db_subnet_group.primary.name
   vpc_security_group_ids              = [aws_security_group.primary.id]
-  backup_retention_period             = 14
+  backup_retention_period             = var.backup_retention_days
   deletion_protection                 = true
   skip_final_snapshot                 = false
   final_snapshot_identifier           = "${var.name}-primary-final"
@@ -127,13 +150,13 @@ resource "aws_rds_cluster" "secondary" {
   cluster_identifier                  = "${var.name}-secondary"
   global_cluster_identifier           = aws_rds_global_cluster.this.id
   engine                              = "aurora-postgresql"
-  engine_version                      = "17.5"
+  engine_version                      = var.engine_version
   iam_database_authentication_enabled = true
   storage_encrypted                   = true
   kms_key_id                          = var.network["secondary"].kms_key_arn
   db_subnet_group_name                = aws_db_subnet_group.secondary.name
   vpc_security_group_ids              = [aws_security_group.secondary.id]
-  backup_retention_period             = 14
+  backup_retention_period             = var.backup_retention_days
   deletion_protection                 = true
   skip_final_snapshot                 = false
   final_snapshot_identifier           = "${var.name}-secondary-final"
@@ -142,7 +165,7 @@ resource "aws_rds_cluster" "secondary" {
 }
 
 resource "aws_rds_cluster_instance" "primary" {
-  count              = 2
+  count              = 1 + var.readers_per_region
   identifier         = "${var.name}-primary-${count.index + 1}"
   cluster_identifier = aws_rds_cluster.primary.id
   engine             = "aurora-postgresql"
@@ -153,7 +176,7 @@ resource "aws_rds_cluster_instance" "primary" {
 
 resource "aws_rds_cluster_instance" "secondary" {
   provider           = aws.secondary
-  count              = 1
+  count              = var.readers_per_region
   identifier         = "${var.name}-secondary-${count.index + 1}"
   cluster_identifier = aws_rds_cluster.secondary.id
   engine             = "aurora-postgresql"

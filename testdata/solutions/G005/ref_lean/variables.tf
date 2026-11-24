@@ -24,6 +24,12 @@ variable "machine_type" {
   default     = "e2-standard-4"
 }
 
+variable "min_nodes_per_zone" {
+  description = "Lower bound for node autoscaling, per zone."
+  type        = number
+  default     = 1
+}
+
 variable "max_nodes_per_zone" {
   description = "Upper bound for node autoscaling, per zone."
   type        = number

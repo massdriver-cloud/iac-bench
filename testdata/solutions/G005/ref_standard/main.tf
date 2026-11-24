@@ -78,7 +78,7 @@ resource "google_container_cluster" "this" {
   }
 
   release_channel {
-    channel = "REGULAR"
+    channel = var.release_channel
   }
 
   maintenance_policy {

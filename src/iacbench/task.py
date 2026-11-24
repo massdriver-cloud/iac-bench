@@ -264,8 +264,8 @@ API_RETRY_CONFIG = GenerateConfig(max_retries=3)
 @task
 def generate_module(
     fixture: str = "G001",
-    message_limit: int = 150,
-    time_limit: int = 1800,
+    message_limit: int = 300,
+    time_limit: int = 3600,
 ):
     """Build a module from a brief; scored by the fixture rubric.
 

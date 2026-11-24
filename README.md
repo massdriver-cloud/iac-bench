@@ -136,7 +136,7 @@ vulnerability reporting.
 The model gets exactly these tools: `list_files`, `read_file`, `write_file` (whole-file,
 confined to the working directory), `tofu_validate`, `tofu_plan` (accepts an optional
 `var_file`), `tofu_fmt`, `submit`. No arbitrary shell. `tofu init` is run by the harness.
-Limits: 1800s wall clock and 150 messages per attempt, 120s per tofu invocation, tool
+Limits: 3600s wall clock and 300 messages per attempt, 120s per tofu invocation, tool
 output truncated at 8 KB. Any change to the contract is versioned as
 `SCAFFOLD_CONTRACT_VERSION` in `src/iacbench/__init__.py` and invalidates comparisons
 with runs under another version.

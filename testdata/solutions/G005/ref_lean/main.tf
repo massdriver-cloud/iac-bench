@@ -95,7 +95,7 @@ resource "google_container_node_pool" "this" {
   location = var.region
 
   autoscaling {
-    min_node_count = 1
+    min_node_count = var.min_nodes_per_zone
     max_node_count = var.max_nodes_per_zone
   }
 

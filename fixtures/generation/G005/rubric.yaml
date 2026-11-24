@@ -231,27 +231,35 @@ items:
     weight: 3
     description: >
       Kubernetes Secrets can be encrypted with a customer-managed Cloud KMS
-      key (application-layer secrets encryption): an input feeds
-      database_encryption's key, or the cluster encrypts with a key at
-      defaults. Settable at creation without a rebuild later, and keeps etcd
-      secrets readable only through a key the platform team controls. The key works only once
-      the GKE service agent
+      key (application-layer secrets encryption), settable at creation without
+      a rebuild later, so etcd secrets are readable only through a key the
+      platform team controls. An input that feeds database_encryption's key
+      passes: the key, and access to it, belong to whoever supplies it. A
+      module that encrypts with a key of its own choosing at defaults owns the
+      key's access too: the key works only once the GKE service agent
       (service-<number>@container-engine-robot.iam.gserviceaccount.com) holds
-      roles/cloudkms.cryptoKeyEncrypterDecrypter on it; without that, GKE
-      rejects the create or update with 400 and the provider retries until it
-      times out. The module grants the role, or names that requirement in its
-      code (the key input's description), since the key may live in a
-      project the platform team doesn't control.
+      roles/cloudkms.cryptoKeyEncrypterDecrypter on it, and without that GKE
+      rejects the create with 400, so the module must grant it.
     check:
-      all_of:
-        - any_of:
-            - var_feeds_attr: {type: google_container_cluster, attr: key_name, through_data: true}
+      any_of:
+        - var_feeds_attr: {type: google_container_cluster, attr: key_name, through_data: true}
+        - all_of:
             - resource:
                 type: google_container_cluster
                 where: {database_encryption: {state: ENCRYPTED}}
-        - any_of:
-            - source_contains: cryptoKeyEncrypterDecrypter
-            - source_contains: container-engine-robot
+            - any_of:
+                - all_of:
+                    - declares: {type: google_kms_crypto_key_iam_member}
+                    - expr_matches: {type: google_kms_crypto_key_iam_member, attr: member, match: any, pattern: 'container-engine-robot'}
+                    - expr_matches: {type: google_kms_crypto_key_iam_member, attr: role, match: any, pattern: 'cryptoKeyEncrypterDecrypter'}
+                - all_of:
+                    - declares: {type: google_kms_crypto_key_iam_binding}
+                    - expr_matches: {type: google_kms_crypto_key_iam_binding, attr: members, match: any, pattern: 'container-engine-robot'}
+                    - expr_matches: {type: google_kms_crypto_key_iam_binding, attr: role, match: any, pattern: 'cryptoKeyEncrypterDecrypter'}
+                - all_of:
+                    - declares: {type: google_project_iam_member}
+                    - expr_matches: {type: google_project_iam_member, attr: member, match: any, pattern: 'container-engine-robot'}
+                    - expr_matches: {type: google_project_iam_member, attr: role, match: any, pattern: 'cryptoKeyEncrypterDecrypter'}
 
   - id: H10
     weight: 6
@@ -444,11 +452,11 @@ items:
     weight: 8
     posture: budget
     description: >
-      Interface budget — full credit at 15 or fewer inputs, falling linearly
-      to zero at 25. The platform engineers are not GKE specialists and trust
+      Interface budget — full credit at 11 or fewer inputs, falling linearly
+      to zero at 21. The platform engineers are not GKE specialists and trust
       the module for everything not specific to a cluster; every input is a
       GKE decision handed back to them.
-    budget: {soft: 15, hard: 25}
+    budget: {soft: 11, hard: 21}
 
   - id: A6
     weight: 2
@@ -463,6 +471,20 @@ items:
           - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_subnetwork}
           - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_router}
           - resource: {plans: [defaults, sweep], quantifier: any, type: google_compute_router_nat}
+
+  - id: A7
+    weight: 2
+    description: >
+      Exposure — node pool autoscaling limits are set per cluster: inputs
+      feed both the minimum and the maximum node count.
+    check:
+      all_of:
+        - any_of:
+            - var_feeds_attr: {type: google_container_node_pool, attr: min_node_count}
+            - var_feeds_attr: {type: google_container_node_pool, attr: total_min_node_count}
+        - any_of:
+            - var_feeds_attr: {type: google_container_node_pool, attr: max_node_count}
+            - var_feeds_attr: {type: google_container_node_pool, attr: total_max_node_count}
 
 expertise:
   - id: E1_release_channel
@@ -485,16 +507,7 @@ expertise:
       any_of:
         - var_feeds_attr: {type: google_container_cluster, attr: security_group}
         - resource: {type: google_container_cluster, where: {authenticator_groups_config: {security_group: {exists: true}}}}
-  - id: E3_binary_authorization
-    description: >
-      Binary Authorization enforces the project's admission policy, so only
-      approved images run on a cluster several teams deploy to.
-    discovered_via: doctrine owner, 2026-11-17
-    check:
-      resource:
-        type: google_container_cluster
-        where: {binary_authorization: {evaluation_mode: PROJECT_SINGLETON_POLICY_ENFORCE}}
-  - id: E4_vulnerability_scanning
+  - id: E3_vulnerability_scanning
     description: >
       GKE security posture scans workloads for vulnerabilities
       (security_posture_config vulnerability_mode set explicitly).
@@ -503,7 +516,7 @@ expertise:
       resource:
         type: google_container_cluster
         where: {security_posture_config: {vulnerability_mode: {in: [VULNERABILITY_BASIC, VULNERABILITY_ENTERPRISE]}}}
-  - id: E5_cost_allocation
+  - id: E4_cost_allocation
     description: >
       GKE cost allocation is on, so a cluster shared by several teams bills
       back by namespace and label.
@@ -512,7 +525,7 @@ expertise:
       resource:
         type: google_container_cluster
         where: {cost_management_config: {enabled: true}}
-  - id: E6_surge_upgrades
+  - id: E5_surge_upgrades
     description: >
       Node pool upgrades add capacity before draining (max_unavailable 0) or
       run blue-green, so upgrades do not shrink a shared cluster.
@@ -527,7 +540,7 @@ expertise:
             type: google_container_node_pool
             match: every
             where: {upgrade_settings: {strategy: BLUE_GREEN}}
-  - id: E7_apiserver_logs
+  - id: E6_apiserver_logs
     description: >
       Control-plane API server logs go to Cloud Logging
       (logging_config enable_components includes APISERVER).
@@ -536,7 +549,7 @@ expertise:
       resource:
         type: google_container_cluster
         where: {logging_config: {enable_components: {contains: APISERVER}}}
-  - id: E8_managed_prometheus
+  - id: E7_managed_prometheus
     description: >
       Google Cloud Managed Service for Prometheus is enabled, giving product
       teams metrics without running their own Prometheus.
@@ -545,16 +558,7 @@ expertise:
       resource:
         type: google_container_cluster
         where: {monitoring_config: {managed_prometheus: {enabled: true}}}
-  - id: E9_backup_for_gke
-    description: >
-      The Backup for GKE agent is enabled, so workloads' state and manifests
-      can be backed up and restored.
-    discovered_via: doctrine owner, 2026-11-17
-    check:
-      resource:
-        type: google_container_cluster
-        where: {addons_config: {gke_backup_agent_config: {enabled: true}}}
-  - id: E10_dns_endpoint
+  - id: E8_dns_endpoint
     description: >
       The control plane's DNS-based endpoint is enabled: kubectl access
       authenticated by IAM from anywhere, with no bastion or authorized IP
@@ -564,7 +568,7 @@ expertise:
       resource:
         type: google_container_cluster
         where: {control_plane_endpoints_config: {dns_endpoint_config: {allow_external_traffic: true}}}
-  - id: E11_node_sa_minimal_role
+  - id: E9_node_sa_minimal_role
     description: >
       The node service account gets the purpose-built
       roles/container.defaultNodeServiceAccount (or only the logging,
@@ -576,3 +580,10 @@ expertise:
         - all_of:
             - source_contains: roles/logging.logWriter
             - source_contains: roles/monitoring.metricWriter
+  - id: E10_release_channel_input
+    description: >
+      The release channel is an input, so the platform team can put a
+      cluster on the cadence its workloads need.
+    discovered_via: doctrine owner, 2026-11-23
+    check:
+      var_feeds_attr: {type: google_container_cluster, attr: channel}

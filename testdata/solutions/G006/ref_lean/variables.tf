@@ -48,6 +48,12 @@ variable "log_analytics_workspace_id" {
   default     = null
 }
 
+variable "containers" {
+  description = "Private blob containers the application stores its files in."
+  type        = set(string)
+  default     = ["files"]
+}
+
 variable "tags" {
   description = "Tags for the storage account."
   type        = map(string)

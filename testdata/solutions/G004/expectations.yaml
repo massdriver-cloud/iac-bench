@@ -16,7 +16,7 @@ ref_global:
   gate: true
   min_score: 0.99
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17,
-              A1, A2, A3, A4, A5, B1_provider_constraints, B2_descriptions,
+              A1, A2, A3, A4, A5, A6, A7, A8, B1_provider_constraints, B2_descriptions,
               E1_pgaudit, E2_connection_logging, E3_performance_insights, E4_enhanced_monitoring,
               E5_snapshot_tags, E6_global_writer_endpoint, E7_member_versions_follow_global,
               E8_engine_version_lookup]
@@ -27,7 +27,7 @@ ref_lean:
   # (H11 and H12 0.75); it carries none of the expertise touches.
   gate: true
   min_score: 0.85
-  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H13, H14, H15, H16, H17, A1, A2, A3, A4, A5]
+  must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H10, H13, H14, H15, H16, H17, A1, A2, A3, A4, A5, A6, A7, A8]
   items: {H9: 0.5, H11: 0.75, H12: 0.75}
 bad_secrets_manager:
   # ref_global with Secrets Manager managing the primary's password: Aurora
