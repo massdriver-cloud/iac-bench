@@ -22,6 +22,12 @@ models:
   claude-haiku-5-5:
     input: 0.10
     output: 0.50
+  gpt-6.2-astra:  # list price 2026-11-24
+    input: 8.00
+    output: 40.00
+  gpt-6.2-sol:  # list price 2026-11-24
+    input: 2.00
+    output: 10.00
   gpt-6-astra:
     input: 10.00
     output: 50.00
@@ -41,6 +47,21 @@ models:
   gemini-3.6-flash:
     input: 0.75
     output: 3.75
+  gemini-3.8-flash:  # list price 2026-11-24
+    input: 0.825
+    output: 4.125
+  gemini-4-carbon:  # list price 2026-11-24
+    input: 2.00
+    output: 10.00
+  gemini-4-argon:  # list price 2026-11-24
+    input: 2.00
+    output: 10.00
+  gemini-4-neon:  # list price 2026-11-24
+    input: 3.00
+    output: 15.00
+  gemini-4-hydrogen:  # list price 2026-11-24
+    input: 1.50
+    output: 7.50
   kimi-k3.1-pro:  # Moonshot AI endpoint, list price 2026-11-10
     input: 2.00
     output: 10.00
@@ -50,6 +71,9 @@ models:
   deepseek-v4-pro-0813:
     input: 0.66
     output: 1.98
+  qwen4-max:  # Alibaba endpoint, list price 2026-11-24
+    input: 1.425
+    output: 4.275
   qwen3.8-2.4t-a95b:  # Alibaba endpoint, list price 2026-11-10
     input: 2.00
     output: 6.00
