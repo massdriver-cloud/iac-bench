@@ -782,74 +782,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] Inputs are shaped around the SRE team's concepts, such as the `capacity` object (bounds and CPU thresholds), `staging`, `health_check_path` and `zone_redundant`, while App Service internals like `always_on`, TLS, FTPS, warm-up settings and health eviction time are fixed by the module.",
-      "[2] Inputs are shaped as concepts the SRE audience reasons about, such as the `capacity` object (min/max/CPU thresholds), the `staging` object, `health_check_path` and `zone_redundant`, while the module fixes App Service internals itself (always_on, warm-up settings, TLS, storage, eviction time).",
-      "[2] Inputs are framed around the SRE team's concepts (`capacity` with autoscale bounds and CPU thresholds, `staging`, `health_check_path`, `zone_redundant`), while the module itself decides App Service internals such as `always_on`, TLS minimums, FTPS off, warm-up settings and health eviction time."
+      "[2] Inputs are shaped around the SRE's own concepts, such as the `capacity` object (autoscale bounds and CPU thresholds), `zone_redundant`, `staging`, `health_check_path` and `alert_email_addresses`, while App Service internals like `always_on`, TLS, FTPS, warm-up settings and health eviction are fixed by the module.",
+      "[2] Inputs are framed in the SRE team's own terms (the `capacity` object with autoscale bounds and CPU thresholds, the `staging` object, `health_check_path`, `zone_redundant`, `alert_email_addresses`), while App Service internals such as `always_on`, TLS settings, `health_check_eviction_time_in_min` and the `WEBSITE_*` warm-up settings are decided by the module.",
+      "[2] Inputs are shaped around the SRE team's concepts (a `capacity` object with autoscale bounds and CPU thresholds, a `staging` object, `health_check_path`, `zone_redundant`, `alert_email_addresses`), while App Service internals such as warm-up settings, `always_on`, eviction time and TLS are decided by the module."
      ],
      "Variables and validation": [
-      "[2] Realistic mistakes are guarded with errors that explain the fix, including `:latest` or untagged images in `container_image`, inverted CPU thresholds and bounds in `capacity`, invalid CIDRs, and the zone-redundancy precondition requiring `capacity.minimum >= 2`; inputs that would conflict, such as `vnet_route_all_enabled` without a subnet, are neutralized in logic.",
-      "[1] Validation is deliberate and teaching (image tag/digest rule, capacity bounds, CIDR checks, zone-redundancy precondition), but `registry.server_url` and `registry.resource_id` form an avoidable conflicting pair: a consumer can set an ACR resource ID while leaving `server_url` at its Docker Hub default, and nothing checks the combination.",
-      "[2] Realistic mistakes are guarded with teaching error messages, including the `:latest`/untagged image regex, the `capacity` ordering check (min \u2264 max, scale_in < scale_out), the CIDR validity check and the 30\u2013730 retention range, and the `zone_redundant` vs `capacity.minimum` interaction is caught by a precondition."
+      "[2] Realistic mistakes are guarded with teaching messages: `container_image` rejects `:latest` or missing tags, `capacity` enforces min \u2264 max and scale_in < scale_out CPU, CIDRs are checked with `cidrhost`, and a plan precondition ties `zone_redundant` to `capacity.minimum >= 2`.",
+      "[2] Realistic mistakes are guarded with errors that explain the fix: `capacity` checks `minimum <= maximum` and `scale_in_cpu < scale_out_cpu`, `container_image` rejects `:latest` and untagged images, `allowed_ip_cidrs` checks CIDR syntax, and a precondition ties `zone_redundant` to `capacity.minimum >= 2`.",
+      "[2] Realistic mistakes are guarded with teaching messages: non-immutable images (`:latest` is rejected), inverted CPU thresholds or capacity bounds in `capacity`, invalid CIDRs, and non-`/` health paths; a precondition cross-checks `zone_redundant` against `capacity.minimum >= 2`."
      ],
      "Internal logic": [
-      "[2] Readable locals derive values from inputs: `runtime_settings` builds the port, warm-up and telemetry settings, `sticky_setting_names` computes slot-sticky names, and `scale_rules` produces an empty map when autoscale is off.",
-      "[2] Readable locals derive values from the concept inputs, for example `local.scale_rules` builds the scale-out/in rule map from `var.capacity` and `local.sticky_setting_names` collects the setting names, with no convoluted expression chains.",
-      "[2] Readable locals derive values from concept inputs, such as `scale_rules` built from `capacity.autoscale_enabled` and `sticky_setting_names` computed from the setting keys, with no convoluted expression chains."
+      "[2] Readable locals derive values from concept inputs: `scale_rules` comes from `capacity.autoscale_enabled`, `runtime_settings` from port and health path, and `sticky_setting_names` from setting keys, all without deep clever chains.",
+      "[2] Readable locals derive values from concept inputs, such as `local.scale_rules` built from `var.capacity.autoscale_enabled` and `local.sticky_setting_names` computed from the app-setting keys, with no convoluted expression chains.",
+      "[2] Readable locals derive values from concept inputs, e.g. `scale_rules` is built from `var.capacity.autoscale_enabled`, and `sticky_setting_names` combines user and runtime setting keys."
      ],
      "Scope": [
-      "[2] The module creates what a competent operator expects for running a containerized API: a dedicated plan, autoscale, a staging slot, a managed identity with an `AcrPull` role assignment, a Log Analytics workspace with App Insights, diagnostic settings, and health, 5xx and CPU alerts, without unrelated architecture.",
-      "[2] The module creates what an operator would expect for this job (managed identity with AcrPull, Premium plan with autoscale, staging slot, Log Analytics/App Insights, diagnostic settings, and health/5xx/CPU alerts), which is proportionate to the brief's capacity, availability, health, rollout and observability concerns.",
-      "[2] The module creates what an operator would expect for capacity, rollout and observability (autoscale setting, staging slot, managed identity with AcrPull, Log Analytics/App Insights, diagnostic settings, action group and 5xx/health/CPU alerts) without inventing unrelated architecture."
+      "[2] The resources cover what the brief implies (capacity, availability, health, rollouts and observability) through the plan, the autoscale setting, the staging slot, the AcrPull identity, the Log Analytics/App Insights pair, diagnostic settings and baseline alerts, with no unrelated architecture.",
+      "[2] The module creates what an SRE-run App Service needs and nothing beyond it: a dedicated plan with autoscale, a staging slot, a managed identity with `AcrPull`, Log Analytics, Application Insights, diagnostic settings, and baseline 5xx, health and CPU alerts routed to an action group.",
+      "[2] The module creates what the SRE use case implies and nothing beyond it: a dedicated plan with autoscale, a managed identity with AcrPull, a staging slot for rollouts, and Log Analytics, Application Insights and metric alerts for health and observability."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] The inline blocks used (`ip_restriction`, autoscale `rule`, `email_receiver`, `sticky_settings`) have no separate-resource alternative in azurerm, so there is no dual-style or avoidable inline usage.",
-      "[2] The inline `ip_restriction` blocks and autoscale `rule` blocks have no separate-resource equivalent in azurerm, and diagnostic settings are created as separate `azurerm_monitor_diagnostic_setting` resources.",
-      "[2] The `ip_restriction` and `app_settings` blocks on `azurerm_linux_web_app` have no separate-resource alternative in azurerm, so inline use is the only option and no styles are mixed."
+      "[2] The inline blocks used (`ip_restriction` in `site_config`, `sticky_settings`, `email_receiver`) have no separate-resource equivalent in azurerm, and no attribute is managed in both styles.",
+      "[2] The inline `ip_restriction` dynamic blocks and `app_settings` map have no separate-resource equivalent in azurerm, and no attribute is configured in both styles.",
+      "[2] The inline `ip_restriction` and autoscale `rule` blocks have no separate-resource equivalent in azurerm, and no attribute is managed in both styles."
      ],
      "Outputs": [
-      "[2] Outputs cover what consumers need, including `app_id`, `production_url`, `staging_slot_id`, the `identity` IDs for external role grants, `observability` IDs and the outbound IPs, without dumping every attribute.",
-      "[2] The outputs cover what a consumer needs (app name/id, production and staging URLs, plan id, identity ids, observability ids, and the sensitive App Insights connection string) without dumping every attribute.",
-      "[2] Outputs cover what consumers need to operate the service (`app_id`, `production_url`, `staging_slot_id`, `identity` ids, `observability` ids, a sensitive connection string) without dumping every attribute."
+      "[2] Outputs give consumers what they need (app name and id, production and staging URLs, plan id, identity ids, observability ids, and a sensitive connection string) without dumping every attribute.",
+      "[2] Outputs cover what consumers need to operate the service (`app_name`, `resource_group_name`, `production_url`/`staging_url`, `identity` ids, `observability` resource IDs, `service_plan_id`) without dumping every attribute.",
+      "[2] Outputs cover what consumers need, including `app_name`, `app_id`, `production_url`, `staging_url`, the `identity` IDs, the `observability` IDs and outbound IPs, without dumping every attribute."
      ],
      "Iteration: for_each vs count": [
-      "[2] `count` is used only as an on/off switch (`var.staging.enabled ? 1 : 0`, `var.registry.resource_id == null ? 0 : 1`), and multiplicity uses `for_each` in dynamic blocks.",
-      "[2] `count` is used only as an on/off switch (`var.staging.enabled ? 1 : 0`, `var.registry.resource_id == null ? 0 : 1`), and repeated blocks use `for_each`.",
-      "[2] `count` appears only as an on/off switch (`var.staging.enabled ? 1 : 0`, `var.registry.resource_id == null ? 0 : 1`), and multiplicity uses dynamic `for_each`."
+      "[2] `count` is used only as an on/off switch (`var.staging.enabled ? 1 : 0` and `var.registry.resource_id == null ? 0 : 1`), and multiplicity uses `for_each` (`ip_restriction`, `email_receiver`, scale rules).",
+      "[2] `count` is used only as an on/off switch (`azurerm_role_assignment.acr_pull`, `azurerm_linux_web_app_slot.staging`, the staging diagnostic setting), and multiplicity uses `for_each` (`ip_restriction`, `email_receiver`).",
+      "[2] `count` is used only as an on/off toggle (`var.staging.enabled ? 1 : 0`, `var.registry.resource_id == null ? 0 : 1`), and multiplicity uses dynamic `for_each`."
      ],
      "Data sources vs inputs": [
-      "[1] `var.registry` requires both `resource_id` and a separately typed `server_url` for ACR, so the two can point at different registries, where a `data \"azurerm_container_registry\"` lookup of `login_server` would be authoritative.",
-      "[1] The module takes both the ACR `resource_id` and a separate `server_url` instead of looking up the registry's login server from its identity with a data source, so the two values can disagree.",
-      "[1] `var.registry` asks for both `resource_id` and `server_url` for a private ACR, so they can be set to point at different registries; the login server could instead be looked up from the registry ID with a data source."
+      "[1] For a private ACR, `var.registry` asks for both `resource_id` and `server_url` instead of looking up the registry's `login_server` from the ID, so a consumer can supply a URL that does not match the registry being granted AcrPull.",
+      "[1] The `registry` input requires both `resource_id` and `server_url` for ACR, which lets a consumer enter a login server that does not match the registry; the server could instead be looked up from the ID with a `data \"azurerm_container_registry\"` lookup.",
+      "[1] For private ACR, `registry` asks for both `server_url` and `resource_id`, so the two can name different registries; a data lookup of the registry's login server from its ID would be authoritative."
      ],
      "File layout": [
-      "[2] Variables, outputs and version constraints have dedicated files, and the monitoring concern is split into `monitoring.tf` apart from the core resources in `main.tf`.",
-      "[2] Code is split into main.tf (core resources), monitoring.tf (observability concern), variables.tf, outputs.tf and versions.tf.",
-      "[2] Variables, outputs and versions live in their own files, and monitoring resources are split into `monitoring.tf` away from the core resources in `main.tf`."
+      "[2] Variables, outputs and versions each have their own file, and the monitoring concern is split into `monitoring.tf` apart from the core resources in `main.tf`.",
+      "[1] Monitoring, variables, outputs and versions are split out, but `main.tf` runs to roughly 290 lines mixing several concerns: identity/RBAC, plan plus autoscale, the app and the staging slot.",
+      "[2] Code is split into `main.tf`, `monitoring.tf` for the separate observability concern, `variables.tf`, `outputs.tf` and `versions.tf`."
      ],
      "Sensitive values": [
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and registry access uses a managed identity rather than passwords.",
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, Key Vault references are encouraged, the `application_insights_connection_string` output is sensitive, and registry access uses managed identity rather than passwords.",
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and registry access uses a managed identity rather than passwords."
+      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true` and steer users toward Key Vault references, and the `application_insights_connection_string` output is sensitive.",
+      "[2] `app_settings` and `staging_app_settings` are `sensitive = true`, the `application_insights_connection_string` output is sensitive, the README steers secrets to Key Vault references, and registry access uses managed identity rather than passwords.",
+      "[2] `app_settings`, `staging_app_settings` and the `application_insights_connection_string` output are marked `sensitive = true`, and registry access uses managed identity rather than passwords."
      ],
      "Lifecycle meta-arguments": [
-      "[2] The only `ignore_changes` is `[worker_count]` on the autoscaled service plan, which is exactly the legitimate case of a value changed outside IaC by Azure Monitor.",
-      "[2] `ignore_changes = [worker_count]` on the service plan is justified because Azure Monitor autoscale changes that value outside IaC, and there is no misuse of `prevent_destroy`.",
-      "[2] `ignore_changes = [worker_count]` on the service plan is justified, because Azure Monitor autoscale changes that value outside IaC."
+      "[2] The only `ignore_changes` is `worker_count` on the service plan, which Azure Monitor autoscale changes dynamically outside IaC, and it carries an explanatory comment.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is the legitimate case of a value changed dynamically by `azurerm_monitor_autoscale_setting`, and the reason is stated in a comment.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan` is legitimate because Azure Monitor autoscale changes that value outside IaC, and the module adds no other lifecycle protection."
      ],
      "Documentation": [
-      "[2] Every variable and output has an accurate description, the comment on `ignore_changes` explains a non-obvious choice, and the README's operating-decisions table matches the code (e.g., the 70%/30% thresholds and 5/10-minute cooldowns).",
-      "[2] Every variable and output has an accurate description, and the README's operating-decisions table matches the code (CPU 70%/30% thresholds, 5/10-minute cooldowns, 5-minute eviction, disabled basic auth).",
-      "[2] Every variable and output has an accurate description, and the README's operating-decisions table matches the code (e.g., CPU 70%/30% with 5/10-minute cooldowns, `~> 4.81` described as >= 4.81, < 5)."
+      "[2] Every variable and output has a description, and the README's account of autoscale thresholds, staging and swap runbook, and network boundary matches the code (e.g. 70%/30% CPU rules and 5/10-minute cooldowns).",
+      "[2] Every variable and output has a description, and the README's statements (provider window `~> 4.81`, slot stickiness, alert thresholds, autoscale rules) match the code, at a depth suited to an SRE operating standard.",
+      "[2] Every variable and output has a description, and the README accurately explains operating decisions, the release and rollback runbook, and the network boundary in a depth suited to an SRE standard module."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module uses current resource forms (`azurerm_linux_web_app`, `azurerm_service_plan`, `ip_restriction_default_action`) and contains no `null_resource` or `local-exec`.",
-      "[2] There is no `null_resource` or `local-exec`, and the module uses current `azurerm_linux_web_app` and `azurerm_service_plan` resources rather than legacy forms.",
-      "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources with no `null_resource` or `local-exec`."
+      "[2] The module uses current `azurerm_linux_web_app`, `azurerm_service_plan` and `azurerm_linux_web_app_slot` resources with no `null_resource` or `local-exec`.",
+      "[2] The module uses current `azurerm_linux_web_app` and `azurerm_service_plan` resources and contains no `null_resource` or `local-exec`.",
+      "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources and has no `null_resource` or `local-exec`."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls and no deleted or commented-out resources, and no input bypasses a posture the module establishes (the TLS, FTPS and basic-auth settings are hardcoded).",
-      "[2] All resources are authored directly with no remote module calls, no resources are commented out to dodge errors, and no input silently undoes a posture the module establishes (TLS, HTTPS-only and basic-auth settings are hardcoded).",
-      "[2] All resources are authored directly with no remote module calls, nothing appears to have been deleted to silence an error, and no input lets a consumer weaken the hardcoded HTTPS/TLS/FTP security posture."
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer undo hardcoded security settings such as `https_only = true`, `minimum_tls_version = \"1.2\"` or disabled basic-auth publishing.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently undo a security posture the module establishes (HTTPS-only, TLS 1.2 and disabled FTP/basic auth are hardcoded).",
+      "[2] All resources are authored directly with no remote module calls, and no input silently undoes a security control the module establishes."
      ]
     }
    },
@@ -860,8 +860,8 @@
     "gate": true,
     "rubric": 1.0,
     "mechanical": 0.989,
-    "judge": 89.5,
-    "composite": 96.08,
+    "judge": 92.1,
+    "composite": 96.86,
     "mandatory_failures": [],
     "items_lost": {},
     "expertise": {
@@ -885,7 +885,7 @@
      "Inline Resource Configuration vs Separate Resources": 2,
      "Outputs": 2,
      "Iteration: for_each vs count": 2,
-     "Data sources vs inputs": 1,
+     "Data sources vs inputs": 2,
      "File layout": 1,
      "Sensitive values": 2,
      "Lifecycle meta-arguments": 2,
@@ -895,74 +895,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] Inputs are framed as the SRE concepts the brief names, such as `capacity` {minimum, maximum, zone_redundant}, `health_check_path`, `enable_staging_slot` and `ingress_cidrs`, while App Service internals like the `platform_settings` warmup and health tuning are decided by the module.",
-      "[2] Inputs are concepts SREs decide on, such as the `capacity` object (minimum/maximum/zone_redundant), `health_check_path`, `enable_staging_slot` and `ingress_cidrs`, while App Service internals like autoscale rules, eviction time, warmup settings and TLS stay opinionated and hardcoded.",
-      "[2] Inputs are pitched at SRE concepts such as the `capacity` object (minimum/maximum/zone_redundant), `enable_staging_slot`, `health_check_path` and `ingress_cidrs`, while App Service internals like autoscale rules, health-check eviction and the warmup settings in `local.platform_settings` are decided by the module."
+      "[2] Inputs are framed as SRE concepts, such as the `capacity` object (minimum/maximum/zone_redundant), `health_check_path`, `enable_staging_slot` and `ingress_cidrs`; App Service internals like health-check ping failures, warmup paths and autoscale rules are decided by the module in `local.platform_settings` and `azurerm_monitor_autoscale_setting.capacity`.",
+      "[2] Inputs are pitched at the SRE audience's concepts, such as the `capacity` object (minimum/maximum/zone_redundant), `health_check_path`, `enable_staging_slot` and `ingress_cidrs`, while App Service internals like warmup settings, eviction time and scale rules are decided by the module.",
+      "[2] Inputs are concepts an SRE decides on (`capacity` with minimum/maximum/zone_redundant, `sku_name` restricted to Premium v3, `health_check_path`, `enable_staging_slot`, `ingress_cidrs`), while App Service internals such as health-check ping failures, warmup paths, TLS and FTP settings are fixed in `local.platform_settings` and `site_config`."
      ],
      "Variables and validation": [
-      "[1] Validation is deliberate (capacity integer and zone floor, image tag requirement, CIDR checks), but `registry.url` and `registry.acr_resource_id` are an avoidable pair: an ACR ID with the default mcr.microsoft.com URL passes validation and breaks pulls.",
-      "[1] Guards are deliberate and teach, as in the `capacity` zone-redundancy floor and the `registry` URL and ID formats, but `enable_public_availability_test` (default true) and a non-empty `ingress_cidrs` form an avoidable conflicting pair caught only by a resource precondition, when the probe could be inferred from `length(var.ingress_cidrs) == 0`.",
-      "[1] Inputs are guarded deliberately (capacity cross-checks, CIDR, image and registry formats), but `enable_public_availability_test` defaults to true and can conflict with a non-empty `ingress_cidrs`; this is an avoidable pair that the module patches with a precondition instead of deriving the test from the ingress posture."
+      "[1] Validation is deliberate and teaches (for example, the `capacity` cross-check ties minimum \u22653 to `zone_redundant`), but `enable_public_availability_test` (default true) and `ingress_cidrs` are an avoidable conflicting pair that a precondition must reject, when the module could infer the test from whether `ingress_cidrs` is empty.",
+      "[2] Realistic mistakes are guarded with teaching messages (the `capacity` zone-redundancy floor, the `container_image` tag/digest and scheme check, the `registry.url` origin, the alert email format), and the `ingress_cidrs`/`enable_public_availability_test` conflict is caught by a precondition.",
+      "[1] Validation is deliberate and teaches (for example, `capacity` cross-checks `minimum >= 3` when zones are enabled), but `enable_public_availability_test` and `ingress_cidrs` form an avoidable conflicting pair that a precondition must reject when the module could infer the probe from whether ingress is public."
      ],
      "Internal logic": [
-      "[2] Readable locals derive values from concept inputs, such as `local.environments` from `enable_staging_slot`, `ip_restriction_default_action` from `length(var.ingress_cidrs)`, and `sticky_settings` merged from staging override keys.",
-      "[2] Readable locals such as `environments`, `ingress_rules`/`management_rules` with derived priorities, `platform_settings` and `sticky_settings` (declassifying only key names) derive values from concept inputs without convoluted chains.",
-      "[2] Locals such as `environments`, `ingress_rules`/`management_rules` (priorities derived from sorted CIDRs) and `sticky_settings` (which declassifies only the setting names) derive values from concept inputs in a readable way."
+      "[2] Locals such as `environments`, `ingress_rules` (derived priorities) and `sticky_settings` (a union with `nonsensitive(keys(var.staging_app_settings))`) infer values from concept inputs readably, without clever chains.",
+      "[2] Locals such as `environments`, `ingress_rules`/`management_rules` (derived priorities) and `sticky_settings` (a union of user names, staging override keys and platform keys) infer values from concept inputs readably, without convoluted chains.",
+      "[2] Readable locals derive values from concept inputs, such as `local.environments` from `enable_staging_slot`, prioritized `ingress_rules` and `management_rules` from CIDR sets, and `sticky_settings` from the staging override keys."
      ],
      "Scope": [
-      "[2] The module creates what the SREs' concerns imply and stops there: identities with AcrPull, autoscale, diagnostic settings to Log Analytics, 5xx and saturation alerts, an action group and a readiness web test.",
-      "[2] Plan, app, staging slot, AcrPull identities, Log Analytics/App Insights, diagnostic settings, autoscale and 5xx/saturation/availability alerts map directly to the brief's capacity, availability, health, rollouts and observability concerns, without unrelated additions.",
-      "[2] The resource group, plan, web app, staging slot, per-slot identities with AcrPull, Application Insights and Log Analytics, autoscale, SRE alerts and the availability web test match an SRE-operated containerized-API standard without unrelated additions."
+      "[2] The module creates what an SRE-operated container service needs and no more: a plan with autoscale, a staging slot, AcrPull role assignments to per-slot identities, diagnostic settings to Log Analytics, Application Insights, an action group, and 5xx, saturation and availability alerts.",
+      "[2] The module creates the plan, app, staging slot, per-slot identities, a scoped AcrPull grant, a Log Analytics workspace with diagnostics, Application Insights, autoscale, an action group and alerts, which matches the brief's capacity, availability, health, rollout and observability concerns without unrelated architecture.",
+      "[2] The module creates what an SRE-operated service needs (plan, app, staging slot, isolated identities with scoped `AcrPull`, diagnostic settings, Application Insights, autoscale, 5xx, saturation and availability alerts) without adding DNS, front door or data stores."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] The `ip_restriction` and `scm_ip_restriction` dynamic blocks have no separate-resource equivalent in azurerm, and diagnostics and role assignments are already separate resources.",
-      "[2] The `ip_restriction`/`scm_ip_restriction` dynamic blocks inside `site_config` have no separate azurerm resource equivalent, and diagnostics and role assignments use dedicated resources.",
-      "[2] The `ip_restriction`/`scm_ip_restriction` dynamic blocks and `sticky_settings` are inline-only constructs in azurerm with no separate-resource equivalent, and no attribute is configured in both styles."
+      "[2] The inline `ip_restriction`, `scm_ip_restriction` and `sticky_settings` blocks have no separate-resource equivalent in azurerm, and the slot and diagnostic settings are already separate resources (`azurerm_linux_web_app_slot.staging`, `azurerm_monitor_diagnostic_setting.app`).",
+      "[2] Inline blocks are used only where azurerm offers no separate resource for the same attributes: `ip_restriction`/`scm_ip_restriction` in `site_config`, autoscale `rule`, and action group `email_receiver`.",
+      "[2] The inline `ip_restriction` and `scm_ip_restriction` dynamic blocks inside `site_config` have no separate-resource equivalent in azurerm, and no attribute is configured in both styles."
      ],
      "Outputs": [
-      "[2] The outputs cover what consumers need from outside, such as `production_url`, `staging_slot_id`, the `identities` client and principal IDs, `runtime_principal_ids` and `action_group_id`, without dumping every attribute.",
-      "[2] Outputs cover what consumers need, including `app_name`, `app_id`, `production_url`/`staging_url`, `identities`, `runtime_principal_ids` for grants and `action_group_id` for extra alerts, without dumping every attribute.",
-      "[2] Outputs cover what consumers need, including `app_name`, `app_id`, `production_url`, `staging_slot_id`, `identities`, `runtime_principal_ids` and `action_group_id`, without dumping every attribute."
+      "[2] Outputs cover what consumers need to use the service (`app_name`, `production_url`, `staging_slot_id`, `identities`, `runtime_principal_ids`, `action_group_id`) without dumping every attribute.",
+      "[2] Outputs cover what consumers need to use the service, including `app_name`, `app_id`, `production_url`, `staging_url`, the `identities` and `runtime_principal_ids` for grants, and `action_group_id`, without dumping every attribute.",
+      "[2] Outputs cover what consumers need to operate the service (`app_name`, `resource_group_name`, `production_url`, `staging_url`, identity principals for grants, `action_group_id`) without dumping every attribute or exporting connection strings."
      ],
      "Iteration: for_each vs count": [
-      "[2] `count` appears only as an on/off switch (`var.enable_staging_slot ? 1 : 0`, `var.enable_public_availability_test ? 1 : 0`), and multiplicity uses `for_each` over `local.environments`.",
-      "[2] `count` appears only as on/off switches (`var.enable_staging_slot ? 1 : 0`, `var.enable_public_availability_test ? 1 : 0`), while identities, insights, diagnostics and saturation alerts use `for_each`.",
-      "[2] Multiplicity uses `for_each` (`azurerm_user_assigned_identity.app`, `azurerm_application_insights.app`, `saturation` alerts), and `count` appears only as on/off switches on the staging slot and the availability test."
+      "[2] Multiplicity uses `for_each` (`azurerm_user_assigned_identity.app`, `azurerm_monitor_metric_alert.saturation`), and `count` appears only as an on/off switch (`count = var.enable_staging_slot ? 1 : 0`).",
+      "[2] `count` appears only as an on/off switch (`azurerm_linux_web_app_slot.staging`, the availability test and its alert), and multiplicity uses `for_each` (identities, `acr_pull`, application insights, the saturation alerts).",
+      "[2] `count` appears only as on/off switches (`azurerm_linux_web_app_slot.staging`, the availability test and its alert), while repeated resources such as `azurerm_user_assigned_identity.app` and `azurerm_monitor_metric_alert.saturation` use `for_each`."
      ],
      "Data sources vs inputs": [
-      "[1] The module takes both `acr_resource_id` and a separate `registry.url` instead of looking up the registry's login server with a data source, so the two can disagree.",
-      "[1] The `registry` input takes both `acr_resource_id` and a separate `url` that defaults to mcr.microsoft.com, so the two can mismatch; the login server could instead be looked up from the ACR ID.",
-      "[2] Dependencies are taken only by identity (`integration_subnet_id`, `registry.acr_resource_id`), and no input asks for a derived fact that could contradict them."
+      "[2] Dependencies are taken only by identity (`integration_subnet_id`, `registry.acr_resource_id`), with no redundant facts about them requested that could contradict the real resources.",
+      "[2] Dependencies are taken by identity only (`registry.acr_resource_id`, `integration_subnet_id`), and no redundant facts about them are requested that could contradict the real resource.",
+      "[2] Dependencies are taken only as identities (`integration_subnet_id`, `registry.acr_resource_id`), with no redundant facts about them requested that could contradict the referenced resource."
      ],
      "File layout": [
-      "[1] Files are split by concern (main, monitoring, availability, outputs, variables), but `enable_public_availability_test` is declared in availability.tf rather than variables.tf.",
-      "[1] Files are split well by concern (main, monitoring, availability, outputs, variables), but the `enable_public_availability_test` variable is declared in availability.tf instead of variables.tf.",
-      "[1] The split into main, monitoring, availability, variables, outputs and versions files is sensible, but the `enable_public_availability_test` variable is declared in availability.tf instead of variables.tf."
+      "[1] Files are split by concern (main, monitoring, availability, variables, outputs), but `variable \"enable_public_availability_test\"` is declared in `availability.tf` rather than `variables.tf`, and `main.tf` holds roughly 250 lines including the full staging slot.",
+      "[1] The files are split by concern (main, monitoring, availability, variables, outputs), but `variable \"enable_public_availability_test\"` is declared in availability.tf rather than variables.tf, and main.tf holds well over 200 lines of resources.",
+      "[2] Concerns are split into `main.tf`, `monitoring.tf`, `availability.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, with only the single `enable_public_availability_test` variable colocated in `availability.tf`."
      ],
      "Sensitive values": [
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, Key Vault references are encouraged, and no output exposes connection strings or keys.",
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true` and steer toward Key Vault references, and no output exposes the connection string or instrumentation key.",
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true` with guidance to prefer Key Vault references, and no output exposes the Application Insights connection string or keys."
+      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, Key Vault references are encouraged, no registry password input exists, and no output exposes connection strings or instrumentation keys.",
+      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, Key Vault references are encouraged over raw secrets, no secret defaults exist, and `nonsensitive` is applied only to setting names.",
+      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, Key Vault reference strings are encouraged over raw secrets, `nonsensitive` is applied only to setting names, and no output exposes secrets."
      ],
      "Lifecycle meta-arguments": [
-      "[2] The only `ignore_changes` is `worker_count` on `azurerm_service_plan`, which the autoscale setting legitimately changes outside IaC.",
-      "[2] The only lifecycle use is `ignore_changes = [worker_count]` on `azurerm_service_plan.this`, which is legitimate because `azurerm_monitor_autoscale_setting` changes that count outside IaC.",
-      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan.this` is the legitimate autoscale-owned case and is commented as such."
+      "[2] The only lifecycle use is `ignore_changes = [worker_count]` on `azurerm_service_plan.this`, which is exactly the autoscaled-count case the standard permits.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan.this` is the legitimate case of an autoscaled count managed by Azure Monitor, and no `prevent_destroy` is misused.",
+      "[2] `ignore_changes = [worker_count]` on `azurerm_service_plan.this` is the legitimate autoscaled-count case, and no `prevent_destroy` is misused."
      ],
      "Documentation": [
-      "[1] Every variable and output has a description, but `health_check_path` says 200-299 is acceptable while `WEBSITE_SWAP_WARMUP_PING_STATUSES` and the web test's `expected_status_code` require exactly 200.",
-      "[2] Every variable and output has an accurate description, and comments explain the non-obvious choices, such as pre-created identities for image-pull grants and the scale-out/scale-in rule semantics.",
-      "[2] Every variable and output has an accurate description, for example `management_cidrs` correctly stating that an empty set denies external access to the staging and SCM endpoints, matching the `Deny` default actions."
+      "[2] Every variable and output has a description, and the README's operational contract (autoscale thresholds, health-probe settings, slot swap runbook) accurately matches the code.",
+      "[2] Every variable and output has a description, and the README accurately documents the operational contract, the release/rollback runbook and the prerequisites, which fits a standalone service root.",
+      "[2] Every variable and output has an accurate description, and the README's operational contract and runbook match the code (for example, the CPU-or-memory scale-out and both-low scale-in rules, and staging default-deny with `management_cidrs`)."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module uses current `azurerm_linux_web_app` and `azurerm_service_plan` resources and has no `null_resource` or `local-exec`.",
-      "[2] The module has no `null_resource` or `local-exec` and uses current forms such as `azurerm_linux_web_app` and `azurerm_service_plan`.",
-      "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan`/`azurerm_linux_web_app_slot` resources with no `null_resource` or `local-exec`."
+      "[2] The module uses current `azurerm_linux_web_app` and `azurerm_linux_web_app_slot` resources with no `null_resource` or `local-exec`.",
+      "[2] There is no `null_resource` or `local-exec`, and the diagnostic setting uses the current `enabled_log`/`enabled_metric` blocks.",
+      "[2] The module uses current resource forms (`azurerm_linux_web_app`, `azurerm_application_insights_standard_web_test`) and contains no `null_resource` or `local-exec`."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently undo the posture, since SCM default-deny and https_only are hardcoded.",
-      "[2] All resources are authored directly with no remote module calls, and no input lets consumers bypass the established posture, since `https_only`, TLS 1.2 and disabled basic auth are hardcoded.",
-      "[2] All resources are authored directly with no remote module calls and nothing commented out, and no input silently undoes the module's posture: TLS, FTPS-disabled and SCM `Deny` are hardcoded."
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently undo a posture the module establishes; the SCM default action is hardcoded to \"Deny\".",
+      "[2] All resources are authored directly with no remote module calls, and no input silently bypasses the module's posture (the SCM default-deny and `https_only` are hardcoded).",
+      "[2] All resources are authored directly with no remote module calls, nothing is commented out to dodge errors, and no input silently undoes the HTTPS, TLS or SCM-deny posture the module sets."
      ]
     }
    },
@@ -973,8 +973,8 @@
     "gate": true,
     "rubric": 0.991,
     "mechanical": 0.98,
-    "judge": 89.5,
-    "composite": 95.45,
+    "judge": 92.1,
+    "composite": 96.23,
     "mandatory_failures": [],
     "items_lost": {
      "A7": 0.9
@@ -1004,80 +1004,80 @@
      "File layout": 2,
      "Sensitive values": 2,
      "Lifecycle meta-arguments": 2,
-     "Documentation": 1,
+     "Documentation": 2,
      "Deprecated and escape-hatch patterns": 2,
      "Anti-patterns (immediate credibility loss)": 2
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] Inputs map to the SRE team's concepts: capacity (`sku_name`, `instance_count`, `autoscale`), availability (`zone_redundant`), health (`health_check_path`), rollouts (`staging_enabled`, `staging_image`) and observability (`alert_email_addresses`, `response_time_threshold_seconds`), while App Service internals such as warmup settings, TLS and FTP state are fixed by the module.",
-      "[2] Inputs match how SREs think: `sku_name` restricted to Premium v3, `instance_count`, the `autoscale` object, `zone_redundant`, `staging_enabled`, `health_check_path` and `response_time_threshold_seconds`, while App Service internals such as warmup settings, TLS, FTPS and always-on are decided by the module.",
-      "[2] Inputs are expressed in the SRE team's own concepts (`autoscale` object with `enabled`/`max_instances`, `zone_redundant`, `staging_enabled`, `health_check_path`, `instance_count`), while App Service internals such as warmup settings, eviction time, TLS and FTP posture are decided by the module."
+      "[2] The inputs are framed in the SRE team's own concepts: capacity (`sku_name`, `instance_count`, `autoscale`), availability (`zone_redundant`), health (`health_check_path`), rollouts (`staging_enabled`, `staging_image`) and observability (`alert_email_addresses`, `response_time_threshold_seconds`), while App Service internals such as warmup settings, TLS and FTP are fixed by the module.",
+      "[2] Inputs are concepts SREs already reason about (`instance_count`, `zone_redundant`, the `autoscale` object with `enabled`/`max_instances`, `staging_enabled`, `health_check_path`, `response_time_threshold_seconds`), while App Service internals such as `always_on`, TLS, FTP state, warmup settings and eviction time are decided by the module.",
+      "[2] Inputs map to the SRE team's concepts (`instance_count`, `zone_redundant`, the `autoscale` object, `staging_enabled`, `health_check_path`, `alert_email_addresses`), while the module settles App Service internals such as TLS, FTP, always-on, warmup settings and eviction time, and restricts `sku_name` to Premium v3."
      ],
      "Variables and validation": [
-      "[1] Many inputs are deliberately guarded, including the `name` regex, the integer check on `container_port`, the restricted `sku_name` list and preconditions on zone redundancy and the autoscale maximum, but `registry_url` and `acr_resource_id` are an avoidable pair that can point at different registries (the README just asks consumers to keep them matched).",
-      "[1] Guards are deliberate (the `name` regex, port and SKU validation, and preconditions for zone redundancy versus `instance_count`, autoscale max versus min, and route-all versus subnet), but `registry_url` and `acr_resource_id` form an avoidable pair that can be set to different registries with no cross-check.",
-      "[1] Inputs are deliberately guarded (name regex, SKU allowlist, integer ranges, and preconditions for zone redundancy, autoscale max/min and route-all), but `registry_url` and `acr_resource_id` are an avoidable pair that can be set to different registries with no cross-check."
+      "[1] Most inputs are guarded deliberately (the `sku_name` allow-list, the zone-redundancy and autoscale max \u2265 min preconditions, the route-all-requires-subnet precondition), but `registry_url` and `acr_resource_id` form an avoidable pair that can be set to different registries with no check.",
+      "[1] Inputs are guarded deliberately (the `sku_name` allow-list, the `instance_count` and port integer ranges, and preconditions for zone redundancy and route-all), but `registry_url` and `acr_resource_id` form an avoidable pair that can be set to different registries, which the README itself warns against.",
+      "[1] Realistic mistakes are guarded (SKU list, port and instance ranges, zone-redundancy and autoscale-max preconditions, route-all requiring a subnet), but `registry_url` and `acr_resource_id` are an avoidable pair that can point at different registries with no cross-check."
      ],
      "Internal logic": [
-      "[2] Readable locals do the derivation: `platform_settings`/`production_settings`/`staging_settings` merge user and module-owned settings, `service_plan_id` picks the active plan, and the `alerts` map drives the metric alerts without convoluted expressions.",
-      "[2] Readable locals do the derived work: `platform_settings` and the merged `production_settings`/`staging_settings`, the `service_plan_id` selector, and the `alerts` map feeding `for_each`, with no convoluted expression chains.",
-      "[2] Readable locals do the derivation: `local.service_plan_id` picks the active plan, `platform_settings` is merged with consumer settings, and the `alerts` map drives one `for_each` alert resource, with no convoluted expression chains."
+      "[2] Readable locals (`service_plan_id`, `platform_settings`, `production_settings`/`staging_settings` merges, the `alerts` map) derive values from concept inputs without convoluted expression chains.",
+      "[2] Readable locals do the derived work: `service_plan_id` selects the active plan, `platform_settings` is merged over user settings into `production_settings`/`staging_settings`, and the `alerts` map drives `for_each`, with no convoluted expression chains.",
+      "[2] Locals keep the logic readable: `local.service_plan_id` resolves the active plan, `container_registry_use_managed_identity = var.acr_resource_id != null` is inferred from an input, and `local.alerts` drives the alert map."
      ],
      "Scope": [
-      "[2] The module creates what running one containerized service needs: plan, app, optional staging slot, App Insights with a Log Analytics workspace, diagnostic settings, metric alerts with an action group, optional autoscale and AcrPull role assignments, with no unrelated architecture.",
-      "[2] The module creates what an SRE-run container service needs and nothing beyond it: plan, app, staging slot, Application Insights with a Log Analytics workspace, diagnostic settings, metric alerts with an action group, optional autoscale and an AcrPull role assignment.",
-      "[2] The module creates what an SRE-operated containerized web service needs (plan, app, staging slot, AcrPull role assignments, Application Insights, Log Analytics diagnostics, metric alerts with an action group, optional autoscale) without unrelated architecture."
+      "[2] The module creates the plan, app, staging slot, autoscale, Log Analytics workspace, Application Insights, diagnostic settings, metric alerts and AcrPull role assignments, which is proportionate to an SRE-operated container service.",
+      "[2] The module creates the resource group, Premium plan, app, optional staging slot, AcrPull role assignments, Log Analytics workspace, Application Insights, diagnostic settings, action group and metric alerts, all of which fit a standard SRE-run App Service.",
+      "[2] The module creates what the job needs (plan, app, staging slot, autoscale, Log Analytics and Application Insights, diagnostic settings, metric alerts with an action group, and AcrPull role assignments) without unrelated additions."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Role assignments, autoscale and diagnostic settings are separate resources, and the inline blocks used (`site_config`, `sticky_settings`, `logs`) have no separate-resource equivalent being mixed in.",
-      "[2] The inline blocks used (`site_config`, `sticky_settings`, `logs`, `email_receiver`, autoscale `profile`) have no separate-resource alternative in azurerm, and the module never mixes styles.",
-      "[2] The inline blocks used (`site_config`, `sticky_settings`, `logs`, autoscale `profile`, `email_receiver`) have no separate-resource alternative in azurerm, and no attribute is managed in both styles."
+      "[2] Role assignments and diagnostic settings are separate resources (`azurerm_role_assignment`, `azurerm_monitor_diagnostic_setting`), and the inline blocks that remain (`site_config`, `email_receiver`, autoscale `profile`) have no separate-resource alternative.",
+      "[2] The inline blocks used (`site_config`, `logs`, `sticky_settings`, dynamic `email_receiver`) have no separate-resource alternative, and diagnostics are authored as separate `azurerm_monitor_diagnostic_setting` resources.",
+      "[2] Inline blocks such as `site_config`, `logs` and `sticky_settings` have no separate-resource alternative, and diagnostics are authored as separate `azurerm_monitor_diagnostic_setting` resources."
      ],
      "Outputs": [
-      "[2] Outputs cover what consumers need: `app_name`, `app_id`, `production_url`/`staging_url`, `managed_identity_principal_ids`, `service_plan_id`, the workspace ID, the action group ID and a sensitive connection string, with no attribute dumping.",
-      "[2] Outputs cover what operators need (app name and ID, production and staging URLs, per-slot identity principal IDs, plan ID, workspace ID, action group ID), and the App Insights connection string is marked sensitive.",
-      "[2] Outputs cover what a consumer needs to operate and integrate the service (`app_name`, `app_id`, `production_url`/`staging_url`, `managed_identity_principal_ids`, `service_plan_id`, workspace ID, a sensitive connection string, `action_group_id`) without dumping every attribute."
+      "[2] The outputs cover what consumers need \u2014 app name and id, production and staging URLs, per-slot identity principal ids, plan id, workspace id, a sensitive connection string and the action group id \u2014 without dumping every attribute.",
+      "[2] Outputs cover what a consumer needs, including app name and ID, production and staging URLs, per-slot `managed_identity_principal_ids`, plan ID, workspace ID, action group ID and a sensitive connection string, without dumping every attribute.",
+      "[2] Outputs cover what consumers need, including `app_name`, `production_url`/`staging_url`, `managed_identity_principal_ids`, `service_plan_id` and `action_group_id`, without dumping every attribute."
      ],
      "Iteration: for_each vs count": [
-      "[2] `count` is used only as an on/off switch (staging slot, autoscale, fixed vs autoscaled plan, ACR role assignments), while multiplicity uses `for_each` over `local.alerts` and `local.monitored_apps`.",
-      "[2] `count` appears only as on/off switches (the fixed/autoscaled plans, the staging slot, the ACR role assignments), while alerts and diagnostic settings use `for_each` over keyed maps.",
-      "[2] `count` appears only as on/off switches (e.g. `var.autoscale.enabled ? 1 : 0`, `var.staging_enabled ? 1 : 0`), while multiplicity uses `for_each` over `local.alerts` and `local.monitored_apps`."
+      "[2] `count` is used only as an on/off switch (for example `count = var.staging_enabled ? 1 : 0`), and multiplicity uses `for_each` (`azurerm_monitor_metric_alert.main`, `azurerm_monitor_diagnostic_setting.apps`).",
+      "[2] `count` is used only as an on/off switch (staging slot, autoscale, plan modes, role assignments), while multiplicity uses `for_each` over `local.alerts` and `local.monitored_apps`.",
+      "[2] `count` appears only as on/off switches (staging slot, autoscale, plan variants, role assignments), while `azurerm_monitor_metric_alert.main` and the diagnostic settings use `for_each`."
      ],
      "Data sources vs inputs": [
-      "[1] The module takes `acr_resource_id` as the registry's identity but still asks for `registry_url` separately, instead of looking up the login server with a data source.",
-      "[1] The module takes both `acr_resource_id` and a separate `registry_url` instead of looking up the registry's login server with a data source, so the two can disagree.",
-      "[1] The module takes the ACR's identity (`acr_resource_id`) but also demands `registry_url` instead of looking up the registry's login server with a data source, so the two can disagree."
+      "[1] The module takes `acr_resource_id` as the registry's identity but also asks for `registry_url` instead of looking up the ACR login server with a data source, so the two can disagree.",
+      "[1] The module takes `acr_resource_id` as the registry's identity but still requires a separate `registry_url` instead of looking up the registry's login server with a data source.",
+      "[1] The module takes `acr_resource_id` as the registry's identity but still asks for `registry_url` separately instead of looking up the login server with a data source."
      ],
      "File layout": [
-      "[2] Files are split by concern into `main.tf`, `capacity.tf`, `autoscale.tf`, `monitoring.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
-      "[2] Files are split by concern: `versions.tf`, `variables.tf`, `outputs.tf`, `main.tf`, `capacity.tf`, `autoscale.tf` and `monitoring.tf`.",
-      "[2] Files are split by concern: `variables.tf`, `outputs.tf`, `versions.tf`, `main.tf` for the app, `capacity.tf` for plans, `autoscale.tf`, and `monitoring.tf`."
+      "[2] Concerns are split into `main.tf`, `capacity.tf`, `autoscale.tf`, `monitoring.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+      "[2] Concerns are split into `capacity.tf`, `autoscale.tf`, `monitoring.tf`, `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+      "[2] Concerns are split into `variables.tf`, `outputs.tf`, `versions.tf`, `main.tf`, `capacity.tf`, `autoscale.tf` and `monitoring.tf`."
      ],
      "Sensitive values": [
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true` and steer consumers toward Key Vault references, the `application_insights_connection_string` output is sensitive, and registry access uses managed identity rather than credentials.",
-      "[2] `app_settings` and `staging_app_settings` are `sensitive = true`, the `application_insights_connection_string` output is sensitive, Key Vault references are encouraged, and registry pulls use managed identity rather than passwords.",
-      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and descriptions steer consumers toward Key Vault references."
+      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true` and steer users toward Key Vault references, and the `application_insights_connection_string` output is marked sensitive.",
+      "[2] `app_settings` and `staging_app_settings` are marked `sensitive = true`, the `application_insights_connection_string` output is sensitive, and Key Vault references and managed-identity ACR pulls are preferred over raw credentials.",
+      "[2] `app_settings` and `staging_app_settings` are `sensitive = true`, the `application_insights_connection_string` output is sensitive, and Key Vault references are encouraged over raw secrets."
      ],
      "Lifecycle meta-arguments": [
-      "[2] `ignore_changes = [worker_count]` appears only on the autoscaled plan, where Azure changes the worker count outside IaC, and no `prevent_destroy` is used.",
-      "[2] `ignore_changes = [worker_count]` appears only on the autoscaled plan, where Azure changes the count dynamically, and no `prevent_destroy` is misapplied.",
-      "[2] `ignore_changes = [worker_count]` is applied only to the autoscaled plan, where Azure changes the count dynamically, and no `prevent_destroy` is misused."
+      "[2] `ignore_changes = [worker_count]` appears only on the autoscaled plan, where Azure changes the worker count outside IaC, which is the legitimate case; no `prevent_destroy` is used.",
+      "[2] `ignore_changes = [worker_count]` appears only on the autoscaled plan, where the worker count legitimately changes outside IaC, and the other lifecycle blocks contain only preconditions.",
+      "[2] `ignore_changes = [worker_count]` is applied only to `azurerm_service_plan.autoscaled`, where the worker count legitimately changes outside IaC through autoscaling."
      ],
      "Documentation": [
-      "[1] Every variable and output has a description and the README is thorough, but the `alert_email_addresses` description lists 5xx, latency, CPU and memory alerts and omits the health-check alert the module also creates.",
-      "[2] Every variable and output has a description, and the README accurately explains the fixed-versus-autoscaled ownership model, the state move for switching modes, and the swap runbook.",
-      "[1] Every variable and output has a description and the README is thorough, but it is extremely heavy and has minor inaccuracies: the `health_check_path` description says 200-299 is acceptable for swap warmup while `WEBSITE_SWAP_WARMUP_PING_STATUSES` accepts only \"200\", and the `alert_email_addresses` description omits the health alert."
+      "[2] Every variable and output has a description, and the README explains non-obvious behavior such as the `tofu state mv` step needed when switching fixed and autoscaled modes, and the swap and rollback runbook.",
+      "[2] Every variable and output has a description, and the README accurately explains the capacity-mode state migration, the swap runbook and the alert behavior, which suits a module of this complexity.",
+      "[2] Every variable and output has a description, and the README accurately documents the defaults, the fixed-to-autoscaled state migration and the swap runbook for a module of this complexity."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources, with no `null_resource`, `local-exec` or legacy resource forms.",
-      "[2] There is no `null_resource` or `local-exec`, and the module uses current resource forms (`azurerm_linux_web_app`, `azurerm_service_plan`, `enabled_metric`).",
-      "[2] The module uses current `azurerm_linux_web_app`/`azurerm_service_plan` resources and contains no `null_resource` or `local-exec`."
+      "[2] There is no `null_resource` or `local-exec`; the module uses the current `azurerm_linux_web_app` and `azurerm_linux_web_app_slot` resources rather than legacy forms.",
+      "[2] The module uses current `azurerm_linux_web_app` and `azurerm_service_plan` resources and contains no `null_resource` or `local-exec`.",
+      "[2] The module uses the current `azurerm_linux_web_app`/`azurerm_service_plan` resources, with no `null_resource` or `local-exec`."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls, and security settings such as `https_only` and the disabled basic-auth publishing are hardcoded rather than exposed as overridable inputs.",
-      "[2] The resources are authored directly, with no remote module calls, and no input can override hardcoded protections such as `https_only = true` or disabled basic publishing auth.",
-      "[2] All resources are authored directly with no remote module calls, no deleted or commented-out resources, and no input that lets a consumer undo the HTTPS-only, TLS 1.2 or basic-auth-disabled posture."
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently undo the module's posture (TLS, `https_only` and basic-auth settings are hardcoded).",
+      "[2] There are no remote module calls, no deleted resources, and no input that lets a consumer disable `https_only`, minimum TLS or the disabled basic publishing authentication.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently override the module's hardcoded security settings (e.g., `https_only = true`, `ftps_state = \"Disabled\"`)."
      ]
     }
    }
@@ -1135,74 +1135,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] The inputs cover per-service decisions (`name`, `environment`, `database_name`, `instance_class`, `instances_per_region`, client security group ids, `application_db_user`), while the module settles backups, TLS, logging, encryption and the global topology itself (e.g. `backup_retention_period = 35`, `rds.force_ssl = \"1\"`).",
-      "[2] The visible inputs cover per-service decisions (`var.name`, `var.environment`, `var.database_name`, `var.instance_class`, `var.instances_per_region`, `var.application_db_user`, client security group IDs, regions), while the module itself settles expert decisions such as `backup_retention_period = 35`, the TLS and scram parameter group, IAM auth, and `master_username = \"dbadmin\"`.",
-      "[2] Consumers supply per-service choices (`name`, `environment`, `database_name`, `instance_class`, `instances_per_region`, per-region client security group IDs, `alert_email`), while the module settles backup retention of 35 days, TLS enforcement, IAM auth, encryption and monitoring itself."
+      "[2] Inputs are limited to per-service decisions (`name`, `database_name`, `application_db_user`, `application_iam_role_names`, regional client security groups, `alert_email`), while `environment` selects the VPC by concept and the module itself settles retention, TLS, IAM auth and topology.",
+      "[2] Inputs cover only per-service decisions (`name`, `database_name`, `application_db_user`, `application_iam_role_names`, client security groups, `alert_email`), and the module settles the rest itself: `environment` selects the VPC by convention, and backup retention, TLS, IAM auth and the topology are hardcoded opinions.",
+      "[2] The inputs are concept-level service decisions (`name`, `environment`, `database_name`, `application_db_user`, `application_iam_role_names`, regional client security group sets, `instance_class`, `instances_per_region`), while TLS, backup retention, logging parameters, IAM auth and the global topology are fixed by the module for non-specialist platform engineers."
      ],
      "Variables and validation": [
-      "[1] Subnet preconditions on `aws_db_subnet_group` deliberately guard AZ spread and public IPs, but `var.engine_version` can conflict with the hardcoded `family = \"aurora-postgresql16\"`, and nothing visible guards that mismatch.",
-      "[1] `var.engine_version` is exposed while the parameter groups hardcode `family = \"aurora-postgresql16\"`, so a consumer can choose a non-16 engine version that conflicts with the parameter group; the subnet preconditions on `aws_db_subnet_group` (at least two AZs, no public IP mapping) do show deliberate guarding.",
-      "[1] The subnet groups carry deliberate preconditions (at least two AZs, no public IPs), but `var.engine_version` feeds clusters whose parameter groups hardcode `family = \"aurora-postgresql16\"`, and no visible guard ties the version to that family, a realistic mismatch that breaks the deployment."
+      "[1] The guards are deliberate, such as the distinct-region check on `secondary_region` and the 2\u20138 integer bound on `instances_per_region`, but the `instance_class` regex `^db\\.r[678]g\\.(large|xlarge|[248]xlarge|16xlarge)$` rejects valid classes such as `db.r7g.12xlarge`.",
+      "[1] Guards are deliberate (regions must be distinct, `instances_per_region` must be an integer from 2 to 8, `engine_version` is pinned to the 16 family), but the `instance_class` regex `^db\\.r[678]g\\.(large|xlarge|[248]xlarge|16xlarge)$` rejects valid Global Database classes such as `db.r7g.12xlarge`.",
+      "[1] Inputs are guarded deliberately, including `secondary_region != var.primary_region` and the integer range 2\u20138 on `instances_per_region`, but the `instance_class` regex `^db\\.r[678]g\\.(large|xlarge|[248]xlarge|16xlarge)$` rejects valid Graviton classes such as `db.r7g.12xlarge`."
      ],
      "Internal logic": [
-      "[2] Readable locals such as `local.prefix`, `primary_azs` (derived from subnet lookups) and `local.instance_alarms` infer values instead of asking for more inputs.",
-      "[2] Readable locals derive values from inputs and lookups, such as `local.prefix`, `local.primary_azs` computed from `data.aws_subnet.primary`, and `local.instance_alarms` built from `var.instances_per_region`, without convoluted chains.",
-      "[2] Locals such as `primary_azs` (derived from subnet lookups), `prefix`, `cluster_parameters` and the flattened `instance_alarms` map compute values readably instead of demanding more inputs."
+      "[2] Locals such as `primary_azs`, derived from looked-up subnets, the shared `cluster_parameters` map and the `instance_alarms` comprehension compute inferred values readably instead of demanding more inputs.",
+      "[2] Readable locals derive what the module needs from concept inputs: `prefix` from name and environment, `primary_azs`/`secondary_azs` from the subnet lookups, and `instance_alarms` built from `instances_per_region`, with no convoluted chains.",
+      "[2] Readable locals derive values instead of asking for them, e.g. `local.primary_azs` is computed from looked-up subnets, plus `local.prefix` and the `local.instance_alarms` map built from `instances_per_region`."
      ],
      "Scope": [
-      "[2] The module creates per-region KMS keys, encrypted log groups, an RPO lag alarm and an operator-triggered `aws_ssm_document.recover` failover runbook, all proportionate to the minutes-RTO / seconds-RPO requirement for payment data.",
-      "[2] The module creates what the brief's minutes-level RTO and seconds-level RPO imply: an `aws_rds_global_cluster` with clusters in both regions, per-region KMS keys, a replicated break-glass secret, security groups, RPO and replication-lag alarms, and an operator-triggered managed failover SSM document.",
-      "[2] The brief requires cross-region recovery within minutes with seconds of data loss, and the module delivers it with an `aws_rds_global_cluster`, per-region KMS keys, a replicated break-glass secret, RPO/replication-lag alarms and an SSM managed-failover document, without unrelated additions."
+      "[2] The module builds the global cluster with customer-managed KMS keys, private security groups, IAM-auth connect policy, break-glass secret replica, RPO and replication lag alarms, and an SSM managed-failover document, all proportionate to the cross-region recovery brief.",
+      "[2] The global cluster with a provisioned secondary, per-region KMS keys, the replicated break-glass secret, RPO/lag alarms and the SSM managed-failover document all serve the brief's cross-region recovery-in-minutes and payment-data requirements without unrelated additions.",
+      "[2] The module builds the global cluster with both regional clusters plus what a competent operator expects: customer-managed KMS keys, locked-down security groups, the break-glass secret, IAM connect policy, RPO/lag alarms and the SSM managed-failover document. All of these serve the brief's cross-region RTO/RPO requirement."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Security group access uses separate `aws_vpc_security_group_ingress_rule` resources, and the remaining inline blocks (parameter group `parameter`, secret `replica`) have no separate-resource alternative.",
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules on `aws_security_group.primary` or `aws_security_group.secondary`.",
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules, and inline blocks are used only where no separate resource exists (parameter group `parameter`, secret `replica`)."
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources, and the security groups have no inline rules.",
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules, and the inline `parameter` and `replica` blocks have no separate-resource alternative.",
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules, and the remaining inline blocks (parameter group `parameter`, secret `replica`) have no separate-resource alternative."
      ],
      "Outputs": [
-      "[2] Outputs expose what consumers need, including `global_writer_endpoint`, `regional_endpoints`, `application_connect_policy_arn`, `security_group_ids` and `administrator_secret_arn`, without dumping every attribute.",
-      "[2] Outputs give consumers what they need to use the database: `global_writer_endpoint`, `regional_endpoints` (cluster ARNs plus writer and reader endpoints), `application_connect_policy_arn`, `security_group_ids` and `administrator_secret_arn`, without dumping every attribute.",
-      "[2] Outputs cover what consumers need to use the database: the global writer endpoint, regional writer/reader endpoints, the secret ARN without its contents, the connect-policy ARN, security group IDs and the recovery automation document name."
+      "[2] The outputs expose what consumers need, including `global_writer_endpoint`, `regional_endpoints` (writer/reader/ARN), `application_connect_policy_arn`, `administrator_secret_arn` and `recovery_automation`, without dumping every attribute.",
+      "[2] Outputs expose what consumers need from outside: `global_writer_endpoint`, `regional_endpoints` (writer/reader/ARN), `administrator_secret_arn`, `application_connect_policy_arn`, `security_group_ids` and `recovery_automation`, without dumping every attribute.",
+      "[2] The outputs cover what consumers need: `global_writer_endpoint`, the `regional_endpoints` map with writer/reader endpoints and cluster ARNs, `administrator_secret_arn`, `application_connect_policy_arn`, `security_group_ids` and `recovery_automation`, without dumping every attribute."
      ],
      "Iteration: for_each vs count": [
-      "[1] `aws_rds_cluster_instance.primary`/`secondary` use `count = var.instances_per_region` for multiplicity rather than as an on/off switch, though the alarms correctly use `for_each`.",
-      "[1] `aws_rds_cluster_instance.primary` and `aws_rds_cluster_instance.secondary` use `count = var.instances_per_region` for multiplicity, keyed by index, although `for_each` is used appropriately elsewhere (alarms, ingress rules, subnets).",
-      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = var.instances_per_region` for multiplicity rather than as an on/off switch, although alarms and ingress rules correctly use `for_each`."
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = var.instances_per_region` for multiplicity, while the rest of the module correctly uses `for_each`.",
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = var.instances_per_region` for multiplicity, while ingress rules, alarms and role attachments correctly use `for_each`.",
+      "[1] `aws_rds_cluster_instance.primary`/`secondary` use `count = var.instances_per_region` for multiplicity (index-keyed), although other repeated resources such as the ingress rules and alarms correctly use `for_each`."
      ],
      "Data sources vs inputs": [
-      "[2] The VPC is looked up via `data \"aws_vpc\"` by `apps-${var.environment}`, and subnets via `data \"aws_subnets\"` filtered on `tag:tier = database`, rather than being requested as inputs.",
-      "[2] The VPC is looked up by its `apps-${var.environment}` Name tag and subnets by `tag:tier = database` through `data.aws_vpc` and `data.aws_subnets`, and AZs come from `data.aws_subnet` rather than being demanded as inputs.",
-      "[2] VPCs are found via `data \"aws_vpc\"` filtered on `apps-${var.environment}`, and subnets and their AZs via `data \"aws_subnets\"`/`data \"aws_subnet\"` filtered on `tier = database`, rather than asking for IDs or CIDRs."
+      "[2] The VPCs are found via `data \"aws_vpc\"` filtered on `apps-${var.environment}`, subnets via `tier = database`, and AZs and public-IP settings via `data \"aws_subnet\"`, rather than asking for them as inputs.",
+      "[2] VPCs are looked up with `data.aws_vpc` by the `apps-${var.environment}` name tag, and subnets and their AZs come from `data.aws_subnets`/`data.aws_subnet` filtered on `tier = database`, rather than being taken as inputs.",
+      "[2] The VPCs and database subnets are discovered with `data.aws_vpc` (tag `Name = apps-<environment>`) and `data.aws_subnets` (tag `tier = database`), and AZs come from `data.aws_subnet` rather than being requested as inputs."
      ],
      "File layout": [
-      "[1] The module is split by concern (database, network, monitoring, security, recovery), but outputs are scattered: `alert_topic_arns` sits in monitoring.tf and `recovery_automation` in recovery.tf instead of outputs.tf.",
-      "[1] Resources are split well by concern (`database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`), but outputs are scattered: `alert_topic_arns` lives in `monitoring.tf` and `recovery_automation` in `recovery.tf` instead of `outputs.tf`.",
-      "[1] Resources are split by concern (database, network, monitoring, security, recovery), but outputs are scattered: `alert_topic_arns` sits in monitoring.tf and `recovery_automation` in recovery.tf instead of outputs.tf."
+      "[1] Concerns are split sensibly across `database.tf`, `network.tf`, `security.tf`, `monitoring.tf` and `recovery.tf`, but outputs are scattered: `alert_topic_arns` is in `monitoring.tf` and `recovery_automation` is in `recovery.tf` rather than in `outputs.tf`.",
+      "[2] Files are split by concern (`database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf`, `outputs.tf`, `versions.tf`), with only a couple of concern-local outputs living beside their resources.",
+      "[1] Resources are split well by concern (`database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`), but the outputs `alert_topic_arns` and `recovery_automation` live outside `outputs.tf`, and the shared `prefix`/`tags` locals sit in `network.tf`."
      ],
      "Sensitive values": [
-      "[2] The admin password is generated by `random_password` and stored in a KMS-encrypted, replicated Secrets Manager secret, and only `administrator_secret_arn` is output, with no raw credential inputs.",
-      "[2] The admin password comes from `random_password.administrator` and is stored in a KMS-encrypted, replicated `aws_secretsmanager_secret`; only the secret's ARN and name are output, and no raw credential is taken as an input or given as a default.",
-      "[2] The admin password comes from `random_password`, is stored in a KMS-encrypted, replicated Secrets Manager secret, and only the secret ARN and name are output; no secret appears as an input or default."
+      "[2] The admin password comes from `random_password` and is stored only in a KMS-encrypted Secrets Manager secret; no secret is taken as an input, defaulted or output (only `administrator_secret_arn` is exported).",
+      "[2] The admin password is generated by `random_password.administrator` and stored in a KMS-encrypted, replicated `aws_secretsmanager_secret`; it is never taken as an input or output, and only the secret ARN is exported.",
+      "[2] No raw credential is taken as input or output; the master password comes from `random_password.administrator` and is stored in a KMS-encrypted, replicated `aws_secretsmanager_secret`, and only the secret ARN/name is output."
      ],
      "Lifecycle meta-arguments": [
-      "[1] `ignore_changes = [replication_source_identifier]` is legitimate, but `prevent_destroy` is placed on `aws_rds_global_cluster` and `aws_rds_cluster`, which already set the native `deletion_protection = true`.",
-      "[1] `ignore_changes = [replication_source_identifier]` is justified by AWS-managed failover, but `prevent_destroy` is placed on `aws_rds_global_cluster.database` and both `aws_rds_cluster` resources, which already set the native `deletion_protection = true`.",
-      "[1] The `ignore_changes = [replication_source_identifier]` for failover-driven drift is legitimate, but `prevent_destroy` is placed on `aws_rds_global_cluster` and `aws_rds_cluster`, which already set native `deletion_protection = true`."
+      "[1] `ignore_changes = [replication_source_identifier]` is legitimately justified by AWS-managed failover, but `prevent_destroy` is added to `aws_rds_global_cluster` and both `aws_rds_cluster` resources even though they already set native `deletion_protection = true`.",
+      "[1] `ignore_changes = [replication_source_identifier]` is legitimate, but `prevent_destroy` is layered onto `aws_rds_cluster` and `aws_rds_global_cluster`, which already set the native `deletion_protection = true`.",
+      "[1] `ignore_changes = [replication_source_identifier]` is legitimate because AWS changes it on failover, but `prevent_destroy` is added to `aws_rds_global_cluster` and `aws_rds_cluster`, which already set the native `deletion_protection = true`."
      ],
      "Documentation": [
-      "[1] Several outputs lack a `description`, including `global_cluster_identifier`, `application_connect_policy_arn`, `security_group_ids`, `database_name` and `application_db_user`.",
-      "[1] Several outputs have no `description`, including `global_cluster_identifier`, `application_connect_policy_arn`, `security_group_ids`, `database_name` and `application_db_user`, even though other outputs and comments are informative.",
-      "[1] Comments and many descriptions are accurate, but several outputs lack a `description` (`global_cluster_identifier`, `application_connect_policy_arn`, `security_group_ids`, `database_name`, `application_db_user`)."
+      "[1] The README and comments are thorough, but several outputs lack a `description` (`global_cluster_identifier`, `application_connect_policy_arn`, `security_group_ids`, `database_name`, `application_db_user`).",
+      "[1] The README is thorough and accurate, but several outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `security_group_ids`, `database_name`, `application_db_user`) have no `description`.",
+      "[1] All variables have descriptions and the README is thorough, but several outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `security_group_ids`, `database_name`, `application_db_user`) lack a `description`."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module contains no `null_resource` or `local-exec`, and security group rules use the current dedicated rule resources.",
-      "[2] There is no `null_resource` or `local-exec`; the failover logic is a managed `aws_ssm_document` Automation run by an operator, not a provisioner escape hatch.",
-      "[2] There is no `null_resource` or `local-exec`; failover is implemented as a managed `aws_ssm_document` Automation using the native global failover API."
+      "[2] There is no `null_resource` or `local-exec`; recovery uses a native `aws_ssm_document` Automation, and security group rules use the current dedicated resources.",
+      "[2] No `null_resource` or `local-exec` is used; the recovery logic is a managed `aws_ssm_document` Automation, and security group rules use the current dedicated rule resources.",
+      "[2] There is no `null_resource` or `local-exec`; the recovery logic is an AWS-managed `aws_ssm_document` Automation, and security group rules use the current dedicated rule resources."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly, with no remote module calls and no input that lets a consumer bypass the established security posture.",
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the posture the module sets (`publicly_accessible = false`, `storage_encrypted = true`, `rds.force_ssl = 1` are hardcoded).",
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the module's security posture (e.g. `publicly_accessible = false` and `storage_encrypted = true` are hardcoded)."
+      "[2] All resources are authored directly with no remote module calls, and no input allows bypassing the private, TLS and IAM-auth posture (for example, `publicly_accessible = false` is hardcoded).",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the established posture; for example, ingress is accepted only as security group references, never CIDRs.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the TLS, private-network, or IAM-auth posture (e.g. `publicly_accessible = false` is hardcoded)."
      ]
     }
    },
@@ -1259,74 +1259,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] Consumers supply only service-specific concepts (`name`, `environment`, `clients`, `instance_class`, `database_name`), while the module itself settles TLS, 35-day backups, two instances per region, encryption and the global-cluster topology.",
-      "[2] Inputs are pitched at concepts this audience can decide, such as `environment` (staging/prod, which drives the VPC lookup), `clients` (workload security groups and IAM role names per region) and `instance_class`, while the module itself settles TLS, RPO, backups, encryption and instance topology (`count = 2`, `backup_retention_period = 35`).",
-      "[2] Inputs are concept-level (`environment` drives the `apps-<environment>` VPC lookup; `clients` takes workload security groups and IAM roles), while expertise decisions such as backup retention, `rds.force_ssl`, instance count and monitoring are made by the module for non-specialist platform engineers."
+      "[2] Required inputs are limited to service-level concepts (`name`, `environment`, a `clients` object of workload security groups and IAM role names), while the module settles the TLS, RPO guardrail, 35-day backups, two-instance topology and encryption decisions that non-specialist platform engineers should not have to make.",
+      "[2] Consumers supply only service-specific decisions such as `name`, `environment`, `clients` and `instance_class`, while the module settles global topology, encryption, backups, TLS and IAM auth itself.",
+      "[2] The inputs are service-level concepts the platform engineers can decide on (`name`, `environment`, `clients`, `instance_class`, `engine_version`, regions), while the module settles the expert decisions itself: TLS, the RPO guardrail, backup retention, monitoring and the two-instance topology."
      ],
      "Variables and validation": [
-      "[2] `name` has a teaching regex, `environment` and both regions are restricted to allowed values, and a precondition on `aws_rds_global_cluster.this` rejects identical primary and secondary regions.",
-      "[2] `name` has a format regex, `environment` is restricted to staging/prod, both regions are limited to US regions, and the genuinely needed region pair is cross-checked by the `var.primary_region != var.secondary_region` precondition on `aws_rds_global_cluster.this`.",
-      "[2] `name` has a teaching regex, `environment` is restricted to staging/prod, both regions are limited to US regions, and a precondition on `aws_rds_global_cluster.this` rejects identical primary and secondary regions (a pair the DR design genuinely needs)."
+      "[2] Realistic mistakes are guarded with teaching messages: `environment` restricted to staging/prod, `engine_version` pinned to the 16.x family that matches the hardcoded parameter group family, IAM role names checked against the ARN format, and a precondition enforcing `primary_region != secondary_region`.",
+      "[2] Realistic mistakes are guarded with teaching messages: `environment` is limited to staging/prod, `clients` must use role names rather than ARNs and `sg-` IDs, `engine_version` must be 16.x to match the parameter family, and a precondition stops the region pair from being set to the same region.",
+      "[2] Realistic mistakes are guarded with teaching messages (environment enum, US region list, an ARN-vs-name check on `clients` role names, a PG16 `engine_version` regex), and the necessary `primary_region`/`secondary_region` pair is cross-checked by a precondition on `aws_rds_global_cluster.this`."
      ],
      "Internal logic": [
-      "[1] Locals derive the AZs from subnet data and share `cluster_parameters` across both regions, but the parameter group `family` is hardcoded to \"aurora-postgresql16\" instead of being derived from `var.engine_version`, so a different version input would conflict.",
-      "[2] Locals derive values from the concept inputs instead of demanding more inputs, as in `local.name` from name and environment, `primary_azs` from the subnet lookups, and a shared `cluster_parameters` map reused by both parameter groups, without convoluted chains.",
-      "[2] `local.cluster_parameters` is shared by both parameter groups and `local.primary_azs`/`secondary_azs` are derived from subnet lookups; the expressions stay readable."
+      "[2] Locals derive values from inputs readably: `local.cluster_parameters` is shared by both parameter groups, `primary_azs`/`secondary_azs` are computed from subnet lookups, and `local.name` combines `name` and `environment` without deep expression chains.",
+      "[2] Readable locals do the inference: `local.cluster_parameters` is shared by both parameter groups, `primary_azs`/`secondary_azs` are derived from subnet lookups, and `local.name` is composed from concept inputs.",
+      "[2] Locals such as `cluster_parameters`, `primary_azs` and `instance_alarms` derive values from the concept inputs and shared data, keeping both regions consistent without asking for extra inputs."
      ],
      "Scope": [
-      "[2] The module creates per-region KMS keys, security groups, a replicated bootstrap secret, an IAM connect policy, alarms including replication lag, and an SSM failover runbook, all proportionate to a cross-region production DR database for payment data.",
-      "[2] The module creates what a production cross-region payment database needs: a global cluster with per-region KMS keys, a replicated bootstrap secret, private security groups, an IAM connect policy, monitoring and a replication-lag alarm, plus an SSM failover runbook that directly serves the minutes-level recovery requirement.",
-      "[2] The module builds what the multi-region, minutes-RTO payment-data brief implies: `aws_rds_global_cluster`, per-region KMS keys, a replicated bootstrap secret, an IAM connect policy, a replication-lag alarm and an SSM failover runbook."
+      "[2] The module creates what a production cross-region, payment-data database needs: a global cluster with customer-managed KMS keys in both regions, least-privilege security groups and the `rds-db:connect` policy, a replicated bootstrap secret, a replication-lag alarm, and the SSM failover automation that serves the minutes-level recovery requirement.",
+      "[2] The module includes what the cross-region RPO/RTO production brief needs (`aws_rds_global_cluster`, regional KMS keys, a replicated bootstrap secret, an IAM connect policy, a replication-lag alarm and the SSM failover automation) without unrelated architecture.",
+      "[2] The module creates what the cross-region recovery and payment-data brief implies: a global cluster, regional CMK KMS keys, a replicated bootstrap secret, scoped security groups, IAM connect policy attachments, a replication-lag alarm and an operator-run failover SSM document."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources, and `aws_security_group.primary`/`secondary` contain no inline rules.",
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules, and the only inline blocks (parameter group `parameter`, secret `replica`) have no separate-resource alternative.",
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources, and both `aws_security_group` blocks contain no inline rules.",
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules on `aws_security_group`.",
       "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules on `aws_security_group.primary`/`secondary`."
      ],
      "Outputs": [
-      "[2] `regional_clusters` exposes the per-region writer/reader endpoints, ARNs, resource IDs and security groups, alongside the secret ARN, the IAM connect policy ARN and the alert topic ARNs that consumers need.",
-      "[2] `regional_clusters` exposes the ARNs, writer and reader endpoints, resource IDs and security groups consumers need, alongside `iam_connect_policy_arn`, `bootstrap_secret_arn` and `alert_topic_arns`, without dumping every attribute.",
-      "[2] `regional_clusters` exposes writer/reader endpoints, ARNs, resource IDs and security groups, alongside `bootstrap_secret_arn`, `iam_connect_policy_arn` and `alert_topic_arns`, without dumping every attribute."
+      "[2] `regional_clusters` exposes the writer/reader endpoints, ARNs, resource IDs and security groups per region, alongside `iam_connect_policy_arn`, `bootstrap_secret_arn` and `recovery_automation`, which are exactly what consumers need to connect and operate.",
+      "[2] `regional_clusters` exposes the ARNs, writer/reader endpoints, resource IDs and security groups consumers need, alongside the secret ARN, connect policy ARN and recovery document, without dumping every attribute.",
+      "[2] `regional_clusters` exposes writer/reader endpoints, ARNs, resource IDs and security groups, alongside the secret ARN, IAM connect policy ARN, SNS topic ARNs and recovery automation details a consumer needs."
      ],
      "Iteration: for_each vs count": [
-      "[1] `aws_rds_cluster_instance.primary` and `aws_rds_cluster_instance.secondary` use `count = 2` for multiplicity rather than as an on/off switch, although the alarms and ingress rules correctly use `for_each`.",
-      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, keyed by index into `local.primary_azs[count.index]`, although `for_each` is used correctly elsewhere (ingress rules, alarms, role attachments).",
-      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, keying instances by index, while the alarms and ingress rules correctly use `for_each`."
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, keyed by index, although `for_each` is used correctly for ingress rules, alarms and role attachments.",
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, keying instances by index, although `for_each` is used appropriately elsewhere (ingress rules, alarms, subnet lookups).",
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, keying instances by index, although the alarms correctly use `for_each`."
      ],
      "Data sources vs inputs": [
-      "[2] The VPCs are looked up via `data.aws_vpc` by the `apps-${var.environment}` Name tag and the subnets via `data.aws_subnets` with `tier = database`, rather than taking IDs or CIDRs as inputs.",
-      "[2] The VPC is found via `data \"aws_vpc\"` on the `apps-${var.environment}` Name tag, subnets via `data \"aws_subnets\"` filtered on `tier = database`, and AZs are read from `data.aws_subnet`, rather than asking for any of these as inputs.",
-      "[2] The VPC is found via `data \"aws_vpc\"` by its `apps-${var.environment}` Name tag, and subnets via `data \"aws_subnets\"` filtered on `tier = database`, rather than asking for IDs or CIDRs."
+      "[2] The VPC is looked up by its `apps-${var.environment}` Name tag and subnets by `tier = database` via `data.aws_subnets`/`data.aws_subnet`, so AZs are derived authoritatively rather than requested as inputs.",
+      "[2] The VPCs are looked up by `apps-${var.environment}` tag, the subnets by `tier = database`, and the AZs come from `data.aws_subnet`, rather than being requested as inputs.",
+      "[2] The VPC, database subnets and their AZs are looked up through `data.aws_vpc`, `data.aws_subnets` (tag `tier = database`) and `data.aws_subnet` rather than demanded as inputs."
      ],
      "File layout": [
-      "[2] The module is split by concern into database.tf, network.tf, security.tf, monitoring.tf, recovery.tf, variables.tf and outputs.tf.",
-      "[2] The module is split by concern into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf` and `outputs.tf`.",
-      "[2] Concerns are split into `network.tf`, `security.tf`, `database.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf` and `outputs.tf` (only the `recovery_automation` output sits outside `outputs.tf`)."
+      "[2] Resources are split by concern into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf` and `recovery.tf`, with separate `variables.tf`, `outputs.tf` and `versions.tf`; the only lapse is the `recovery_automation` output colocated in `recovery.tf`.",
+      "[2] Concerns are split into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf`, `outputs.tf` and `versions.tf`; only the `recovery_automation` output sits outside `outputs.tf`.",
+      "[2] Concerns are split into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf`, `outputs.tf` and `versions.tf`."
      ],
      "Sensitive values": [
-      "[2] The generated admin password is stored in a KMS-encrypted `aws_secretsmanager_secret` and only the secret's ARN and name are output, with no raw credential taken as an input or output.",
-      "[2] The admin password is generated by `random_password.admin` and stored only in a KMS-encrypted Secrets Manager secret; no secret is taken as an input or given a default, and outputs expose only the secret ARN and name.",
-      "[2] The admin password is generated by `random_password.admin` (sensitive by default), stored in `aws_secretsmanager_secret.admin`, and exposed only as a secret ARN and name, never as a raw value or input."
+      "[2] The admin password is generated by `random_password.admin` and stored only in a KMS-encrypted `aws_secretsmanager_secret`, with no secret variable, no default and no password output; only the secret ARN and name are exposed.",
+      "[2] The admin password is generated by `random_password` and stored in a KMS-encrypted `aws_secretsmanager_secret`; no secret is taken as an input, given as a default, or output.",
+      "[2] The admin password comes from `random_password` (sensitive by default), is stored only in a KMS-encrypted Secrets Manager secret, and is never taken as an input or returned as an output."
      ],
      "Lifecycle meta-arguments": [
-      "[0] `prevent_destroy = true` is set on `aws_rds_cluster.primary`/`secondary` and `aws_rds_global_cluster.this`, which already set native `deletion_protection = true`, and is also applied to KMS keys, cluster instances and the secret.",
-      "[0] `prevent_destroy` sits on `aws_rds_cluster.primary`, `aws_rds_cluster.secondary` and `aws_rds_global_cluster.this`, which already set native `deletion_protection = true`, and is also applied to cluster instances, KMS keys and the secret.",
-      "[0] `lifecycle { prevent_destroy = true }` is placed on `aws_rds_cluster.primary`, `aws_rds_global_cluster.this` and others that already set the native `deletion_protection = true`."
+      "[1] `aws_rds_cluster.primary`/`.secondary` and `aws_rds_global_cluster.this` add `prevent_destroy` even though they already set the native `deletion_protection = true`, and `prevent_destroy` is also applied to the KMS keys and the secret.",
+      "[0] `prevent_destroy` is applied to `aws_rds_global_cluster.this` and the `aws_rds_cluster` resources even though they already set native `deletion_protection = true`, and is also applied to the KMS keys and the secret.",
+      "[0] `prevent_destroy` is placed on `aws_rds_cluster.primary`/`secondary` and `aws_rds_global_cluster.this`, which already set native `deletion_protection = true`, and also on KMS keys and the secret, which have native deletion windows."
      ],
      "Documentation": [
-      "[1] Several variables and outputs lack descriptions, including `primary_region`, `secondary_region`, `global_cluster_id`, `connection` and `iam_connect_policy_arn`, though the descriptions that do exist are accurate.",
-      "[1] Several outputs (`global_cluster_id`, `connection`, `iam_connect_policy_arn`, `alert_topic_arns`, `recovery_automation`) and the `primary_region`/`secondary_region` variables have no `description`, although the descriptions that do exist are accurate.",
-      "[1] The existing descriptions are accurate, but several variables (`primary_region`, `secondary_region`) and outputs (`global_cluster_id`, `connection`, `bootstrap_secret_name`) lack a `description`."
+      "[1] Several variables (`primary_region`, `secondary_region`, `tags`) and outputs (`global_cluster_id`, `connection`, `iam_connect_policy_arn`, `alert_topic_arns`, `recovery_automation`) lack a `description`, while the README is long enough to verge on noise.",
+      "[1] Several outputs (`global_cluster_id`, `connection`, `iam_connect_policy_arn`, `alert_topic_arns`, `recovery_automation`) and variables (`primary_region`, `secondary_region`, `tags`) lack descriptions, while the README is very heavy.",
+      "[1] The README is accurate but very heavy, and several variables and outputs lack descriptions: `primary_region`, `secondary_region`, `tags`, `global_cluster_id`, `connection` and `alert_topic_arns`."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module contains no `null_resource` or `local-exec`; the failover logic is a managed `aws_ssm_document` Automation runbook.",
-      "[2] The module contains no `null_resource` or `local-exec`, and uses current resources such as `aws_vpc_security_group_ingress_rule`.",
-      "[2] No `null_resource` or `local-exec` appears; the failover logic is an `aws_ssm_document` automation rather than a provisioner."
+      "[2] There is no `null_resource` or `local-exec`; failover logic runs as a native `aws_ssm_document` Automation, and security group rules use the current dedicated rule resources.",
+      "[2] There is no `null_resource` or `local-exec`, and no deprecated resource forms are used.",
+      "[2] The module contains no `null_resource` or `local-exec`; failover automation is a managed `aws_ssm_document` rather than a local escape hatch."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls, and no visible input lets consumers bypass security posture: `publicly_accessible = false` and `storage_encrypted = true` are hardcoded.",
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer weaken the posture (`publicly_accessible = false`, `storage_encrypted = true` and `rds.force_ssl` are all hardcoded).",
-      "[2] Resources are authored directly with no remote module calls, and no input lets a consumer weaken posture (e.g. `publicly_accessible = false` and `storage_encrypted = true` are hardcoded)."
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the fixed `publicly_accessible = false`, encryption or `rds.force_ssl` settings.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the established security posture.",
+      "[2] All resources are authored directly, with no remote module calls and no input that lets a consumer bypass the established security posture (e.g. `publicly_accessible = false` and `storage_encrypted = true` are fixed)."
      ]
     }
    },
@@ -1337,8 +1337,8 @@
     "gate": true,
     "rubric": 0.878,
     "mechanical": 0.865,
-    "judge": 86.8,
-    "composite": 86.59,
+    "judge": 92.1,
+    "composite": 88.18,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -1368,7 +1368,7 @@
     "cost_usd": 1.075,
     "judge_sections": {
      "Interface design": 2,
-     "Variables and validation": 1,
+     "Variables and validation": 2,
      "Internal logic": 2,
      "Scope": 2,
      "Inline Resource Configuration vs Separate Resources": 2,
@@ -1384,74 +1384,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] Consumers decide only service-specific concepts (`name`, `environment`, client security groups, application roles and user, `instance_class`), while the module settles RPO, backups, TLS, IAM auth and topology itself, and `environment` resolves to the network team's `apps-<environment>` VPC.",
-      "[2] Consumers supply only per-service decisions (`name`, `environment`, client security group IDs, `application_role_names`, `instance_class`), while the module settles database-expert choices itself: the cluster parameters in `local.cluster_parameters`, `backup_retention_period = 35`, and two instances per region.",
-      "[2] Inputs are service-level decisions a platform engineer can make (`name`, `environment`, regions, `instance_class`, client security groups, `application_role_names`, `alarm_email`), while database-specialist choices such as `backup_retention_period = 35`, the `cluster_parameters` set, and the maintenance windows are settled inside the module."
+      "[2] Inputs cover the per-service decisions (`name`, `environment`, `instance_class`, the client security group sets, `application_role_names`, `alarm_email`), while the module settles expert choices itself: 35-day backups, `rds.global_db_rpo`, TLS/SCRAM parameters, two instances per region and IAM auth.",
+      "[2] Inputs are service-level concepts the platform engineers can decide (`name`, `environment`, client security group sets, `application_role_names`, `alarm_email`), while the module settles topology, encryption, backup retention, TLS and RPO parameters itself.",
+      "[2] The inputs are per-service concepts such as `name`, `environment` (which selects the `apps-<env>` VPC), `application_role_names` and the client security group ids, while the module settles backups, TLS, IAM auth, encryption and the two-region topology itself."
      ],
      "Variables and validation": [
-      "[1] Guards are deliberate (for example `secondary_region != var.primary_region` and the `16.` engine_version prefix check that ties to the parameter group family), but the `instance_class` regex `^db\\.(r6g|r7g|r8g)\\.` rejects valid Aurora PostgreSQL classes such as `db.r6i.large`.",
-      "[2] Realistic mistakes are guarded with teaching messages, such as `secondary_region` rejecting a value equal to `primary_region`, `engine_version` requiring `16.` to match the parameter-group family, and the client security group sets requiring at least one `sg-` ID.",
-      "[1] Guards are deliberate (for example, `secondary_region != var.primary_region` and the `16.` engine prefix), but the `instance_class` regex `^db\\.(r6g|r7g|r8g)\\.` rejects valid Aurora global-database classes such as `db.r6i.large`."
+      "[2] Realistic mistakes are guarded with teaching messages: `secondary_region` must differ from `primary_region`, `engine_version` must start with `16.` to match the parameter family, `application_database_user` rejects admin names, and the client security group sets must be non-empty.",
+      "[2] Realistic mistakes are guarded with teaching messages, including `secondary_region` rejecting a value equal to `primary_region`, `engine_version` requiring `16.` to match the `aurora-postgresql16` parameter family, and `application_database_user` rejecting admin logins.",
+      "[2] Realistic mistakes are guarded with teaching messages: `secondary_region` must differ from `primary_region`, `engine_version` must be 16.x to match the `aurora-postgresql16` parameter family, client SG lists must be non-empty `sg-` ids, and `application_database_user` rejects admin logins."
      ],
      "Internal logic": [
-      "[2] Readable locals derive values instead of asking for them: `local.cluster_parameters` is shared by both parameter groups, and `local.primary_azs`/`local.secondary_azs` are computed from the subnet lookups.",
-      "[2] Locals derive values from concept inputs, such as `primary_azs`/`secondary_azs` from the subnet lookups and the shared `cluster_parameters` map reused by both parameter groups, and they stay readable.",
-      "[2] Readable locals derive values instead of asking for them: `primary_azs`/`secondary_azs` from subnet lookups, a shared `cluster_parameters` map reused in both regions, and `instance_alarms` built with a single `merge([...]...)`."
+      "[2] Locals derive values instead of asking for them: `primary_azs`/`secondary_azs` are computed from the subnet lookups, and `cluster_parameters` feeds both parameter groups without convoluted expression chains.",
+      "[2] Readable locals derive values instead of asking for them: `local.primary_azs`/`secondary_azs` come from subnet lookups, and a shared `local.cluster_parameters` map feeds both regional parameter groups.",
+      "[2] Readable locals derive values instead of asking for them, such as `primary_azs` built from the looked-up subnets and the shared `cluster_parameters` and `cluster_alarms` maps reused across both regions."
      ],
      "Scope": [
-      "[2] The module builds the global cluster with per-region KMS keys, encrypted log groups, a replicated bootstrap secret, an IAM connect policy, lag and RPO alarms, and an SSM failover document, all of which serve the cross-region minutes-RTO requirement for payment data.",
-      "[2] The module creates what a cross-region, minutes-to-recover payment database needs: the global cluster, per-region KMS keys, a replicated bootstrap secret, IAM connect policy, encrypted log groups, lag alarms and the `aws_ssm_document.regional_recovery` failover runbook.",
-      "[2] The module creates per-region KMS keys, an encrypted replicated bootstrap secret, IAM-auth connect policies, lag and instance alarms, and an operator-gated SSM failover document, all proportionate to the cross-region recovery requirement for payment data."
+      "[2] The resource set is proportionate to the brief's cross-region RTO/RPO and payment-data requirements: per-region KMS keys, replicated bootstrap secret, `aws_iam_policy.connect` for IAM auth, lag and instance alarms, and the `aws_ssm_document.regional_recovery` failover runbook.",
+      "[2] The resources match the cross-region production job: per-region KMS keys, a replicated bootstrap secret, an IAM `rds-db:connect` policy, a least-access security group, lag and instance alarms, and an SSM failover document supporting the minutes-level RTO.",
+      "[2] The module creates what a production cross-region payment database needs: a global cluster with warm secondary instances, per-region CMKs, a replicated bootstrap secret, an IAM connect policy, lag/RPO alarms and an SSM failover runbook that serves the minutes-level RTO."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules; the inline `parameter` and `replica` blocks have no separate-resource alternative.",
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources, and the `aws_security_group` blocks contain no inline rules.",
-      "[2] Security group ingress is defined with separate `aws_vpc_security_group_ingress_rule` resources and no inline rules, and the inline `parameter` blocks have no separate-resource alternative."
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules, and the inline `parameter`/`replica` blocks have no separate-resource alternative.",
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules, and the remaining inline blocks (parameter group `parameter`, secret `replica`) have no separate-resource alternative.",
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources and has no inline rules on `aws_security_group`."
      ],
      "Outputs": [
-      "[2] Outputs give consumers what they need to connect and operate: `global_writer_endpoint`, `regional_clusters` (endpoints, ARNs, security groups), `application_connect_policy_arn`, `bootstrap_secret_arn` and `recovery_automation`, without dumping every attribute.",
-      "[2] `regional_clusters` exposes per-region endpoints, reader endpoints, ARNs and security group IDs, alongside `global_writer_endpoint`, `bootstrap_secret_arn` and `application_connect_policy_arn`, which are the values consumers need to connect.",
-      "[2] `regional_clusters` exposes the region, ARN, writer and reader endpoints, and security group per member, alongside `global_writer_endpoint`, `bootstrap_secret_arn`, and `application_connect_policy_arn`, which are the values consumers need to connect."
+      "[2] `regional_clusters` exposes the region, ARN, writer/reader endpoints and security group ID per member, alongside `bootstrap_secret_arn`, `application_connect_policy_arn` and `recovery_automation`, without dumping every attribute.",
+      "[2] Outputs cover what consumers need: the global and regional endpoints, ARNs, security group IDs, the connect policy ARN, the bootstrap secret ARN (not its value) and the recovery automation details.",
+      "[2] Consumers get what they need to connect and operate: `regional_clusters` (endpoints, ARNs, SG ids), `global_writer_endpoint`, `application_connect_policy_arn`, `bootstrap_secret_arn` and `recovery_automation`, without dumping every attribute."
      ],
      "Iteration: for_each vs count": [
-      "[1] `aws_rds_cluster_instance.primary`/`secondary` use `count = 2` for multiplicity, keying instances by index, although `for_each` is used correctly elsewhere (ingress rules, alarms, role attachments).",
-      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, indexed into AZ lists, even though `for_each` is used appropriately elsewhere (ingress rules, alarms).",
-      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity (indexed into `local.primary_azs[count.index]`) rather than `for_each`, although `for_each` is used correctly elsewhere."
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity (index-keyed instances and AZs), although alarms, ingress rules and role attachments correctly use `for_each`.",
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity rather than as an on/off switch, although the alarms and ingress rules correctly use `for_each`.",
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = 2` for multiplicity, keyed by index, although alarms, ingress rules and policy attachments correctly use `for_each`."
      ],
      "Data sources vs inputs": [
-      "[2] `data \"aws_vpc\"` and `data \"aws_subnets\"` look up the VPC and `tier = database` subnets from `environment`, and AZs come from `data \"aws_subnet\"`, rather than asking for IDs or CIDRs.",
-      "[2] The VPC is resolved from `environment` via `data \"aws_vpc\"`, and subnets and AZs are looked up via `data \"aws_subnets\"`/`data \"aws_subnet\"` filtered on `tier = database`, rather than being requested as inputs.",
-      "[2] The VPC is resolved from `environment` through `data.aws_vpc` filtered on `tag:Name = apps-<env>`, and subnets through `data.aws_subnets` filtered on `tier = database`, rather than taking IDs as inputs."
+      "[2] The VPC is resolved from `environment` via `data \"aws_vpc\"` with a `tag:Name` filter, and subnets and AZs are looked up from `tier=database` tags rather than supplied as inputs.",
+      "[2] The VPC is found by `tag:Name = apps-${var.environment}` and the subnets by `tag:tier = database` through `data.aws_vpc`/`data.aws_subnets`, instead of requiring VPC or subnet IDs.",
+      "[2] The VPC and `tier=database` subnets are discovered with `data.aws_vpc` and `data.aws_subnets`/`data.aws_subnet` lookups, and AZs are derived from them rather than requested as inputs."
      ],
      "File layout": [
-      "[2] Concerns are split into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf` and `outputs.tf`.",
-      "[2] Concerns are split into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf` and `outputs.tf`.",
-      "[2] Concerns are split across `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf` and `outputs.tf`, with only the recovery output co-located in `recovery.tf`."
+      "[2] Resources are split by concern into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf` and `recovery.tf`, with `variables.tf`, `outputs.tf` and `versions.tf`; the only lapse is a single co-located `recovery_automation` output.",
+      "[2] Files are split by concern (database.tf, network.tf, security.tf, monitoring.tf, recovery.tf, variables.tf, outputs.tf, versions.tf), with only minor misplacements such as the `recovery_automation` output living in recovery.tf.",
+      "[2] The module is split by concern into `database.tf`, `network.tf`, `security.tf`, `monitoring.tf`, `recovery.tf`, `variables.tf`, `outputs.tf` and `versions.tf`."
      ],
      "Sensitive values": [
-      "[2] The admin password is generated by `random_password.admin`, stored only in a KMS-encrypted, replicated `aws_secretsmanager_secret`, and never taken as an input or exposed as an output; only the secret ARN is output.",
-      "[2] The admin password is generated internally by `random_password.admin` and stored in a KMS-encrypted, replicated `aws_secretsmanager_secret`; no secret is taken as an input or emitted as an output (only the secret ARN is output).",
-      "[2] The admin password comes from `random_password`, is stored in a KMS-encrypted `aws_secretsmanager_secret` with no raw secret input or output, and only the secret ARN is exported."
+      "[2] The master password is generated by `random_password.admin` and stored in a KMS-encrypted, replicated Secrets Manager secret; no variable accepts or defaults a secret, and no output exposes one.",
+      "[2] The admin password is generated by `random_password` and stored in a KMS-encrypted, replicated Secrets Manager secret; no secret is taken as a variable or emitted as an output, only `bootstrap_secret_arn`.",
+      "[2] The admin password is generated by `random_password`, stored only in a KMS-encrypted replicated Secrets Manager secret, and never output or taken as a raw input; applications authenticate via IAM."
      ],
      "Lifecycle meta-arguments": [
-      "[1] `lifecycle { prevent_destroy = true }` is added to `aws_rds_global_cluster.this` and both `aws_rds_cluster` resources, which already set the native `deletion_protection = true`, although `create_before_destroy` on the parameter groups is appropriate.",
-      "[1] `prevent_destroy = true` is added to `aws_rds_global_cluster.this` and both `aws_rds_cluster` resources, which already set the native `deletion_protection = true`, while `create_before_destroy` on the parameter groups is appropriate.",
-      "[1] `lifecycle { prevent_destroy = true }` appears on `aws_rds_global_cluster.this` and both `aws_rds_cluster` resources, which already set the native `deletion_protection = true`."
+      "[1] `lifecycle { prevent_destroy = true }` is added to `aws_rds_global_cluster.this` and both `aws_rds_cluster` resources, which already set the native `deletion_protection = true`.",
+      "[1] `prevent_destroy = true` is added on `aws_rds_global_cluster.this` and both `aws_rds_cluster` resources even though each already sets the native `deletion_protection = true`.",
+      "[1] `prevent_destroy` is placed on `aws_rds_global_cluster.this` and both `aws_rds_cluster` resources, which already set the native `deletion_protection = true`."
      ],
      "Documentation": [
-      "[1] Several variables and outputs have no description, including `primary_region`, `secondary_region`, `database_name`, `global_cluster_identifier`, `application_connect_policy_arn` and `alarm_topic_arns`, though the comments and descriptions that do exist are accurate.",
-      "[1] Several variables (`primary_region`, `secondary_region`, `database_name`) and outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `database_name`, `alarm_topic_arns`) lack a `description`.",
-      "[1] Several variables (`primary_region`, `secondary_region`, `database_name`) and outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `alarm_topic_arns`) lack a `description`."
+      "[1] The README is thorough and accurate, but several variables (`primary_region`, `secondary_region`, `database_name`, `tags`) and outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `database_name`, `alarm_topic_arns`) lack a `description`.",
+      "[1] Several variables (`primary_region`, `secondary_region`, `database_name`, `tags`) and outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `alarm_topic_arns`, etc.) lack descriptions, while the README is very heavy.",
+      "[1] The README is thorough and accurate, but several variables (`primary_region`, `secondary_region`, `database_name`, `tags`) and outputs (`global_cluster_identifier`, `application_connect_policy_arn`, `alarm_topic_arns`, `database_name`, `application_database_user`) lack a `description`."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] There is no `null_resource` or `local-exec`, and security group rules use the current `aws_vpc_security_group_ingress_rule` form.",
-      "[2] There is no `null_resource` or `local-exec`, and ingress uses the current `aws_vpc_security_group_ingress_rule` resource.",
-      "[2] There is no `null_resource` or `local-exec`, and security group rules use the current `aws_vpc_security_group_ingress_rule` resource."
+      "[2] No `null_resource` or `local-exec` is used, and SQL bootstrap is deliberately left to an operator, as the README explains.",
+      "[2] The module contains no `null_resource` or `local-exec` and uses current forms such as `aws_vpc_security_group_ingress_rule`.",
+      "[2] There is no `null_resource` or `local-exec`, and the README explains why SQL bootstrap is deliberately not done via a provisioner."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the TLS, IAM-auth, encryption or private-network posture.",
-      "[2] All resources are authored directly with no remote module calls, and no input lets consumers bypass the enforced posture (for example, `publicly_accessible = false` and `storage_encrypted = true` are hardcoded).",
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer bypass the module's posture (for example, `publicly_accessible = false` and `storage_encrypted = true` are fixed)."
+      "[2] All resources are authored directly with no remote module calls, and no input allows bypassing the TLS, private-access or encryption posture.",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer weaken the enforced posture (`publicly_accessible = false`, `storage_encrypted = true`, `rds.force_ssl = 1` are hardcoded).",
+      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer weaken TLS, encryption or private-only access."
      ]
     }
    }
@@ -1508,74 +1508,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[1] The inputs are concept-level and well suited to the non-specialist audience (`environment` and `region` derive the VPC and subnet, and `node_pools` carries opinionated defaults), but `enable_public_endpoint` turns control-plane exposure into a consumer knob, which the standard says must stay non-negotiable.",
-      "[2] The module derives the network and subnet from the `environment` and `region` concepts (`local.network`, `local.subnetwork`) and hardcodes posture such as private nodes, shielded nodes and Workload Identity, while exposing per-cluster decisions like `node_pools`, `authorized_networks` and `workload_identities` that a Kubernetes-literate platform team can choose.",
-      "[2] The `environment` and `region` inputs are concepts from which the module derives the VPC and `<vpc>-gke-<region>` subnet, while security posture (private nodes, shielded nodes, `GKE_METADATA`, Dataplane V2, a dedicated node SA) is fixed and the per-cluster choices (`node_pools`, `authorized_networks`, `workload_identities`) carry sensible defaults suited to a non-specialist platform team."
+      "[2] The network and subnet are derived from the `environment` and `region` concepts. Security hardening (shielded nodes, `GKE_METADATA`, private nodes) is fixed by the module. The engineers keep Kubernetes-level controls they can decide on, through the `node_pools` map (machine type, min/max totals, taints) and the `release_channel` limited to STABLE/REGULAR.",
+      "[2] The `environment` input (`staging`/`prod`) is a concept from which `local.network` and `local.subnetwork` are derived, and the per-cluster decisions are exposed as concept-level inputs (`node_pools`, `workload_identities`, `artifact_registry_repositories`), while posture choices such as shielded nodes, GKE_METADATA, private nodes and Dataplane V2 are made by the module.",
+      "[2] The `environment` input is a concept that derives both the `apps-<environment>` VPC and the `<vpc>-gke-<region>` subnet, and the module hardcodes the settled expert decisions (private nodes, Dataplane V2, Workload Identity, shielded COS nodes), so the `node_pools` map exposes only per-cluster sizing choices a Kubernetes-savvy team can make."
      ],
      "Variables and validation": [
-      "[1] Guards are extensive and deliberate, but the `node_pools` validation `contains([8, 16, 32, 64, 128, 256], pool.max_pods_per_node)` rejects valid GKE values such as 110, the Standard default.",
-      "[1] Guards are deliberate (RFC1918 /28 check, public-endpoint-requires-allowlist precondition, zones-in-region precondition), but the `node_pools` rule `contains([8, 16, 32, 64, 128, 256], pool.max_pods_per_node)` rejects valid GKE values such as the common 110.",
-      "[1] Validation is deliberate and broad (RFC1918 /28 control-plane range, zone/region and public-endpoint preconditions, maintenance-window duration), but the `node_pools` check `contains([8, 16, 32, 64, 128, 256], pool.max_pods_per_node)` rejects valid GKE values such as the standard 110."
+      "[2] Realistic mistakes are guarded with teaching messages, none of which rejects a sensible value: an RFC1918 /28 check on `master_ipv4_cidr_block`, a US-region regex, a 24-character `cluster_name` limit sized for the `-nodes` service-account suffix, the maintenance window duration check, and the pool validations. The `enable_public_endpoint`/`authorized_networks` interaction is cross-checked by a precondition.",
+      "[1] Validation is deliberate and thorough (RFC1918 /28, zone-in-region and per-zone minimum preconditions, `cluster_name` length tied to the `-nodes` SA ID), but the `node_pools` check `contains([8, 16, 32, 64, 128, 256], pool.max_pods_per_node)` rejects valid GKE values such as the default 110.",
+      "[1] Validation is deliberate and broad (RFC1918 /28 control-plane range, zone/region precondition, 4h maintenance window), but `contains([8, 16, 32, 64, 128, 256], pool.max_pods_per_node)` rejects valid GKE values such as the common default 110."
      ],
      "Internal logic": [
-      "[2] Readable locals derive `network` and `subnetwork` from `environment` and `region`, merge managed labels, and flatten `workload_identities` into `workload_roles` without convoluted chains.",
-      "[2] The locals are readable: they build network and subnetwork paths from concept inputs, merge managed labels, and flatten `workload_identities` into a role map keyed by `\"${account}/${role}\"` for `for_each`.",
-      "[2] Locals build `network`, `subnetwork` and `labels` from concept inputs, and `workload_roles` flattens identity\u00d7role pairs into stable keys for `for_each` without excessive cleverness."
+      "[2] Readable locals compute `network`, `subnetwork` and the merged `labels` from concept inputs, and `workload_roles` flattens identity\u00d7role pairs into stable keys without excessive cleverness.",
+      "[2] Readable locals derive the VPC and subnet self-links from `environment`/`region`, and `local.workload_roles` flattens identity-to-role pairs into a stable for_each map without convoluted chains.",
+      "[2] Readable locals compute `network` and `subnetwork` from `environment` and `region`, and flatten `workload_roles` into for_each keys without convoluted chains."
      ],
      "Scope": [
-      "[2] The module creates the resources a competent operator expects for a production shared cluster: a regional private cluster, separately managed node pools, a dedicated least-privilege node service account, repository-scoped image-pull IAM, workload identity service accounts and API enablement.",
-      "[2] The module creates the cluster plus what a production shared cluster needs: separate node pools, a least-privilege dedicated node service account, repo-scoped Artifact Registry reader grants, API enablement, and workload-identity service accounts for Pub/Sub, Cloud Storage and Cloud SQL access, without inventing extra architecture.",
-      "[2] The module creates the regional cluster and separate node pools, plus the supporting pieces the job needs: a least-privilege node service account with telemetry-only roles, repository-scoped `artifactregistry.reader`, Workload Identity GSAs for workloads that call Google services, and the API enablement they depend on, without unrelated extras."
+      "[2] The module creates what a competent operator would expect for a resilient, secure shared production cluster: a regional cluster, independently managed node pools, a least-privilege dedicated node service account, repository-scoped Artifact Registry reader grants, Workload Identity service accounts for the GCP services workloads use, and the required APIs with `disable_on_destroy = false`.",
+      "[2] The module creates the regional cluster, independently managed node pools, a dedicated least-privilege node service account with telemetry roles, scoped Artifact Registry reader grants and optional Workload Identity GSAs, which is proportionate to secure shared production clusters that use other GCP services.",
+      "[2] The module creates the cluster, separately managed node pools, a least-privilege node service account, repository-scoped Artifact Registry reader grants, required API enablement and optional workload-identity GSAs, which is proportionate to a secure, shared production GKE cluster."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] The cluster sets `remove_default_node_pool = true`, node pools are separate `google_container_node_pool` resources, and IAM uses separate `*_iam_member` resources.",
-      "[2] The default pool is removed (`remove_default_node_pool = true`), lasting pools are separate `google_container_node_pool` resources, and IAM uses separate `_iam_member` resources rather than inline policy.",
-      "[2] Node pools are separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and IAM uses additive `*_iam_member` resources rather than authoritative inline policies."
+      "[2] Node pools use separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and IAM uses separate `*_iam_member` resources, with no mixing of inline and separate styles.",
+      "[2] Node pools use separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and all IAM uses separate `*_iam_member` resources rather than inline or mixed forms.",
+      "[2] The cluster sets `remove_default_node_pool = true` with pools in separate `google_container_node_pool` resources, and IAM uses separate `_iam_member` resources rather than inline or authoritative forms."
      ],
      "Outputs": [
-      "[2] Outputs cover what consumers need, including `cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_account_emails`, `workload_service_account_annotations` and `get_credentials_command`, without dumping every attribute.",
-      "[2] Outputs cover what consumers need, including `endpoint`, `cluster_ca_certificate`, `workload_service_account_emails`, `workload_service_account_annotations` and `get_credentials_command`, without dumping every attribute.",
-      "[2] Outputs cover what consumers need to use the cluster (`cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_account_emails`, `workload_service_account_annotations`, `get_credentials_command`) without dumping every attribute."
+      "[2] The outputs cover what a consumer needs: `cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_account_emails`, the annotation map and `get_credentials_command`, with no indiscriminate attribute dumping.",
+      "[2] The outputs cover what consumers need, including `cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_account_emails`, ready-made `workload_service_account_annotations` and `get_credentials_command`, without dumping every attribute.",
+      "[2] The outputs cover what consumers need, including `cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_account_emails`, ready-made `workload_service_account_annotations` and `get_credentials_command`, without dumping every attribute."
      ],
      "Iteration: for_each vs count": [
-      "[2] All multiplicity uses `for_each` (`google_project_service.required`, `google_container_node_pool.this`, `google_service_account.workload`, `google_project_iam_member.workload_role`), and `count` is never used.",
-      "[2] All multiplicity uses `for_each` (`google_project_service.required`, `google_container_node_pool.this`, `google_service_account.workload`, `google_project_iam_member.workload_role`), and `count` is never used.",
-      "[2] Every repeated resource (`google_project_service.required`, `google_container_node_pool.this`, `google_service_account.workload`, `google_project_iam_member.workload_role`) uses `for_each`, and there is no `count`."
+      "[2] Every repeated resource (`google_project_service.required`, `google_container_node_pool.this`, `google_service_account.workload`, the IAM members) uses `for_each` with stable keys, and `count` is never used.",
+      "[2] All multiplicity (`google_project_service.required`, `google_container_node_pool.this`, `google_service_account.workload`, IAM members) uses `for_each` over sets or maps, and `count` is never used.",
+      "[2] Every multi-instance resource (`google_project_service.required`, `google_container_node_pool.this`, `google_service_account.workload`, IAM members) uses `for_each` with stable keys, and `count` appears nowhere."
      ],
      "Data sources vs inputs": [
-      "[2] The module takes only dependency identities (`environment`, `region`) and builds the network and subnet references, never asking for redundant dependency facts such as subnet CIDRs that could conflict.",
-      "[2] The module takes only dependency identity (`project_id`, `environment`, `region`) and never asks for derivable facts such as a CIDR, so no input can contradict the referenced network.",
-      "[2] The module takes only identities (`project_id`, `environment`, `region`) and builds the network references from the brief's naming convention, with no redundant inputs such as subnet CIDRs that could contradict the real VPC."
+      "[2] The module asks only for identities (`project_id`, `environment`, `region`) and builds references from the brief's naming convention, never asking for redundant facts such as a VPC CIDR that could contradict the real network.",
+      "[2] The module takes only identities (`project_id`, `environment`, `region`) and constructs the network, subnet and secondary range references from the brief's naming convention, without asking for redundant facts that could conflict.",
+      "[2] The network and subnet are referenced by identity derived from `environment` and `region`, and the module never asks for dependency facts such as subnet CIDRs that could conflict with the real VPC."
      ],
      "File layout": [
-      "[1] `variables.tf` and `outputs.tf` exist, but `main.tf` holds roughly 300 lines mixing API enablement, node IAM, the cluster, node pools and workload identity resources without a conceptual split.",
-      "[1] `variables.tf`, `outputs.tf` and `versions.tf` exist, but `main.tf` runs to about 300 lines mixing distinct concerns (API enablement, node IAM, cluster, node pools, workload identity service accounts and bindings) with no conceptual split.",
-      "[1] Variables, outputs and versions are split out, but `main.tf` holds roughly 300 lines mixing several distinct concerns (API enablement, node IAM, cluster, node pools, workload identity SAs and role grants) that should be split."
+      "[1] `main.tf` holds well over 200 lines mixing distinct concerns in one file: API enablement, node IAM, the cluster, node pools, and the workload identity service accounts and bindings.",
+      "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 300 lines mixing several distinct concerns: API enablement, node IAM, the cluster, node pools and workload-identity service accounts with their IAM.",
+      "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` holds roughly 330 lines spanning distinct concerns (API enablement, node IAM, cluster, node pools, workload identity) without splitting them."
      ],
      "Sensitive values": [
-      "[2] No secrets are accepted or hardcoded, and the confidential-ish `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`.",
-      "[2] The module handles no secrets, and the potentially confidential `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`.",
-      "[2] The module handles no secrets or credentials (`issue_client_certificate = false`, no SA keys), and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`."
+      "[2] The module handles no secrets, and the connection metadata outputs `endpoint` and `cluster_ca_certificate` are marked `sensitive = true`.",
+      "[2] No secrets are accepted or hardcoded, and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`.",
+      "[2] The module takes no secret inputs and generates no client certificates (`issue_client_certificate = false`), and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`."
      ],
      "Lifecycle meta-arguments": [
-      "[2] The cluster relies on the native `deletion_protection = var.deletion_protection` rather than `prevent_destroy`, and uses no `ignore_changes`; its lifecycle blocks contain only preconditions.",
-      "[2] The cluster uses its native `deletion_protection = var.deletion_protection` rather than `prevent_destroy`, and `lifecycle` contains only preconditions, with no `ignore_changes`.",
-      "[2] The cluster uses the native `deletion_protection` attribute rather than `prevent_destroy`, has no `ignore_changes`, and its `lifecycle` block holds only preconditions."
+      "[2] The cluster relies on the native `deletion_protection` attribute rather than `prevent_destroy`, and `lifecycle` is used only for preconditions, with no `ignore_changes`.",
+      "[2] Cluster protection uses the native `deletion_protection = var.deletion_protection` rather than `prevent_destroy`, and the lifecycle block contains only preconditions, with no `ignore_changes`.",
+      "[2] The cluster uses the native `deletion_protection` attribute rather than `prevent_destroy`, there is no `ignore_changes`, and the lifecycle block contains only validating preconditions."
      ],
      "Documentation": [
-      "[1] Several outputs lack a `description`, including `cluster_name`, `location`, `network`, `subnetwork`, `node_service_account_email`, `workload_pool` and `node_pool_names`, even though variables and the README are thorough.",
-      "[1] The README is extensive and accurate, but several outputs (`cluster_name`, `location`, `network`, `subnetwork`, `node_service_account_email`, `workload_pool`, `node_pool_names`) lack a `description`.",
-      "[1] Variables and the README are thorough and accurate, but several outputs lack a `description` (`cluster_name`, `location`, `network`, `subnetwork`, `node_service_account_email`, `workload_pool`, `node_pool_names`)."
+      "[1] Several outputs lack a `description`, including `cluster_name`, `location`, `network`, `subnetwork`, `node_service_account_email`, `workload_pool` and `node_pool_names`, despite the extensive README.",
+      "[1] All variables are described and the README is accurate, but several outputs (`cluster_name`, `location`, `network`, `subnetwork`, `node_service_account_email`, `workload_pool`, `node_pool_names`) lack a `description`.",
+      "[1] The README is detailed and all variables have descriptions, but several outputs (`cluster_name`, `location`, `network`, `subnetwork`, `node_service_account_email`, `workload_pool`, `node_pool_names`) lack a `description`."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] There is no `null_resource` or `local-exec`, and node pools use the dedicated `google_container_node_pool` resource rather than inline cluster pools.",
-      "[2] There is no `null_resource` or `local-exec`, and node pools use the dedicated `google_container_node_pool` resource rather than inline pool configuration.",
-      "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as separate node pools and `gce_persistent_disk_csi_driver_config`."
+      "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as `datapath_provider = \"ADVANCED_DATAPATH\"` and dedicated node pool resources.",
+      "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as separate node pool resources and `master_global_access_config`.",
+      "[2] The module contains no `null_resource` or `local-exec`, and it uses current dedicated resources such as `google_container_node_pool` and `_iam_member` instead of legacy inline forms."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] Resources are authored directly with no remote module calls, and the public-endpoint option is not silent because a precondition blocks it unless `authorized_networks` is non-empty.",
-      "[2] All resources are authored directly with no remote module calls, and `enable_public_endpoint` is an explicit opt-in that a precondition ties to a non-empty `authorized_networks`, so it cannot silently weaken posture.",
-      "[2] Resources are authored directly with no remote module calls, and the one exposure input (`enable_public_endpoint`) is explicit opt-in, guarded by a precondition requiring non-empty `authorized_networks`, rather than a silent posture bypass."
+      "[2] All resources are authored directly with no remote module calls, and the only exposure knob, `enable_public_endpoint`, cannot silently weaken posture because a precondition requires non-empty `authorized_networks`.",
+      "[2] All resources are authored directly with no remote module calls, and the one exposure input, `enable_public_endpoint`, is explicit opt-in guarded by a precondition that requires a non-empty `authorized_networks` list.",
+      "[2] All resources are authored directly with no remote module calls, and the only exposure-related input, `enable_public_endpoint`, is guarded by a precondition requiring non-empty `authorized_networks` with `gcp_public_cidrs_access_enabled = false`."
      ]
     }
    },
@@ -1708,8 +1708,8 @@
     "gate": true,
     "rubric": 0.971,
     "mechanical": 0.946,
-    "judge": 92.1,
-    "composite": 93.85,
+    "judge": 86.8,
+    "composite": 92.26,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.5
@@ -1733,7 +1733,7 @@
     "seconds": 339,
     "cost_usd": 1.298,
     "judge_sections": {
-     "Interface design": 2,
+     "Interface design": 1,
      "Variables and validation": 1,
      "Internal logic": 2,
      "Scope": 2,
@@ -1750,74 +1750,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[2] Inputs are pitched at the decisions that differ per cluster (`environment` and `region` derive the network-team VPC and subnet names in `local.network_name`), while the module fixes release channel, Dataplane V2, shielded nodes and Workload Identity, which suits a small team that isn't GKE specialists.",
-      "[2] The `environment` input is a concept that the module maps internally to the `apps-${var.environment}` VPC and the `-gke-${region}` subnet, so the platform team supplies only per-cluster decisions (name, region, control-plane /28, admin CIDRs, `node_pools`), while the module hardcodes release channel, Dataplane V2, shielded nodes and logging.",
-      "[2] The `environment` input (staging/prod) is a concept from which the module derives the VPC and subnet names in `local.network_name`, and hardened choices such as `datapath_provider`, `release_channel` and shielded nodes are made by the module rather than exposed."
+      "[1] Most inputs are concept-level (for example, `environment` derives the VPC and subnet names), but the maintenance window takes three raw strings \u2014 `maintenance_start_time`, `maintenance_end_time` and an RFC5545 `maintenance_recurrence` \u2014 which asks GKE non-specialists to author provider attribute formats rather than choose a concept.",
+      "[1] The inputs are mostly concept-level, for example `environment` derives the VPC and subnet names. However, the maintenance window is exposed as three raw provider attributes (`maintenance_start_time`, `maintenance_end_time`, `maintenance_recurrence` in RFC3339/RFC5545 form), and `private_endpoint` turns API exposure into a consumer knob, both of which fall short for a team that is not GKE specialists.",
+      "[1] Concept inputs such as `environment` (which derives the VPC and subnet) and `workload_identities` suit the platform team, but the maintenance window is exposed as three raw RFC3339/RFC5545 attribute strings (`maintenance_start_time`, `maintenance_end_time`, `maintenance_recurrence`), and `private_endpoint` turns API exposure into a consumer knob."
      ],
      "Variables and validation": [
-      "[1] Inputs are guarded deliberately, but the `node_pools` check `contains([8, 16, 32, 64, 128, 256], pool.max_pods_per_node)` rejects valid GKE values such as 110, and `maintenance_start_time`/`maintenance_end_time` form an unvalidated pair that can be set to conflict.",
-      "[2] The validations catch realistic mistakes: the `cluster_name` length is capped at 25 so `${cluster_name}-node` fits the service account ID limit, `master_ipv4_cidr_block` must be an RFC1918 /28, and `node_pools` checks total min/max, max-pods values and taint effects, each with a teaching error message.",
-      "[1] Most inputs are guarded deliberately (node_pools, authorized_networks, master_ipv4_cidr_block), but `maintenance_start_time`, `maintenance_end_time` and `maintenance_recurrence` are an avoidable set of raw RFC strings that can be set to conflict, with no validation at all."
+      "[1] `node_pools`, `master_ipv4_cidr_block`, `authorized_networks` and `workload_identities` are guarded with teaching messages, but `maintenance_start_time` and `maintenance_end_time` are an avoidable, unvalidated pair: they can conflict (end before start, or under the 48-hour availability the description itself demands).",
+      "[1] Most inputs are carefully guarded (`node_pools`, `authorized_networks`, `master_ipv4_cidr_block`, `workload_identities`), but the separate `maintenance_start_time` and `maintenance_end_time` inputs form an avoidable pair that can be set to conflict (for example, an end before the start) and none of the three maintenance inputs is validated.",
+      "[1] The inputs are guarded deliberately (environment, region, RFC1918 /28, pool taint effects), but `node_pools` validation rejects valid GKE values such as `max_pods_per_node = 110` (power-of-two list only) and disks under 100 GB, and the unvalidated `maintenance_start_time`/`maintenance_end_time` pair can be set to conflict."
      ],
      "Internal logic": [
-      "[2] Locals stay readable: `local.network_name` is derived from `environment`, `workload_role_bindings` flattens identities into role bindings, and `database_encryption.state` is inferred from whether `database_encryption_key` is null.",
-      "[2] The locals stay readable: `local.network_name` derives the VPC from `environment`, `local.workload_role_bindings` flattens per-account roles into stable keys, and `database_encryption.state` is inferred from whether `database_encryption_key` is null.",
-      "[2] The locals are short and readable: `network_name` is derived from `environment`, `labels` merges in the module's calculated labels, and `workload_role_bindings` flattens the per-workload role sets into a for_each map."
+      "[2] The locals `network_name`, `labels` and `workload_role_bindings` derive the VPC name, merged labels and per-role bindings from concept inputs, with readable, shallow expressions.",
+      "[2] The locals `network_name`, `labels` and `workload_role_bindings` derive values from concept inputs with readable, shallow expressions.",
+      "[2] Locals stay readable: `network_name` is derived from `environment`, `labels` merges in calculated tags, and `workload_role_bindings` flattens identity-role pairs into stable keys."
      ],
      "Scope": [
-      "[2] The module creates what this job needs (cluster, separate node pools, a dedicated node service account with the minimal role, per-repository image-pull grants, optional CMEK, workload identity bindings for the Pub/Sub, Storage and Cloud SQL workloads) and creates no VPC, NAT or other network infrastructure the network team already owns.",
-      "[2] The module creates what the job needs: a dedicated node service account with `roles/container.defaultNodeServiceAccount`, per-repository Artifact Registry read grants, Workload Identity service accounts for the Pub/Sub, Storage and Cloud SQL workloads, optional CMEK, and required API enablement with `disable_on_destroy = false`, without creating any network resources.",
-      "[2] The module creates the cluster, separate node pools, a dedicated node SA with `roles/container.defaultNodeServiceAccount`, per-repository image-pull grants, optional CMEK IAM and Workload Identity GSAs, which is proportionate to secure, shared production clusters whose workloads use GCP services."
+      "[2] The module creates what the job needs (required APIs, a dedicated node service account with the minimal role, per-repository image pulls, optional CMEK key grants, Workload Identity GSAs for the Pub/Sub, Storage and SQL workloads, and the cluster with managed pools) and leaves the network-team-owned VPC, subnet and NAT alone.",
+      "[2] The module creates the required APIs, a dedicated node service account with the minimal role, per-repository image-pull grants, optional CMEK wiring, workload identity service accounts, the regional cluster and managed node pools, all proportionate to a shared production GKE platform.",
+      "[2] The module creates what a competent operator expects for a secure production cluster (required APIs with `disable_on_destroy = false`, a dedicated node SA with the minimal role, per-repository image-pull grants, optional CMEK grant, Workload Identity GSAs) and owns no network resources."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Node pools are separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and IAM uses separate `*_iam_member` resources instead of inline or authoritative policies.",
-      "[2] Node pools are separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and all IAM uses separate `*_iam_member` resources rather than inline configuration.",
-      "[2] Node pools are separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and nothing uses both styles for the same attributes."
+      "[2] Node pools are separate `google_container_node_pool` resources and `remove_default_node_pool = true` is set; inline blocks such as `master_authorized_networks_config` have no separate-resource alternative.",
+      "[2] Node pools are separate `google_container_node_pool` resources, the default pool is removed, and the inline `cidr_blocks` blocks have no separate-resource alternative in the provider.",
+      "[2] Node pools are separate `google_container_node_pool` resources with `remove_default_node_pool = true`, and IAM uses additive `*_iam_member` resources rather than authoritative inline policy."
      ],
      "Outputs": [
-      "[2] Outputs cover what a consumer needs (`cluster_id`, `endpoint`, `cluster_ca_certificate`, `node_service_account`, and `workload_service_accounts` with ready-made annotations) without dumping every attribute.",
-      "[2] The outputs cover what consumers need, including `endpoint`, `cluster_ca_certificate`, `cluster_id`, `node_service_account`, and `workload_service_accounts` with ready-made KSA annotations, without dumping every attribute.",
-      "[2] The outputs cover what consumers need, including `cluster_name`, `cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_accounts` with annotations and `get_credentials_command`, without dumping every attribute."
+      "[2] The outputs cover what consumers need \u2014 `cluster_id`, `endpoint`, `cluster_ca_certificate`, `workload_service_accounts` with annotations, and `get_credentials_command` \u2014 without dumping every attribute.",
+      "[2] The outputs give consumers what they need (cluster name/id, endpoint, CA certificate, workload pool, node service account, `workload_service_accounts` with annotations, and a credentials command) without dumping every attribute.",
+      "[2] Outputs cover what consumers need (cluster name and id, endpoint, CA certificate, workload pool, node SA, `workload_service_accounts` with ready-made annotations, `get_credentials_command`) without dumping every attribute."
      ],
      "Iteration: for_each vs count": [
-      "[2] `count` appears only as an on/off switch on `google_kms_crypto_key_iam_member.secrets`, and every multiplied resource (node pools, APIs, workload service accounts, bindings) uses `for_each`.",
-      "[2] `count` appears only as the on/off switch on `google_kms_crypto_key_iam_member.secrets`, and every multiplied resource (node pools, workload service accounts, IAM bindings, APIs) uses `for_each`.",
-      "[2] `count` is used only as an on/off switch on `google_kms_crypto_key_iam_member.secrets`, and every multi-instance resource uses `for_each`."
+      "[2] `for_each` is used for APIs, node pools, repository grants and workload identities, and `count` appears only as the on/off switch on `google_kms_crypto_key_iam_member.secrets`.",
+      "[2] Every multiplicity uses `for_each`, and `count` appears only as the on/off switch on `google_kms_crypto_key_iam_member.secrets`.",
+      "[2] `count` appears only as an on/off switch on `google_kms_crypto_key_iam_member.secrets`, and all multiplicity uses `for_each` (node pools, APIs, workload identities, repository grants)."
      ],
      "Data sources vs inputs": [
-      "[2] `data.google_compute_network.existing` and `data.google_compute_subnetwork.existing` look up the network from derived names, and preconditions check secondary ranges and Private Google Access against those lookups instead of asking for them as inputs.",
-      "[2] `data.google_compute_network.existing` and `data.google_compute_subnetwork.existing` look up the network from `environment` and `region`, and preconditions verify subnet membership, secondary ranges and Private Google Access rather than asking for them as inputs.",
-      "[2] `data.google_compute_network.existing` and `data.google_compute_subnetwork.existing` look up the network facts, which preconditions then verify, instead of asking for self-links or ranges."
+      "[2] `data.google_compute_network.existing` and `data.google_compute_subnetwork.existing` look up the network and subnet, and preconditions check their membership and secondary ranges instead of asking for them as inputs.",
+      "[2] `data.google_compute_network.existing` and `data.google_compute_subnetwork.existing` look up the network team's resources from derived names instead of asking the consumer for self-links or ranges.",
+      "[2] The network and subnet are looked up via `data.google_compute_network`/`data.google_compute_subnetwork`, with preconditions verifying subnet membership, secondary ranges and Private Google Access instead of asking for those facts."
      ],
      "File layout": [
-      "[1] `variables.tf` and `outputs.tf` are separate, but `main.tf` holds roughly 300 lines mixing API enablement, node IAM, the cluster, node pools and workload identity, which are distinct concerns that should be split.",
-      "[1] Variables and outputs have their own files, but `main.tf` holds roughly 300 lines mixing several concerns (API enablement, node IAM, the cluster, node pools, Workload Identity service accounts and bindings) without a conceptual split.",
-      "[1] variables.tf, outputs.tf and versions.tf are separated, but main.tf is roughly 300 lines mixing API enablement, node IAM, the cluster, node pools and the workload-identity concern without a conceptual split."
+      "[1] Variables, outputs and versions have their own files, but the roughly 300-line `main.tf` mixes several distinct concerns (API enablement, node IAM, CMEK grants, the cluster, node pools and workload identity) without splitting them.",
+      "[1] Variables and outputs have their own files, but `main.tf` holds roughly 300 lines mixing several concerns (API enablement, node IAM, CMEK, cluster, node pools, workload identity) that would be clearer split into separate files.",
+      "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` holds roughly 300 lines mixing distinct concerns (API enablement, node IAM, cluster, node pools, workload identity) without a conceptual split."
      ],
      "Sensitive values": [
-      "[2] No secret inputs exist, the CMEK key is taken as a reference (`database_encryption_key`), and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`.",
-      "[2] The module handles no secrets, the KMS key is accepted as a reference (`database_encryption_key`), and `endpoint` and `cluster_ca_certificate` are marked sensitive.",
-      "[2] The module handles no secrets, takes the CMEK key as a reference (`database_encryption_key`), and marks `endpoint` and `cluster_ca_certificate` as `sensitive = true`."
+      "[2] No secrets are accepted, the CMEK key is taken as a reference (`database_encryption_key`), and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`.",
+      "[2] The module takes no secrets, CMEK is passed by reference (`database_encryption_key`), and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`.",
+      "[2] No raw secrets are accepted (CMEK is taken as a key reference in `database_encryption_key`), and the `endpoint` and `cluster_ca_certificate` outputs are marked `sensitive = true`."
      ],
      "Lifecycle meta-arguments": [
-      "[2] The cluster uses the native `deletion_protection` attribute rather than `prevent_destroy`, and the `lifecycle` block holds only preconditions, with no `ignore_changes`.",
-      "[2] The cluster uses the native `deletion_protection` attribute instead of `prevent_destroy`, the `lifecycle` block contains only preconditions, and there is no `ignore_changes`.",
-      "[2] The cluster uses the native `deletion_protection` attribute rather than `prevent_destroy`, there is no `ignore_changes`, and the lifecycle blocks contain only preconditions."
+      "[2] The cluster uses native `deletion_protection` rather than `prevent_destroy`, there is no `ignore_changes`, and the `lifecycle` blocks contain only preconditions.",
+      "[2] The cluster relies on the native `deletion_protection` attribute instead of `prevent_destroy`, uses no `ignore_changes`, and limits `lifecycle` to meaningful preconditions.",
+      "[2] The cluster uses the native `deletion_protection` attribute rather than `prevent_destroy`, and there is no `ignore_changes` anywhere; lifecycle is used only for preconditions."
      ],
      "Documentation": [
-      "[2] Every variable and output has an accurate description, comments explain non-obvious choices (bootstrap pool removal, omitting `enable_autopilot`, Dataplane V2 versus Calico), and the README documents the prerequisites and ownership boundaries.",
-      "[2] Every variable and output has an accurate description, and the README correctly states the six required inputs, the defaults (3\u201330 total nodes, REGULAR channel, private endpoint) and the network-team prerequisites that the preconditions check.",
-      "[2] Every variable and output has a description, comments explain non-obvious choices (bootstrap pool removal, omitting `enable_autopilot`), and the README accurately reflects the defaults, such as six required inputs and a Saturday\u2013Monday maintenance window."
+      "[2] Every variable and output has a description, and the README accurately reflects the code (for example, the Saturday-to-Monday maintenance window, the six required inputs, and enforcement on the private endpoint).",
+      "[2] Every variable and output has a description, and the README accurately documents defaults, prerequisites and the destroy procedure in proportion to a production platform module.",
+      "[2] Every variable and output has an accurate description, comments explain the non-obvious choices (bootstrap pool removal, omitting `enable_autopilot`, Dataplane V2), and the README accurately documents the prerequisites and boundaries of a complex module."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] There is no `null_resource` or `local-exec`, and node pools use the dedicated resource rather than the legacy inline `node_pool` blocks.",
-      "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as separate node pools and `workload_identity_config`.",
-      "[2] There is no `null_resource` or `local-exec`, and node pools use the dedicated resource rather than the legacy inline `node_pool` blocks."
+      "[2] There is no `null_resource` or `local-exec`, and node pools use the current dedicated resource rather than a deprecated inline form.",
+      "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as separate node pool resources with `remove_default_node_pool`.",
+      "[2] There is no `null_resource` or `local-exec`, and node pools use the dedicated resource rather than legacy inline pool configuration."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module, and the `private_endpoint = false` opt-in is explicit and constrained by a precondition requiring `authorized_networks`, so it does not silently bypass the posture.",
-      "[2] All resources are authored directly with no remote module calls, and no input lets a consumer silently bypass the established posture; the public endpoint opt-out is guarded by a precondition requiring `authorized_networks`.",
-      "[2] All resources are authored directly, and the `private_endpoint` opt-out is not silent: a precondition requires explicit `authorized_networks` and `gcp_public_cidrs_access_enabled = false`."
+      "[2] All resources are authored directly with no remote module calls, and the public-endpoint option (`private_endpoint = false`) is explicit and gated by a precondition requiring `authorized_networks`, not a silent posture bypass.",
+      "[2] All resources are authored directly with no remote module calls, and the public-endpoint option is explicit and gated by a precondition requiring `authorized_networks`, so it is not a silent posture bypass.",
+      "[2] All resources are authored locally with no remote module calls, and the `private_endpoint = false` path is enforced by a precondition requiring explicit `authorized_networks`, so it is not a silent posture bypass."
      ]
     }
    }
@@ -2247,13 +2247,13 @@
    "median_seconds": 158
   },
   "G003": {
-   "composite_median": 96.08,
+   "composite_median": 96.86,
    "composite_range": [
-    95.45,
+    96.23,
     98.45
    ],
    "rubric_median": 1.0,
-   "judge_median": 89.5,
+   "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
    "item_loss_counts": {
@@ -2272,13 +2272,13 @@
    "median_seconds": 561
   },
   "G004": {
-   "composite_median": 87.33,
+   "composite_median": 88.18,
    "composite_range": [
-    86.59,
+    87.33,
     89.03
    ],
    "rubric_median": 0.883,
-   "judge_median": 86.8,
+   "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 0,
    "item_loss_counts": {
@@ -2307,13 +2307,13 @@
    "median_seconds": 576
   },
   "G005": {
-   "composite_median": 93.69,
+   "composite_median": 92.26,
    "composite_range": [
     91.6,
-    93.85
+    93.69
    ],
    "rubric_median": 0.941,
-   "judge_median": 92.1,
+   "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 0,
    "item_loss_counts": {
@@ -2368,5 +2368,5 @@
    "median_seconds": 310
   }
  },
- "overall": 89.8
+ "overall": 89.9
 }

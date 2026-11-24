@@ -1105,22 +1105,15 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/gpt-6.2-astra-e1",
     "gate": true,
-    "rubric": 0.298,
-    "mechanical": 0.292,
+    "rubric": 0.87,
+    "mechanical": 0.845,
     "judge": 89.5,
-    "composite": 33.9,
-    "mandatory_failures": [
-     "H1",
-     "H3"
-    ],
+    "composite": 86.0,
+    "mandatory_failures": [],
     "items_lost": {
-     "H1": false,
-     "H3": false,
-     "H5": false,
-     "H8": false,
      "H9": 0.0,
      "H11": 0.75,
-     "H12": 0.0,
+     "H12": 0.75,
      "A7": false,
      "A8": false,
      "B1_provider_constraints": false,
@@ -1138,9 +1131,7 @@
     },
     "variables": 11,
     "tf_sloc": 278,
-    "apply_failures": [
-     "F2_encrypted_secondary_without_regional_key"
-    ],
+    "apply_failures": [],
     "output_tokens": 7183,
     "seconds": 283,
     "cost_usd": 0.482,
@@ -1238,22 +1229,15 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/gpt-6.2-astra-e2",
     "gate": true,
-    "rubric": 0.308,
-    "mechanical": 0.302,
+    "rubric": 0.89,
+    "mechanical": 0.864,
     "judge": 92.1,
-    "composite": 34.95,
-    "mandatory_failures": [
-     "H1",
-     "H3"
-    ],
+    "composite": 88.11,
+    "mandatory_failures": [],
     "items_lost": {
-     "H1": false,
-     "H3": false,
-     "H5": false,
-     "H8": false,
      "H9": 0.5,
      "H11": 0.75,
-     "H12": 0.0,
+     "H12": 0.75,
      "A7": false,
      "A8": false,
      "B1_provider_constraints": false,
@@ -1271,9 +1255,7 @@
     },
     "variables": 11,
     "tf_sloc": 294,
-    "apply_failures": [
-     "F2_encrypted_secondary_without_regional_key"
-    ],
+    "apply_failures": [],
     "output_tokens": 6501,
     "seconds": 282,
     "cost_usd": 0.473,
@@ -1371,22 +1353,15 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/gpt-6.2-astra-e3",
     "gate": true,
-    "rubric": 0.308,
-    "mechanical": 0.302,
+    "rubric": 0.89,
+    "mechanical": 0.864,
     "judge": 92.1,
-    "composite": 34.95,
-    "mandatory_failures": [
-     "H1",
-     "H3"
-    ],
+    "composite": 88.11,
+    "mandatory_failures": [],
     "items_lost": {
-     "H1": false,
-     "H3": false,
-     "H5": false,
-     "H8": false,
      "H9": 0.5,
      "H11": 0.75,
-     "H12": 0.0,
+     "H12": 0.75,
      "A7": false,
      "A8": false,
      "B1_provider_constraints": false,
@@ -1404,9 +1379,7 @@
     },
     "variables": 6,
     "tf_sloc": 285,
-    "apply_failures": [
-     "F2_encrypted_secondary_without_regional_key"
-    ],
+    "apply_failures": [],
     "output_tokens": 6970,
     "seconds": 237,
     "cost_usd": 0.456,
@@ -2339,26 +2312,22 @@
    "median_seconds": 225
   },
   "G004": {
-   "composite_median": 34.95,
+   "composite_median": 88.11,
    "composite_range": [
-    33.9,
-    34.95
+    86.0,
+    88.11
    ],
-   "rubric_median": 0.308,
+   "rubric_median": 0.89,
    "judge_median": 92.1,
    "gate_failures": 0,
-   "insecure_attempts": 3,
+   "insecure_attempts": 0,
    "item_loss_counts": {
     "A7": 3,
     "A8": 3,
     "B1_provider_constraints": 3,
     "B2_descriptions": 3,
-    "H1": 3,
     "H11": 3,
     "H12": 3,
-    "H3": 3,
-    "H5": 3,
-    "H8": 3,
     "H9": 3
    },
    "expertise_rate": {
@@ -2447,5 +2416,5 @@
    "median_seconds": 105
   }
  },
- "overall": 78.5
+ "overall": 87.3
 }

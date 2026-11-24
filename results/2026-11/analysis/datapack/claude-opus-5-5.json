@@ -1086,22 +1086,14 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/claude-opus-5-5-e1",
     "gate": true,
-    "rubric": 0.283,
-    "mechanical": 0.284,
+    "rubric": 0.846,
+    "mechanical": 0.841,
     "judge": 81.6,
-    "composite": 32.15,
-    "mandatory_failures": [
-     "H1",
-     "H3"
-    ],
+    "composite": 83.35,
+    "mandatory_failures": [],
     "items_lost": {
-     "H1": false,
-     "H3": false,
-     "H5": false,
-     "H8": false,
      "H9": 0.5,
      "H11": 0.75,
-     "H12": 0.0,
      "H17": false,
      "A5": 0.30000000000000004,
      "B1_provider_constraints": false,
@@ -1115,13 +1107,11 @@
      "E5_snapshot_tags": true,
      "E6_global_writer_endpoint": true,
      "E8_engine_version_lookup": false,
-     "E7_member_versions_follow_global": false
+     "E7_member_versions_follow_global": true
     },
     "variables": 19,
     "tf_sloc": 562,
-    "apply_failures": [
-     "F2_encrypted_secondary_without_regional_key"
-    ],
+    "apply_failures": [],
     "output_tokens": 27629,
     "seconds": 401,
     "cost_usd": 0.949,
@@ -2270,26 +2260,22 @@
    "median_seconds": 468
   },
   "G004": {
-   "composite_median": 83.16,
+   "composite_median": 83.35,
    "composite_range": [
-    32.15,
+    83.16,
     86.08
    ],
-   "rubric_median": 0.819,
+   "rubric_median": 0.846,
    "judge_median": 86.8,
    "gate_failures": 0,
-   "insecure_attempts": 1,
+   "insecure_attempts": 0,
    "item_loss_counts": {
     "A5": 3,
     "B1_provider_constraints": 3,
     "B2_descriptions": 2,
-    "H1": 1,
     "H11": 2,
-    "H12": 3,
+    "H12": 2,
     "H17": 3,
-    "H3": 1,
-    "H5": 1,
-    "H8": 1,
     "H9": 3
    },
    "expertise_rate": {
@@ -2300,7 +2286,7 @@
     "E5_snapshot_tags": 1.0,
     "E6_global_writer_endpoint": 1.0,
     "E8_engine_version_lookup": 0.0,
-    "E7_member_versions_follow_global": 0.3333333333333333
+    "E7_member_versions_follow_global": 0.6666666666666666
    },
    "median_variables": 19,
    "median_cost_usd": 0.496,

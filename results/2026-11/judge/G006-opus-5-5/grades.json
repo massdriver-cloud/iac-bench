@@ -26,15 +26,17 @@
     "Variables and validation": 2.0,
     "Scope": 2.0
   },
-  "status": "calibrated (carried from calibration/G001-G003: same judge, judge code and doctrine)",
+  "status": "calibrated (carried from calibration/G001-G003: same judge, prompt and doctrine)",
   "author_label": null,
   "grades": {
     "gpt-6.1-sol-e2": 100.0,
     "gpt-6.2-astra-e1": 100.0,
     "gpt-6.2-astra-e2": 100.0,
     "gpt-6.2-sol-e2": 100.0,
+    "claude-fable-5-2-e2": 97.4,
     "claude-opus-5-5-e2": 97.4,
     "claude-opus-5-5-e3": 97.4,
+    "claude-fable-5-2-e1": 94.7,
     "claude-haiku-5-5-e3": 94.7,
     "claude-opus-5-5-e1": 94.7,
     "gpt-6-astra-e1": 94.7,
@@ -45,7 +47,6 @@
     "kimi-k3-e2": 94.7,
     "ref-lean": 94.7,
     "claude-fable-5-1-e3": 92.1,
-    "claude-fable-5-2-e2": 92.1,
     "claude-sonnet-5-5-e1": 92.1,
     "claude-sonnet-5-5-e2": 92.1,
     "gemini-4-argon-e1": 92.1,
@@ -55,13 +56,13 @@
     "gpt-6.2-sol-e3": 92.1,
     "kimi-k3.1-pro-e2": 92.1,
     "ref-standard": 92.1,
-    "claude-fable-5-2-e1": 89.5,
     "claude-sonnet-5-5-e3": 89.5,
     "kimi-k3.1-pro-e1": 89.5,
     "qwen4-max-e2": 89.5,
     "claude-fable-5-2-e3": 86.8,
     "claude-haiku-5-5-e1": 86.8,
     "claude-haiku-5-5-e2": 86.8,
+    "gemini-4-neon-e2": 86.8,
     "gpt-6-luna-e2": 86.8,
     "gpt-6.1-terra-e3": 86.8,
     "gpt-6.2-sol-e1": 86.8,
@@ -72,7 +73,6 @@
     "deepseek-v4-pro-0813-e2": 84.2,
     "gemini-3.1-pro-preview-e3": 84.2,
     "gemini-4-carbon-e1": 84.2,
-    "gemini-4-neon-e2": 84.2,
     "kimi-k3-e1": 84.2,
     "kimi-k3-e3": 84.2,
     "qwen3.8-2.4t-a95b-e1": 84.2,
@@ -84,15 +84,15 @@
     "gemini-4-hydrogen-e1": 81.6,
     "gemini-4-hydrogen-e2": 81.6,
     "gemini-4-hydrogen-e3": 81.6,
-    "gemini-4-neon-e1": 81.6,
     "gemini-4-neon-e3": 81.6,
     "gpt-6.1-terra-e2": 81.6,
     "qwen3.8-2.4t-a95b-e2": 81.6,
     "qwen4-max-e1": 81.6,
-    "gemini-4-carbon-e3": 78.9,
+    "gemini-4-neon-e1": 78.9,
     "gpt-6.1-terra-e1": 78.9,
     "gemini-4-argon-e2": 76.3,
-    "glm-5.3-e1": 76.3,
+    "gemini-4-carbon-e3": 76.3,
+    "glm-5.3-e1": 73.7,
     "glm-5.3-e2": 73.7,
     "glm-5.3-e3": 73.7,
     "qwen3.8-2.4t-a95b-e3": 73.7,
@@ -388,9 +388,9 @@
       "tf_sloc": 206
     },
     "claude-fable-5-2-e1": {
-      "overall": 89.5,
+      "overall": 94.7,
       "sections": {
-        "Interface design": 1,
+        "Interface design": 2,
         "Variables and validation": 2,
         "Internal logic": 2,
         "Scope": 2,
@@ -407,84 +407,85 @@
       },
       "evidence": {
         "Interface design": [
-          "[1] The required inputs (`resource_group_name`, `application_principal_id`, `containers`) fit developers new to Azure Storage, but `replication_type` exposes raw LRS/ZRS/GRS/GZRS service choices instead of a data-criticality concept, and `allow_public_network_access` makes network exposure a consumer knob.",
-          "[1] The required inputs are well chosen concepts (`resource_group_name`, `application_principal_id`, `containers`), but a novice audience must also make network-exposure decisions it cannot judge (`allow_public_network_access`, `allowed_ip_ranges`, `private_dns_zone_id`), and the module exposes tuning knobs the use case gives no reason to vary (`recovery_window_days`, `previous_version_retention_days`).",
-          "[1] The required inputs fit the brief well (`resource_group_name`, `application_principal_id`, `containers`), but `allow_public_network_access` and `allowed_ip_ranges` make network exposure a consumer knob, and inputs like `private_dns_zone_id` and `recovery_window_days` ask developers who don't know Azure Storage to make service-level decisions."
+          "[2] Only `resource_group_name`, `application_principal_id` and `containers` are required, and the remaining inputs are plain-language concepts with safe defaults; for example, `replication_type` explains GZRS/GRS/ZRS/LRS in terms of data loss, and network reachability is expressed as \"where the application runs.\"",
+          "[2] The only required inputs are the decisions an app developer can actually make (`resource_group_name`, `application_principal_id`, and `containers` with plain-language per-container `delete_after_days`/`move_to_cool_after_days`); expert choices such as `replication_type` and `recovery_window_days` default sensibly and are explained in consumer terms, while settled decisions (StorageV2, Hot tier, TLS, identity-only access) are hardcoded.",
+          "[2] Only `resource_group_name`, `application_principal_id` and `containers` are required, and the module settles everything else itself (derived name, Entra-only access, versioning, encryption), with concept-level optional inputs such as `replication_type` that explain each choice in terms a non-expert developer can decide on."
         ],
         "Variables and validation": [
-          "[2] Realistic mistakes are guarded with teaching messages: container name format, GUID object IDs, full subnet resource IDs, public-only `allowed_ip_ranges`, and `move_to_cool_after_days < delete_after_days`; the `private_dns_zone_id`/`private_endpoint_subnet_id` pair is cross-checked by a precondition.",
-          "[2] Realistic mistakes are guarded with teaching messages (container name rules, GUID format for `application_principal_id`, Azure's private-IP and /31\u2013/32 restrictions on `allowed_ip_ranges`, cool-before-delete ordering), and the `private_dns_zone_id`/`private_endpoint_subnet_id` dependency is cross-checked by a precondition.",
-          "[2] Realistic mistakes are guarded with teaching error messages, including container naming rules, GUID object IDs, public-only IP ranges with no /31 or /32, and `move_to_cool_after_days < delete_after_days`, and the `private_dns_zone_id`/`private_endpoint_subnet_id` pair is cross-checked by a precondition."
+          "[2] Realistic mistakes have guards that teach: GUID format on `application_principal_id`, container naming rules, Azure's public-only and no-/31-/32 rule on `allowed_ip_ranges`, cool-before-delete ordering, and a precondition for the `private_dns_zone_id`/`private_endpoint_subnet_id` pair.",
+          "[2] Realistic mistakes are guarded with teaching messages: the `application_principal_id` GUID check warns against the client ID, `allowed_ip_ranges` rejects private and /31\u2013/32 ranges that Azure refuses, `containers` checks that `move_to_cool_after_days < delete_after_days`, and a precondition catches `private_dns_zone_id` set without `private_endpoint_subnet_id`.",
+          "[2] Realistic mistakes are guarded with teaching messages: GUID format for `application_principal_id`, container naming rules, Azure-rejected private and /31\u2013/32 IP ranges, and cool-before-delete ordering; the `private_dns_zone_id`/`private_endpoint_subnet_id` pair is cross-checked by a precondition."
         ],
         "Internal logic": [
-          "[2] Readable locals derive values from concept inputs, such as the stable generated `storage_account_name` (stem plus subscription/RG hash), `public_endpoint_needed`, and `point_in_time_restore_days = var.recovery_window_days - 1`.",
-          "[2] Readable locals derive values from concept inputs: a stable, valid storage account name from a resource-group stem plus a hash, `public_endpoint_needed` from the network inputs, and `point_in_time_restore_days` from `recovery_window_days`.",
-          "[2] Readable locals derive values instead of demanding inputs: `storage_account_name` from the resource group name plus a stable hash, `public_endpoint_needed` from the network inputs, and `point_in_time_restore_days` from `recovery_window_days`."
+          "[2] Readable locals do the derivation: a valid, stable, unique account name from `name_stem` plus `name_hash`, `public_endpoint_needed` from the network inputs, and `point_in_time_restore_days = var.recovery_window_days - 1`, so none of these need extra inputs.",
+          "[2] Readable locals derive values from concept inputs instead of asking for more inputs, including the stable, valid generated `storage_account_name` (stem plus subscription/RG hash), `public_endpoint_needed`, and `point_in_time_restore_days = var.recovery_window_days - 1`.",
+          "[2] Locals derive readable values from concept inputs, such as the stable `storage_account_name` built from the resource group plus a subscription hash, `public_endpoint_needed`, and `point_in_time_restore_days = var.recovery_window_days - 1`, without convoluted chains."
         ],
         "Scope": [
-          "[2] The module creates the account, private containers, a cost-hygiene `azurerm_storage_management_policy`, identity-based role assignments, and optional private endpoint, diagnostics and lock, which is proportionate to the app-storage brief.",
-          "[2] The module creates the account, private containers, a cost-control management policy, Entra ID role assignments for the app and reader groups, and an optional private endpoint, audit diagnostics and delete lock, all proportionate to a standard app-storage module.",
-          "[2] The module creates the account, private containers, a cost-control management policy and the app's `Storage Blob Data Contributor` role assignment, with the private endpoint, diagnostics and lock as proportionate optional extras."
+          "[2] The module builds the account, private containers, a cost-hygiene `azurerm_storage_management_policy` and identity-based `azurerm_role_assignment` resources, with optional private endpoint, audit diagnostics and delete lock; this is proportionate to an app-team storage standard.",
+          "[2] The module creates what a competent operator expects for app file storage and nothing beyond the brief: the hardened account, private containers, a `azurerm_storage_management_policy` for cost hygiene, Entra ID role assignments for the app identity, and an optional private endpoint, diagnostics and lock.",
+          "[2] The module creates the account, private containers, a cost-hygiene management policy, application and reader role assignments, and optional private endpoint, audit diagnostics and delete lock, all proportionate to a standard app storage account."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline in `azurerm_storage_account` although `azurerm_storage_account_network_rules` exists as a separate resource, and no comment justifies the inline choice.",
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no objective justification comment, although the separate `azurerm_storage_account_network_rules` resource exists; containers and role assignments are correctly separate resources.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account` even though the provider offers the separate `azurerm_storage_account_network_rules` resource, and no comment gives a resource-specific justification."
+          "[1] Firewall rules are set in an inline `network_rules` block on `azurerm_storage_account` instead of the separate `azurerm_storage_account_network_rules` resource, and no comment gives a resource-specific reason for choosing inline.",
+          "[1] `network_rules` is configured inline on `azurerm_storage_account` even though the provider offers the separate `azurerm_storage_account_network_rules` resource, and no comment justifies choosing the inline form.",
+          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, even though the provider offers the separate `azurerm_storage_account_network_rules` resource."
         ],
         "Outputs": [
-          "[2] The outputs cover what consumers need (`storage_account_id`, `blob_endpoint`, `container_urls`, `app_settings`, `private_endpoint_ip_address`) without dumping every attribute.",
-          "[2] The outputs cover what consumers need (`storage_account_id`, `storage_account_name`, `blob_endpoint`, `container_urls`, a non-secret `app_settings` map) without dumping every attribute.",
-          "[2] The outputs give consumers what they need to use the account, such as `storage_account_id`, `blob_endpoint`, `container_urls`, `app_settings` and `private_endpoint_ip_address`, without dumping every attribute."
+          "[2] Outputs cover what consumers need (`storage_account_id`, `blob_endpoint`, `container_urls`, `app_settings`, `private_endpoint_ip_address`) without dumping every attribute.",
+          "[2] The outputs cover what consumers need to use the storage (`storage_account_id`, `blob_endpoint`, `container_urls`, a non-secret `app_settings` map, `private_endpoint_ip_address`) without dumping every attribute.",
+          "[2] Outputs cover what a consumer needs, including `storage_account_id`, `blob_endpoint`, `container_urls`, a non-secret `app_settings` map and `private_endpoint_ip_address`, without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] Containers and reader role assignments use `for_each`, and `count` appears only as an on/off switch on the private endpoint, diagnostic setting and lock.",
-          "[2] Containers and reader role assignments use `for_each`, and `count` appears only as an on/off switch (`azurerm_private_endpoint.blob`, `azurerm_monitor_diagnostic_setting.blob`, `azurerm_management_lock.this`).",
-          "[2] Containers and reader role assignments use `for_each`, and `count` appears only as an on/off switch on the private endpoint, diagnostic setting and lock."
+          "[2] Containers and reader role assignments use `for_each`, and `count` appears only as an on/off switch, e.g. `count = var.private_endpoint_subnet_id != null ? 1 : 0`.",
+          "[2] `azurerm_storage_container.this` and `azurerm_role_assignment.reader` use `for_each`, and `count` appears only as an on/off switch (private endpoint, diagnostic setting, management lock).",
+          "[2] Containers and reader role assignments use `for_each`, and `count` appears only as on/off switches (`var.private_endpoint_subnet_id != null ? 1 : 0`, `var.delete_lock_enabled ? 1 : 0`)."
         ],
         "Data sources vs inputs": [
-          "[2] The module takes the resource group name as identity and looks up its location and tags through `data \"azurerm_resource_group\" \"this\"` instead of asking for them.",
-          "[2] The module takes only the resource group's name and looks it up with `data \"azurerm_resource_group\" \"this\"`, deriving location and inherited tags authoritatively.",
-          "[2] The module takes only the resource group name and looks up the group with `data \"azurerm_resource_group\" \"this\"` to get its location and tags, rather than asking for them as inputs."
+          "[2] The module takes only the resource group name and looks up its location and tags via `data \"azurerm_resource_group\" \"this\"`, rather than asking for them.",
+          "[2] The module takes only the resource group name and looks up the location and tags with `data \"azurerm_resource_group\" \"this\"`, rather than asking the consumer for them.",
+          "[2] The module takes the resource group name and looks up its location and tags with `data \"azurerm_resource_group\" \"this\"` instead of asking for them as inputs."
         ],
         "File layout": [
-          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 300 lines mixing distinct concerns (role assignments, private endpoint, diagnostics, management lock, lifecycle policy) that warrant their own files.",
-          "[1] Variables, outputs and versions have their own files, but `main.tf` holds roughly 280 lines spanning several distinct concerns (account, lifecycle policy, role assignments, private endpoint, diagnostics, lock) without a conceptual split.",
-          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` runs to roughly 300 lines mixing several concerns (account, lifecycle policy, role assignments, private endpoint, diagnostics, lock) without being split."
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separated, but `main.tf` holds roughly 270 lines spanning several distinct concerns (account, lifecycle policy, RBAC, private endpoint, diagnostics, lock) with no conceptual split.",
+          "[1] Variables, outputs and versions have their own files, but `main.tf` holds roughly 270 lines spanning several distinct concerns (account, lifecycle policy, RBAC, private endpoint, diagnostics, lock) with no conceptual split.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` holds roughly 280 lines covering several distinct concerns (account, lifecycle policy, RBAC, private endpoint, diagnostics, lock) with no conceptual split."
         ],
         "Sensitive values": [
-          "[2] No secrets flow through the module: `shared_access_key_enabled = false`, and outputs expose only non-secret endpoints and names.",
-          "[2] `shared_access_key_enabled = false` means no keys or connection strings exist, and no variable or output carries a secret.",
-          "[2] There are no secrets to handle: `shared_access_key_enabled = false` removes keys, and no input or output carries a credential."
+          "[2] There are no secrets to handle: `shared_access_key_enabled = false`, and no key or connection string is accepted or output.",
+          "[2] No secrets flow through the module at all, because `shared_access_key_enabled = false` and the outputs expose only non-secret endpoints and names.",
+          "[2] No secrets are accepted or emitted; `shared_access_key_enabled = false` removes keys entirely, and the `app_settings` output contains only non-secret values."
         ],
         "Lifecycle meta-arguments": [
-          "[2] The only lifecycle use is a validating `precondition` on the storage account, with no `prevent_destroy` or `ignore_changes`; deletion protection uses the native `azurerm_management_lock`.",
-          "[2] There is no `prevent_destroy` or `ignore_changes`, and accidental-deletion protection uses the native `azurerm_management_lock` behind `delete_lock_enabled`, with only a precondition in the lifecycle block.",
-          "[2] The only `lifecycle` block is a precondition, with no misused `prevent_destroy` or `ignore_changes`, and deletion protection uses a native `azurerm_management_lock`."
+          "[2] The only `lifecycle` usage is a `precondition`, with no `ignore_changes` and no `prevent_destroy`; deletion protection uses the native `azurerm_management_lock` instead.",
+          "[2] There is no `prevent_destroy` or `ignore_changes`; deletion protection uses the native `azurerm_management_lock`, and the only lifecycle use is a legitimate `precondition`.",
+          "[2] The only `lifecycle` block holds a `precondition`, with no inappropriate `prevent_destroy` or `ignore_changes`."
         ],
         "Documentation": [
-          "[2] Every variable and output has an accurate description, and comments explain non-obvious points such as point-in-time restore needing a shorter window than soft delete, and the lock's `depends_on` ordering.",
-          "[2] Every variable and output has an accurate, audience-appropriate description (for example the `replication_type` option guide and the `delete_lock_enabled` trade-offs), and comments explain the non-obvious choices such as lock ordering and name derivation.",
-          "[2] Every variable and output has an accurate description, such as `replication_type` explaining each option and `delete_lock_enabled` explaining its trade-offs, and comments explain non-obvious choices like the point-in-time restore offset."
+          "[2] Every variable and output has an accurate description, and the README's decision table and operations notes (e.g. the two-step change with `delete_lock_enabled`) match the code without becoming noise.",
+          "[2] Every variable and output has an accurate description, comments explain non-obvious choices (e.g. the lock's `depends_on` ordering and `data_plane_available = false`), and the README's decision table matches the code's defaults (GZRS, 30-day recovery window, 90-day version cleanup).",
+          "[2] Every variable and output has an accurate description, comments explain non-obvious choices (such as the lock's `depends_on` ordering and `data_plane_available = false`), and the README matches the module's behavior."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] The module uses current 4.x forms (`https_traffic_only_enabled`, `storage_account_id` on containers) and contains no `null_resource` or `local-exec`.",
-          "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as `storage_account_id` on containers and `https_traffic_only_enabled`.",
-          "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument rather than the deprecated `storage_account_name`."
+          "[2] The module uses current forms (`https_traffic_only_enabled`, `storage_account_id` on `azurerm_storage_container`, `enabled_log`) and contains no `null_resource` or `local-exec`.",
+          "[2] There is no `null_resource` or `local-exec`, and the module uses current azurerm 4.x forms such as `https_traffic_only_enabled` and `storage_account_id` on `azurerm_storage_container`.",
+          "[2] The module uses current azurerm 4.x forms (`storage_account_id` on containers, `https_traffic_only_enabled`) and has no `null_resource` or `local-exec`."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[2] All resources are authored directly with no remote module calls, and the one posture-relaxing input (`allow_public_network_access`) is explicit and documented rather than a silent bypass.",
-          "[2] The resources are authored directly with no remote module call, and `allow_public_network_access` is an explicit, documented choice that still requires identity rather than a silent bypass of the module's posture.",
-          "[2] The resources are authored directly with no remote module call, and `allow_public_network_access` is an explicit, documented choice rather than a silent bypass, with identity still required."
+          "[2] All resources are authored directly with no remote module call, and `allow_public_network_access` is an explicit, documented flag that still requires identity, not a silent bypass.",
+          "[2] All resources are authored directly with no remote module call or deleted resources, and the only network-opening input, `allow_public_network_access`, is an explicit, documented flag that still requires Entra ID or signed links rather than silently undermining the access posture.",
+          "[2] All resources are authored directly with no remote module calls, and the one exposure flag, `allow_public_network_access`, is explicit and documented rather than a silent posture bypass."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "76260eb5bf10261b",
-      "tf_sloc": 497
+      "tf_sloc": 497,
+      "graded_in_full": "2026-11-24"
     },
     "claude-fable-5-2-e2": {
-      "overall": 92.1,
+      "overall": 97.4,
       "sections": {
-        "Interface design": 1,
+        "Interface design": 2,
         "Variables and validation": 2,
         "Internal logic": 2,
         "Scope": 2,
@@ -501,79 +502,80 @@
       },
       "evidence": {
         "Interface design": [
-          "[2] The required inputs are concepts an app developer knows (`application`, `environment`, `application_principal_id`, `containers` with `delete_after_days`), and replication, recovery window, delete lock and naming default from `environment` as optional overrides.",
-          "[1] The core interface fits the audience well, with `application`, `environment`, `application_principal_id` and `containers` carrying `delete_after_days`, but it also exposes raw service controls to developers who don't know Azure Storage, such as `replication_type` as LRS/ZRS/GRS/RAGRS/GZRS/RAGZRS and `allowed_ip_ranges`, which reopens the public endpoint to arbitrary internet IPs.",
-          "[1] The environment-driven defaults for replication, recovery window and delete lock encode real judgment, but the brief's audience is developers new to Azure Storage, and they must still choose between three networking mechanisms (`allowed_subnet_ids` with service endpoints, `private_endpoint_subnet_id` plus `private_dns_zone_ids`, `allowed_ip_ranges`), which takes service expertise the module could have settled."
+          "[1] Concept inputs (`application`, `environment`, `application_principal_id`) drive environment-based defaults well, but the module also exposes inputs the use case settles or that need storage expertise, such as `replication_type` as raw Azure SKU codes (LRS/ZRS/GRS/RAGRS/GZRS/RAGZRS) and a `location` override even though storage belongs in the app's resource group.",
+          "[2] Consumers supply only the use-case decisions (`application`, `environment`, `application_principal_id`, `containers`, network path), while replication, recovery window, delete lock and naming are derived from `environment` and stay overridable with null defaults.",
+          "[2] Consumers supply only `application`, `environment`, `application_principal_id`, `containers` and the network path, while replication, recovery window, delete lock, naming and resource group are inferred from `environment` and `application`, and the overrides are optional."
         ],
         "Variables and validation": [
-          "[2] Inputs developers routinely get wrong are guarded with teaching messages: GUID checks on principal IDs, container-name rules, and `allowed_ip_ranges` rejecting private ranges and /31\u2013/32 prefixes; the `private_dns_zone_ids`/`private_endpoint_subnet_id` pair is cross-checked by a precondition.",
-          "[2] Inputs that developers realistically get wrong are guarded with teaching messages: GUID checks on `application_principal_id`, container-name and whole-day checks, the /31\u2013/32 and RFC 1918 rejection on `allowed_ip_ranges`, and the 30-day minimum on `cool_after_days_without_access`; the `private_dns_zone_ids`/`private_endpoint_subnet_id` pairing is caught by a precondition.",
-          "[2] Realistic mistakes are guarded with teaching messages: GUID checks on `application_principal_id`, container-name and `delete_after_days` rules, public-only `allowed_ip_ranges`, and the `cool_after_days_without_access >= 30` explanation. The one pair that can conflict, `private_dns_zone_ids` without `private_endpoint_subnet_id`, is cross-checked by a precondition."
+          "[2] Realistic mistakes are guarded with teaching error messages (GUID checks on `application_principal_id`, full subnet ID regexes, public-only `allowed_ip_ranges`, whole-number `delete_after_days`), and the one pairing that could conflict (`private_dns_zone_ids` without `private_endpoint_subnet_id`) is caught by a precondition.",
+          "[2] Realistic mistakes are guarded with teaching messages, including the object-ID GUID check on `application_principal_id`, full subnet-ID formats, public-only `allowed_ip_ranges`, and the `recovery_days` 7\u2013365 bound; the `private_dns_zone_ids`/`private_endpoint_subnet_id` pair is cross-checked by a precondition.",
+          "[2] Realistic mistakes are guarded with teaching messages, including GUID checks on `application_principal_id`, container-name rules, and public-only /30-or-shorter checks on `allowed_ip_ranges`; the `private_dns_zone_ids`/`private_endpoint_subnet_id` dependency is cross-checked by a precondition."
         ],
         "Internal logic": [
-          "[2] Readable locals derive the inferred values: `storage_account_name` from app, env and a stable `name_hash`, environment-driven `replication_type`/`recovery_days`/`delete_lock_enabled`, and `public_endpoint_needed`/`has_network_path` from the network inputs.",
-          "[2] Locals derive `replication_type`, `recovery_days` and `delete_lock_enabled` from `is_production`, build a stable unique `storage_account_name` from a sha256 hash, and compute `public_endpoint_needed`/`has_network_path` readably.",
-          "[2] Readable locals derive the stable unique `storage_account_name` hash and the environment-based `replication_type`, `recovery_days` and `delete_lock_enabled` from concept inputs, and `restore_policy` days are inferred as `recovery_days - 1`."
+          "[2] Readable locals derive values from concepts: `storage_account_name` from app/env/hash, `replication_type`, `recovery_days` and `delete_lock_enabled` from `is_production`, and `public_endpoint_needed`/`has_network_path` from the network inputs.",
+          "[2] Readable locals derive everything else from concept inputs: the stable hashed `storage_account_name`, `replication_type`/`recovery_days`/`delete_lock_enabled` from `is_production`, and `public_endpoint_needed`/`has_network_path` from the network inputs.",
+          "[2] Readable locals derive `storage_account_name` (prefix, env short form and a stable sha256 hash), plus `replication_type`, `recovery_days` and `delete_lock_enabled`, from the `environment` concept rather than asking for more inputs."
         ],
         "Scope": [
-          "[2] The module covers what an operator would consider part of the job: RBAC role assignments, deny-by-default networking with an optional private endpoint, soft delete and versioning, a cost-tiering management policy, an optional audit diagnostic setting and a prod delete lock, without gold-plating.",
-          "[2] The module creates the account plus what an operator expects: RBAC for the app identity, a private-by-default network posture, versioning and soft delete, a management policy for cost hygiene, a prod delete lock, and an optional private endpoint and audit diagnostic setting, without unrelated architecture.",
-          "[2] The module creates the account, private containers, the app's `Storage Blob Data Contributor` role assignment, versioning and soft-delete protection, and a lifecycle housekeeping policy; the private endpoint and audit diagnostics are optional, which is proportionate to the brief."
+          "[2] The module creates the account, containers, the app identity's `Storage Blob Data Contributor` role assignment, a lifecycle management policy, and an optional private endpoint, audit diagnostics and delete lock, which is proportionate to app file storage.",
+          "[2] The module creates the account, private containers, a Blob Data Contributor role assignment for the app identity, a lifecycle management policy, and optional private endpoint, diagnostics and delete lock, all proportionate to a standard app-storage job without invented architecture.",
+          "[2] The module creates the account, private containers, an RBAC grant for the app identity, a lifecycle management policy, and optional private endpoint, diagnostics and prod delete lock, which is proportionate to app file storage without gold-plating."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline on `azurerm_storage_account.this`, although `azurerm_storage_account_network_rules` exists as a separate resource, and no comment justifies the inline choice.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account.this` even though `azurerm_storage_account_network_rules` exists as a separate resource, and no comment gives a resource-specific justification for inlining it.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account` even though the provider offers the separate `azurerm_storage_account_network_rules` resource, and no comment gives a resource-specific justification for choosing inline."
+          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` even though the provider offers `azurerm_storage_account_network_rules`, and no comment gives an objective justification for inline.",
+          "[1] Containers and role assignments are separate resources, but `network_rules` is configured inline on `azurerm_storage_account.this`, although the provider offers `azurerm_storage_account_network_rules`, and no comment justifies the inline choice.",
+          "[1] Containers and the management policy are separate resources, but `network_rules` is configured inline on `azurerm_storage_account.this` with no justification comment, even though the provider offers `azurerm_storage_account_network_rules`."
         ],
         "Outputs": [
-          "[2] The outputs give consumers what they need to use the account (`storage_account_name`, `storage_account_id`, `blob_endpoint`, `container_urls`, `private_endpoint_ip_address`) without dumping every attribute.",
-          "[2] The outputs give consumers what they need to use the storage (`storage_account_name`, `storage_account_id`, `blob_endpoint`, `container_urls`, `private_endpoint_ip_address`) without dumping every attribute.",
-          "[2] The outputs cover what a consumer needs: account name and id, `blob_endpoint`, per-container URLs, and the private endpoint IP, without dumping every attribute."
+          "[2] The outputs cover what consumers need (`storage_account_name`, `storage_account_id`, `blob_endpoint`, `container_urls`, `private_endpoint_ip_address`) without dumping every attribute.",
+          "[2] Outputs cover what consumers need to use the storage (`storage_account_name`, `storage_account_id`, `blob_endpoint`, `container_urls`, `private_endpoint_ip_address`) without dumping every attribute.",
+          "[2] The outputs cover what consumers need (`storage_account_name`, `storage_account_id`, `blob_endpoint`, `container_urls`, `private_endpoint_ip_address`) without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] Multiplicity uses `for_each` (`azurerm_storage_container.this`, `azurerm_role_assignment.read_only`), and `count` appears only as `cond ? 1 : 0` toggles on the private endpoints, diagnostic setting and lock.",
-          "[2] Containers and read-only role assignments use `for_each`, and `count` appears only as an on/off switch (e.g. `count = local.delete_lock_enabled ? 1 : 0`).",
-          "[2] Containers and `read_only` role assignments use `for_each`, and `count` appears only as an on/off switch (private endpoint variants, diagnostic setting, lock)."
+          "[2] Containers and read-only role assignments use `for_each`, and `count` appears only as on/off switches (private endpoint variants, diagnostic setting, management lock).",
+          "[2] `count` is used only as an on/off switch (private endpoints, diagnostic setting, lock), and multiplicity uses `for_each` (`azurerm_storage_container.this`, `azurerm_role_assignment.read_only`).",
+          "[2] `for_each` drives `azurerm_storage_container.this` and `azurerm_role_assignment.read_only`, and `count` is used only as an on/off switch (private endpoints, diagnostic setting, lock)."
         ],
         "Data sources vs inputs": [
-          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the existing group, and `location` defaults to that group's region rather than being demanded as an input.",
-          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the existing group, and the location is derived from it rather than requested separately.",
-          "[2] `data.azurerm_resource_group.app` looks up the existing resource group and the module derives `location` from it, rather than asking for both."
+          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the resource group from its name and derives `location` from it, and `azurerm_client_config` supplies the subscription for the name hash instead of asking for it.",
+          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the existing group by name and derives `location` from it rather than requiring it as an input.",
+          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the existing group, and `location` defaults to that group's region instead of being demanded as an input."
         ],
         "File layout": [
-          "[2] The module is split into `main.tf`, `access.tf` (RBAC, private endpoint, diagnostics, lock), `variables.tf`, `outputs.tf` and `versions.tf`.",
-          "[2] The core resources sit in `main.tf`, access, network, audit and lock concerns in `access.tf`, and `variables.tf`, `outputs.tf` and `versions.tf` each hold their own content.",
-          "[2] The module is split into `main.tf` (account core), `access.tf` (RBAC, private endpoint, audit, lock), `variables.tf`, `outputs.tf` and `versions.tf`."
+          "[2] Resources are split into `main.tf` (account, containers, policy) and `access.tf` (RBAC, private endpoint, diagnostics, lock), with separate `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] Files are split by concern: `main.tf` (account, containers, policy), `access.tf` (RBAC, private endpoint, diagnostics, lock), `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] The core resources are in `main.tf`, access and supporting resources in `access.tf`, and there are separate `variables.tf`, `outputs.tf` and `versions.tf`."
         ],
         "Sensitive values": [
-          "[2] The module handles no secrets: `shared_access_key_enabled = false`, and no key or connection string is output.",
-          "[2] The module handles no secrets: `shared_access_key_enabled = false` and identity-based access mean no keys or connection strings are input or output.",
-          "[2] No secrets flow through the module: `shared_access_key_enabled = false` and identity-based access mean no keys or connection strings are input or output."
+          "[2] No secrets are handled: `shared_access_key_enabled = false` and identity-based access mean no keys or connection strings are input or output.",
+          "[2] No secrets are accepted or emitted: `shared_access_key_enabled = false`, and no connection string or key output exists.",
+          "[2] No secrets are handled: `shared_access_key_enabled = false`, there is no connection-string or key output, and the principal object IDs taken as inputs are not confidential."
         ],
         "Lifecycle meta-arguments": [
-          "[2] `ignore_changes = [private_dns_zone_group]` applies only to the variant whose DNS zone group is attached externally by Azure Policy, and deletion protection uses a native `azurerm_management_lock` rather than `prevent_destroy`.",
-          "[2] The only `ignore_changes` targets `private_dns_zone_group` on the platform-DNS private endpoint variant, a value expected to be changed outside IaC by Azure Policy.",
-          "[2] The only `ignore_changes` is on `private_dns_zone_group` in the platform-DNS endpoint variant, where Azure Policy legitimately changes that value outside IaC, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`."
+          "[2] `ignore_changes = [private_dns_zone_group]` applies only to the platform-DNS variant, where Azure Policy changes that attribute outside IaC, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`.",
+          "[2] The only `ignore_changes`, on `private_dns_zone_group` in `azurerm_private_endpoint.blob_platform_dns`, covers a value that Azure Policy is expected to manage outside IaC, and it is commented as such.",
+          "[2] `ignore_changes = [private_dns_zone_group]` applies only to the variant whose DNS zone group is attached externally by Azure Policy, and deletion protection uses a native `azurerm_management_lock` rather than `prevent_destroy`."
         ],
         "Documentation": [
-          "[2] Every variable and output has an accurate description, and comments explain the non-obvious points, such as `data_plane_available = false`, the ARM-based container creation, and the lock-ordering `depends_on`.",
-          "[2] Every variable and output has an accurate, audience-appropriate description (e.g. the `delete_lock_enabled` caveat about removals), and comments explain the non-obvious points such as `data_plane_available = false` and the dual private endpoint variants.",
-          "[2] Every variable and output has an accurate description (e.g. `delete_lock_enabled` correctly explains that the lock blocks container removal), and comments explain the non-obvious choices such as `data_plane_available = false` and the two private-endpoint variants."
+          "[2] Every variable and output has an accurate description, non-obvious choices are commented (the two private endpoint variants, `data_plane_available = false`, the lock's `depends_on` ordering), and the README accurately summarizes the defaults.",
+          "[2] Every variable and output has a description, and the README table accurately reflects the code, including the 90-day cool default, the prod GRS/30-day/lock behavior, and the plan-time network check.",
+          "[1] Descriptions and README are thorough and mostly accurate, but the README states point-in-time restore is \"30 days in prod, 7 days elsewhere\" while `restore_policy` actually uses `local.recovery_days - 1`."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] The module uses current attribute forms (`https_traffic_only_enabled`, `storage_account_id` on containers) and contains no `null_resource` or `local-exec`.",
-          "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument rather than the deprecated `storage_account_name`.",
-          "[2] The module uses current forms (`https_traffic_only_enabled`, `storage_account_id` on containers) and contains no `null_resource` or `local-exec`."
+          "[2] There is no `null_resource` or `local-exec`, and `azurerm_storage_container` uses the current `storage_account_id` form.",
+          "[2] No `null_resource` or `local-exec` is present, and containers use the current `storage_account_id` form rather than the deprecated `storage_account_name`.",
+          "[2] The module uses current forms (`storage_account_id` on containers, `https_traffic_only_enabled`) and has no `null_resource` or `local-exec`."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[2] All resources are authored directly with no remote module calls, and the only exposure input, `allowed_ip_ranges`, is an explicit, documented allow-list on a deny-by-default firewall rather than a silent posture bypass.",
-          "[2] All resources are authored directly with no remote module calls, nothing has been commented out to dodge errors, and no input disables the identity-only access or encryption posture.",
-          "[2] All resources are authored directly with no remote module call, and no input bypasses the established posture: `allowed_ip_ranges` only adds explicit firewall exceptions while `default_action = \"Deny\"` stays fixed."
+          "[2] All resources are authored directly with no remote module calls, and no input silently undoes the module's posture; anonymous access, account keys and HTTPS-only enforcement are hardcoded.",
+          "[2] All resources are authored directly with no remote module call, and no input silently bypasses the established posture (anonymous access, key auth and TLS settings are hardcoded).",
+          "[2] All resources are authored directly with no remote module calls, and no input silently overrides the established posture (for example, `allow_nested_items_to_be_public = false` is hardcoded)."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "52406ac8ce1c21c5",
-      "tf_sloc": 500
+      "tf_sloc": 500,
+      "graded_in_full": "2026-11-24"
     },
     "claude-fable-5-2-e3": {
       "overall": 86.8,
@@ -2945,79 +2947,80 @@
       },
       "evidence": {
         "Interface design": [
-          "[1] The `environment` concept and the auto-generated name suit developers new to Azure Storage, but the module also exposes `replication_type`, `point_in_time_restore_days`, `noncurrent_version_retention_days`, CORS header lists, `private_dns_zone_ids` and a raw `public_network_access_enabled` override, which are specialist storage decisions the brief says these consumers shouldn't have to make.",
-          "[1] The brief's consumers are developers who \"fill in a couple of obvious inputs\", but the module also exposes storage-expert knobs such as `replication_type`, `point_in_time_restore_days`, `noncurrent_version_retention_days`, `default_cold_after_days`, `private_dns_zone_ids` and a raw `public_network_access_enabled` override, alongside its sensible concept inputs (`app_name`, `environment`, `app_principal_id`).",
-          "[1] The `environment` concept sensibly drives replication, retention, PITR and lock defaults, but developers new to Azure Storage are also handed specialist knobs such as `replication_type`, `point_in_time_restore_days`, `noncurrent_version_retention_days`, `public_network_access_enabled`, `private_dns_zone_ids` and per-rule CORS header lists."
+          "[1] The required inputs (`app_name`, `environment`, `resource_group_name`, `app_principal_id`) fit the audience, but the module also exposes `replication_type`, `soft_delete_retention_days`, `point_in_time_restore_days`, `noncurrent_version_retention_days`, `public_network_access_enabled`, per-rule CORS headers and `storage_account_name_override`, which are storage-expertise decisions that developers new to Azure Storage should not be making.",
+          "[1] Only five inputs are required and the defaults follow the environment, but the brief's audience is developers who don't know Azure Storage, yet the module exposes many specialist controls: `replication_type`, `point_in_time_restore_days`, `noncurrent_version_retention_days`, per-rule CORS `allowed_headers`/`exposed_headers`, and the `public_network_access_enabled` override.",
+          "[1] The required inputs (app_name, environment, resource_group_name, app_principal_id) fit developers new to Azure Storage, but the module also exposes many storage-expertise knobs, such as replication_type, point_in_time_restore_days, noncurrent_version_retention_days, the public_network_access_enabled override and per-rule CORS headers, which this audience cannot reasonably decide."
         ],
         "Variables and validation": [
-          "[1] Inputs are guarded deliberately (UUID checks, container-name rules, cool/cold ordering, a PITR-vs-soft-delete precondition), but the module adds an avoidable conflicting pair: `public_network_access_enabled` can be set to contradict the posture derived from `private_endpoint_subnet_id` and the firewall lists.",
-          "[1] Validation is deliberate (UUID checks, container names, CORS, and a precondition tying PITR to soft delete), but the avoidable `public_network_access_enabled` override can conflict with `private_endpoint_subnet_id`, `allowed_ip_ranges` and `allowed_subnet_ids`, and `allowed_ip_ranges` is unvalidated despite routine private-range or CIDR mistakes.",
-          "[1] Validation is deliberate (UUID checks, container naming, lifecycle threshold ordering, PITR vs soft-delete precondition), but `location` is an avoidable input that can conflict with the region of the existing `resource_group_name`."
+          "[1] Validation is deliberate and teaches (UUID checks, container naming, replication enum, PITR/soft-delete precondition), but `public_network_access_enabled` is an avoidable override that can be set to conflict with `private_endpoint_subnet_id`'s derived posture, and `allowed_ip_ranges` is left unguarded.",
+          "[1] Validation is deliberate (UUID checks, container naming, CORS limits, plus preconditions for PITR vs soft delete and DNS zones vs endpoint), but `public_network_access_enabled` is an avoidable override: set to false alongside `allowed_ip_ranges`/`allowed_subnet_ids`, it conflicts with them and nothing catches it.",
+          "[1] Most inputs are guarded and the cross-field preconditions (PITR vs soft delete, cold vs cool, DNS zones vs endpoint) are sound, but the public_network_access_enabled override is an avoidable input that can conflict with private_endpoint_subnet_id and the firewall lists, and the location regex rejects valid region names such as \"East US 2\"."
         ],
         "Internal logic": [
-          "[2] Readable, sectioned locals derive things from concept inputs, e.g. `replication_type = coalesce(var.replication_type, local.is_prod ? \"GZRS\" : \"LRS\")`, the compliant generated name, and the de-duplicated RBAC assignment maps.",
-          "[2] `locals.tf` derives the compliant account name, environment-aware defaults (`is_prod`, `replication_type`, `soft_delete_days`) and de-duplicated RBAC maps in readable, commented steps.",
-          "[1] The naming and environment-default locals are readable, but `containers_with_custom_lifecycle` adds container rules while the `default-lifecycle` rule has no prefix exclusion, so per-container `cool_after_days`/`cold_after_days` cannot actually override the default tiering."
+          "[2] Locals such as `is_prod`, `replication_type`, `soft_delete_days`, `pitr_days` and `generated_storage_account_name` derive sensible values from the `environment` and `app_name` concepts in readable steps rather than asking for more inputs.",
+          "[2] Locals such as `replication_type`, `soft_delete_days`, `enable_delete_lock` and the length-bounded `generated_storage_account_name` derive sensible values from the `environment` and `app_name` concepts, and stay readable.",
+          "[2] Locals such as is_prod, replication_type, soft_delete_days, default_pitr_days and the generated storage_account_name derive sensible values from the concept inputs and are laid out readably."
         ],
         "Scope": [
-          "[2] The module creates the account, private containers, Entra RBAC role assignments, a lifecycle management policy for tiering and version cleanup, and a prod CanNotDelete lock, with optional private endpoint and diagnostics, which is proportionate to standard app file storage.",
-          "[2] The module covers access posture (RBAC role assignments with shared keys disabled), data hygiene (versioning, soft delete, `azurerm_storage_management_policy` tiering), and optional private endpoint and diagnostics, all proportionate to an application file-storage standard.",
-          "[2] The module creates the storage account with an Entra-only/TLS/infrastructure-encryption baseline, private containers, RBAC role assignments for the app identity, a lifecycle management policy, and only optional, proportionate extras (private endpoint, diagnostics, prod delete lock)."
+          "[2] The module creates the account, private containers, RBAC role assignments, the lifecycle management policy and a prod `azurerm_management_lock`, covering access, encryption and cost hygiene, and keeps the private endpoint and diagnostics optional via on/off switches.",
+          "[2] The module creates the account, private containers, RBAC role assignments, a lifecycle management policy and a prod delete lock, which covers access, encryption and cost hygiene; the private endpoint and diagnostics are optional additions rather than heavy gold-plating.",
+          "[2] The module creates the storage account with an encryption and access baseline, private containers, RBAC role assignments and a lifecycle management policy for cost and data hygiene, and leaves extras (private endpoint, diagnostics) optional."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, even though the provider offers the separate `azurerm_storage_account_network_rules` resource; the two styles are not mixed.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account` with no comment justifying it, even though `azurerm_storage_account_network_rules` exists as a separate resource.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account.this` even though `azurerm_storage_account_network_rules` exists as a separate resource, and no comment justifies the inline choice."
+          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, even though the provider offers the separate `azurerm_storage_account_network_rules` resource.",
+          "[1] `network_rules` is configured inline on `azurerm_storage_account.this` with no comment justifying it, although the dedicated `azurerm_storage_account_network_rules` resource exists; the module does not mix both styles.",
+          "[1] The network_rules block is inline in azurerm_storage_account even though azurerm_storage_account_network_rules exists, and no comment justifies it, although containers and the management policy are correctly separate resources."
         ],
         "Outputs": [
-          "[2] The outputs cover what consumers need to use the account: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with id/name/url, and a ready-made `app_settings` map, without dumping every attribute.",
-          "[2] The outputs cover what consumers need (`storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with URLs, and a ready-made `app_settings` map) without dumping every attribute.",
-          "[2] The outputs cover what consumers need: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, the per-container id/url map, a ready-made `app_settings` map, and `private_endpoint_ip`, without dumping every attribute."
+          "[2] The outputs cover what consumers need: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, the `containers` map with URLs, and a ready-made `app_settings` map, without dumping every attribute.",
+          "[2] Outputs cover what consumers need, such as `storage_account_id`, `primary_blob_endpoint`, a `containers` map with URLs and a ready-made `app_settings` map, without dumping every attribute.",
+          "[2] The outputs give consumers what they need (storage_account_id, storage_account_name, primary_blob_endpoint, a containers map with URLs, and an app_settings map) without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] Containers and role assignments use `for_each`, and `count` appears only as an on/off switch, e.g. `count = var.private_endpoint_subnet_id != null ? 1 : 0`.",
-          "[2] Multiplicity uses `for_each` (containers, role assignments), and `count` appears only as an on/off toggle on the private endpoint, diagnostic settings and lock.",
-          "[2] Containers and role assignments use `for_each` with stable keys, and `count` appears only as an on/off switch on the private endpoint, diagnostic settings and management lock."
+          "[2] Containers and role assignments use `for_each`, and `count` appears only as on/off switches such as `count = var.private_endpoint_subnet_id != null ? 1 : 0`.",
+          "[2] Containers and role assignments use `for_each`, and `count` appears only as an on/off switch on the private endpoint, diagnostic settings and management lock.",
+          "[2] Containers and role assignments use for_each, and count appears only as an on/off switch, as in azurerm_private_endpoint.blob and azurerm_management_lock.cannot_delete."
         ],
         "Data sources vs inputs": [
-          "[1] `var.location` is described as \"Azure region of the application's resource group\", yet it is taken as a separate input rather than looked up from `resource_group_name` with an `azurerm_resource_group` data source, so the two can disagree.",
-          "[1] `location` is demanded as an input described as \"Azure region of the application's resource group\" instead of being looked up via a `data \"azurerm_resource_group\"` on `resource_group_name`, so the two can mismatch.",
-          "[1] The module requires `location` alongside `resource_group_name` instead of reading the region from a `data \"azurerm_resource_group\"` lookup, which allows a mismatched value."
+          "[1] The module takes `resource_group_name` (an existing resource group) but also asks for a separate `location` input instead of looking it up with a `data \"azurerm_resource_group\"`, so the consumer can enter a region that doesn't match the group.",
+          "[1] `var.location` is described as \"Azure region of the application's resource group\", yet it is taken as a separate input instead of being looked up with a data source from `resource_group_name`, so the two can mismatch.",
+          "[1] var.location is required separately instead of being looked up from the existing resource group with a data \"azurerm_resource_group\" source, so a consumer can enter a region that does not match the group."
         ],
         "File layout": [
-          "[2] Concerns are split across `variables.tf`, `outputs.tf`, `locals.tf`, `main.tf`, `iam.tf` and `network_and_ops.tf`.",
-          "[2] Concerns are split across `main.tf`, `iam.tf`, `locals.tf`, `network_and_ops.tf`, `variables.tf` and `outputs.tf`.",
-          "[2] Code is split into `variables.tf`, `outputs.tf`, `locals.tf`, `main.tf`, `iam.tf` and `network_and_ops.tf` along clear conceptual concerns."
+          "[2] Concerns are split across `main.tf`, `iam.tf`, `network_and_ops.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] Concerns are split across `variables.tf`, `outputs.tf`, `locals.tf`, `main.tf`, `iam.tf`, `network_and_ops.tf` and `versions.tf`.",
+          "[2] The module is split into variables.tf, outputs.tf, locals.tf, main.tf, iam.tf, network_and_ops.tf and versions.tf by concern."
         ],
         "Sensitive values": [
-          "[2] There are no secret inputs or outputs: `shared_access_key_enabled = false` and identity-based RBAC are used, and no access keys or connection strings are exported.",
-          "[2] No secrets are handled: `shared_access_key_enabled = false` relies on Entra ID, and no keys or connection strings are output.",
-          "[2] No secrets are accepted or output: `shared_access_key_enabled = false` and access goes through Entra role assignments keyed by principal IDs."
+          "[2] There are no secret inputs or outputs: `shared_access_key_enabled = false` and identity-based RBAC mean no keys or connection strings are handled.",
+          "[2] The module handles no secrets: `shared_access_key_enabled = false`, and no keys or connection strings are output.",
+          "[2] shared_access_key_enabled = false, and no keys, connection strings or other secrets are accepted or output."
         ],
         "Lifecycle meta-arguments": [
-          "[2] The `lifecycle` blocks contain only preconditions, with no `prevent_destroy` or `ignore_changes`; deletion protection uses the native `azurerm_management_lock` instead.",
-          "[2] The `lifecycle` blocks contain only preconditions, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`.",
-          "[2] The `lifecycle` blocks contain only preconditions, with no `prevent_destroy` or `ignore_changes`, and deletion protection uses the native `azurerm_management_lock`."
+          "[2] Deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`, and there is no `ignore_changes`; only `precondition` blocks appear.",
+          "[2] The `lifecycle` blocks contain only preconditions, with no `ignore_changes` or `prevent_destroy`, and deletion protection uses the native `azurerm_management_lock` instead.",
+          "[2] The lifecycle block contains only preconditions, and deletion protection uses the native azurerm_management_lock rather than prevent_destroy or ignore_changes."
         ],
         "Documentation": [
-          "[2] Every visible variable and output has an accurate description, e.g. the `environment` description lists exactly the prod behaviors that the locals implement, and comments explain non-obvious logic such as the `/32` stripping for `ip_rules`.",
-          "[2] Every visible variable and output has an accurate description, and the comments explain non-obvious logic such as the naming length budget and the `/32` normalization.",
-          "[2] Every visible variable and output has a description, and comments explain non-obvious behavior such as the `/32` normalization and the naming character budget."
+          "[2] Every variable and output has an accurate description, and the README's environment-default table matches the locals logic (e.g. GZRS/LRS, 30/7 soft delete, PITR 14/0).",
+          "[2] Every variable and output has a description, and the README's examples and environment-defaults table match the module's behavior, including the generated name format `stordersstg\u2026`.",
+          "[2] Every variable and output has a description, and the README explains quick start, an environment-default table and connection guidance in a way that matches the code."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] The module uses current argument forms (`storage_account_id` on `azurerm_storage_container`, `https_traffic_only_enabled`) and contains no `null_resource` or `local-exec`.",
+          "[2] There is no `null_resource` or `local-exec`, and `azurerm_storage_container` uses the current `storage_account_id` argument rather than the deprecated name-based form.",
           "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument.",
-          "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument rather than the deprecated `storage_account_name`."
+          "[2] The module uses current argument forms (https_traffic_only_enabled, storage_account_id on containers) and contains no null_resource or local-exec."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[2] All resources are authored directly with no remote module calls, and the `public_network_access_enabled` override cannot open access the module otherwise closes, because `network_default_action` stays `Deny` whenever a private endpoint is set.",
-          "[2] All resources are authored directly, with no remote module calls or removed resources, and core posture settings like `shared_access_key_enabled = false` and `allow_nested_items_to_be_public = false` are not overridable.",
-          "[2] All resources are authored directly with no remote module calls, and the `public_network_access_enabled` override cannot open a private-endpoint-only account because `network_default_action` stays \"Deny\" whenever a private endpoint is set."
+          "[2] All resources are authored directly with no remote module calls or commented-out resources, and the module's default network posture is already open, so `public_network_access_enabled` does not silently undo a posture the module establishes.",
+          "[2] The module authors its resources directly with no remote module calls, and no input silently undoes a security posture it establishes; `shared_access_key_enabled` and `allow_nested_items_to_be_public` are hardcoded.",
+          "[2] All resources are authored directly with no remote module calls, and even with the public_network_access_enabled override the firewall default_action stays Deny when a private endpoint is configured."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "8d3dc9858f1ffcaa",
-      "tf_sloc": 601
+      "tf_sloc": 601,
+      "graded_in_full": "2026-11-24"
     },
     "gemini-4-carbon-e2": {
       "overall": 71.1,
@@ -3033,92 +3036,93 @@
         "File layout": 1,
         "Sensitive values": 2,
         "Lifecycle meta-arguments": 2,
-        "Documentation": 0,
+        "Documentation": 1,
         "Deprecated and escape-hatch patterns": 2,
-        "Anti-patterns (immediate credibility loss)": 1
+        "Anti-patterns (immediate credibility loss)": 0
       },
       "evidence": {
         "Interface design": [
-          "[1] The core inputs (`app_name`, `environment`, `principal_id`) are concept-level, but developers new to Azure Storage also get service-expert knobs like `network_default_action`, `public_network_access_enabled`, `access_tier`, `change_feed_enabled`, `replication_type` and `private_dns_zone_ids`, and network exposure is left as a consumer decision.",
-          "[1] The required inputs (`app_name`, `environment`, `resource_group_name`, `location`, `principal_id`) suit app developers, but the module also exposes storage-expert controls such as `replication_type`, `access_tier`, `network_default_action`, `public_network_access_enabled`, `change_feed_enabled` and `private_dns_zone_ids`, which an audience that \"doesn't know Azure Storage\" cannot reasonably decide on.",
-          "[1] Concept-level inputs like `environment` drive replication and retention, but the module also exposes many specialist knobs to developers who \"don't know Azure Storage\", such as `network_default_action`, `public_network_access_enabled`, `change_feed_enabled`, `access_tier`, `private_dns_zone_ids` and full `cors_rules`."
+          "[1] The five required inputs and the environment-derived defaults fit developers who don't know Azure Storage, but attribute-level controls such as `network_default_action`, `public_network_access_enabled`, `replication_type`, `change_feed_enabled` and raw `cors_rules` push service-expertise and exposure decisions onto that audience.",
+          "[1] The five required inputs fit the brief, but an audience the brief says \"don't know Azure Storage\" is also handed raw attribute-level and exposure knobs such as `network_default_action`, `public_network_access_enabled`, `access_tier`, `change_feed_enabled` and `replication_type`, and network reachability defaults to \"Allow\" instead of the module settling it.",
+          "[1] The `environment` concept drives replication and retention defaults, but novice app developers are also handed raw attribute-level controls such as `network_default_action`, `public_network_access_enabled`, `private_dns_zone_ids` and `change_feed_enabled`, which need Azure Storage expertise to decide."
         ],
         "Variables and validation": [
-          "[1] Validation is deliberate (UUIDs, container names, ordered lifecycle thresholds), but the module adds avoidable conflicting pairs such as `network_default_action = \"Allow\"` alongside `allowed_ip_ranges`, and `private_dns_zone_ids` without `private_endpoint_subnet_id`; `allowed_ip_ranges` has no validation despite its documented prefix limit.",
-          "[1] Validation is deliberate and thorough (container names, increasing lifecycle thresholds, UUIDs), but `network_default_action` and `public_network_access_enabled` form avoidable pairs that can conflict with `allowed_ip_ranges` and `private_endpoint_subnet_id`, and `allowed_ip_ranges` has no validation even though its description says the prefix must be <= /30.",
-          "[1] Most inputs are carefully validated, but `network_default_action`, `public_network_access_enabled` and `private_endpoint_subnet_id`/`allowed_ip_ranges` form avoidable conflicting inputs (e.g. \"Allow\" silently voids IP rules), and `allowed_ip_ranges` has no validation despite Azure rejecting private or /31\u2013/32 ranges."
+          "[1] Most inputs are carefully validated (container names, lifecycle ordering, UUIDs), but `network_default_action` can be set to \"Allow\" while `allowed_ip_ranges`/`allowed_subnet_ids` are populated, and `public_network_access_enabled` can contradict `private_endpoint_subnet_id`; these are avoidable conflicting pairs, and `allowed_ip_ranges` itself has no validation.",
+          "[1] Validation is thorough (names, UUIDs, lifecycle thresholds that must increase), but `network_default_action` can be set to \"Allow\" while `allowed_ip_ranges`/`allowed_subnet_ids` are populated, and `public_network_access_enabled` can contradict `private_endpoint_subnet_id`; these are avoidable conflicting pairs, and `allowed_ip_ranges` has no guard.",
+          "[1] Validation is deliberate (UUIDs, container names, increasing lifecycle thresholds), but `network_default_action` can be set to conflict with `allowed_subnet_ids`/`allowed_ip_ranges`, `public_network_access_enabled` can conflict with `private_endpoint_subnet_id`, and `allowed_ip_ranges` has no validation despite its description demanding public IPv4 addresses with prefix <= /30."
         ],
         "Internal logic": [
-          "[1] Locals sensibly infer replication, retention and naming from `environment`/`location`, but `coalesce(var.storage_account_name_override, \"...${random_string.suffix[0].result}\")` still evaluates `suffix[0]` when the override is set and `count = 0`, which breaks the override path.",
-          "[2] Locals such as `is_production`, `default_prod_replication`, `name_prefix` and `enable_management_policy` turn concept inputs into readable defaults without demanding extra inputs.",
-          "[1] The locals sensibly infer replication from environment and region, but `coalesce(var.storage_account_name_override, \"...${random_string.suffix[0].result}\")` indexes a count-0 resource whenever the override is set, which breaks that path."
+          "[1] Locals sensibly derive replication, retention and naming from `environment`/`location`, but `coalesce(var.storage_account_name_override, \"...${random_string.suffix[0].result}\")` indexes a zero-count resource whenever the override is set, which breaks that path.",
+          "[1] Locals sensibly infer replication, retention and naming from `environment`/`location`, but `coalesce(var.storage_account_name_override, \"...${random_string.suffix[0].result}\")` indexes a zero-count resource whenever the override is set, so the override path errors.",
+          "[1] The environment-derived locals are readable, but `coalesce(var.storage_account_name_override, \"...${random_string.suffix[0].result}\")` indexes a resource whose count is 0 when the override is set, so the override path fails to evaluate."
         ],
         "Scope": [
-          "[2] The module creates the account, private containers, an optional lifecycle policy, Entra RBAC for the app identity, and optional private endpoint, diagnostics and delete lock, which is proportionate to standard app file storage.",
-          "[2] The module creates the account, private containers, lifecycle and version cleanup, and Entra RBAC for the app identity, with optional private endpoint, diagnostics and lock, which is proportionate to standard app file storage.",
-          "[2] The module creates the account with identity-only access, private containers, an RBAC grant for the app's `principal_id`, version cleanup via `azurerm_storage_management_policy`, and optional private endpoint and diagnostics, which is proportionate to app file storage."
+          "[2] The module creates the account, private containers, Entra RBAC role assignments, lifecycle/version cleanup and soft delete, with the private endpoint, diagnostics and delete lock as optional add-ons; this is proportionate to the application-files use case.",
+          "[2] The module creates the account, private containers, lifecycle management policy and Entra RBAC role assignments for the app identity, plus an optional private endpoint, diagnostics and delete lock, which is proportionate to application file storage.",
+          "[2] The module creates the account, private containers, lifecycle policy, Entra RBAC role assignments, and optional private endpoint, diagnostics and delete lock, which is proportionate to standardized app file storage."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, even though `azurerm_storage_account_network_rules` exists as a separate resource.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account` with no comment justifying it, although the provider offers the separate `azurerm_storage_account_network_rules` resource.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account` with no justifying comment, although `azurerm_storage_account_network_rules` exists as a separate resource; the module does not mix both styles."
+          "[1] Containers, the management policy and role assignments are separate resources, but firewall rules are configured inline via the `network_rules` block instead of `azurerm_storage_account_network_rules`, with no justifying comment.",
+          "[1] Containers and role assignments are separate resources, but firewall rules use the inline `network_rules` block on `azurerm_storage_account` with no justification comment, although `azurerm_storage_account_network_rules` exists.",
+          "[1] Firewall rules are set in an inline `network_rules` block on `azurerm_storage_account`, with no comment justifying it, although the provider offers the separate `azurerm_storage_account_network_rules` resource."
         ],
         "Outputs": [
-          "[2] The outputs cover what consumers need: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with URLs, an `app_settings` map, and the private endpoint id/IP, without dumping every attribute.",
-          "[2] The outputs cover what consumers need: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, container URLs, a ready-made `app_settings` map, and private endpoint details, without dumping every attribute.",
-          "[2] Outputs cover what consumers need: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with URLs, and an `app_settings` map, without dumping every attribute."
+          "[2] The outputs cover the account id and name, the blob endpoint and host, a container map with URLs, a ready-to-use `app_settings` map and the private endpoint id/IP, without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, per-container URLs and a ready-made `app_settings` map, without dumping every attribute.",
+          "[2] Outputs cover the account id, name, blob endpoint, a per-container id/url map and a ready-to-use `app_settings` map, without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] Containers and role assignments use `for_each`, and `count` appears only as on/off switches such as `count = var.private_endpoint_subnet_id != null ? 1 : 0`.",
-          "[2] `count` is used only as an on/off switch (`random_string.suffix`, `azurerm_private_endpoint.blob`), and `for_each` drives the containers and role assignments.",
-          "[2] Containers and additional role assignments use `for_each` over maps and sets, and `count` appears only as on/off switches such as `var.private_endpoint_subnet_id != null ? 1 : 0`."
+          "[2] Containers and additional role assignments use `for_each`, and `count` appears only as on/off switches (e.g. `count = var.log_analytics_workspace_id != null ? 1 : 0`).",
+          "[2] `count` is used only as on/off switches (`random_string.suffix`, `azurerm_private_endpoint.blob`, `azurerm_management_lock.this`), while multiples use `for_each` (`azurerm_storage_container.this`, the additional role assignments).",
+          "[2] Containers and additional role assignments use `for_each`, and `count` appears only as on/off switches (e.g. `count = var.private_endpoint_subnet_id != null ? 1 : 0`)."
         ],
         "Data sources vs inputs": [
-          "[1] `location` is a required input alongside `resource_group_name` rather than being looked up with a `data \"azurerm_resource_group\"`, so the two can disagree.",
-          "[1] The module requires both `resource_group_name` and `location`, and its description admits location \"should match the application's resource group\", instead of looking the location up with an `azurerm_resource_group` data source.",
-          "[1] `location` is demanded as a separate input whose description says it \"should match the application's resource group\", when it could be looked up authoritatively from `resource_group_name` via a data source."
+          "[1] The module requires both `resource_group_name` and `location` even though the brief places storage in the existing resource group, so the region could be looked up with a `azurerm_resource_group` data source instead of risking a mismatch.",
+          "[1] The module requires both `resource_group_name` and a separate `location` that its own description says \"should match the application's resource group\", instead of looking the region up with an `azurerm_resource_group` data source.",
+          "[1] The module requires `location` as a separate input whose description says it \"should match the application's resource group\", instead of looking it up from the required `resource_group_name` with an `azurerm_resource_group` data source."
         ],
         "File layout": [
-          "[1] `variables.tf`, `outputs.tf`, `locals.tf` and `versions.tf` are separate, but `main.tf` holds roughly 250 lines covering several distinct concerns (RBAC, private endpoint, diagnostics, lock) in one file.",
-          "[1] The variables, outputs, locals and versions have their own files, but `main.tf` holds roughly 250 lines covering the account, RBAC, private endpoint, diagnostics and lock without a conceptual split.",
-          "[1] Variables, outputs, locals and versions are split out, but `main.tf` packs the account, lifecycle policy, RBAC, private endpoint, diagnostics and lock (well over 200 lines of distinct concerns) into one file."
+          "[1] `variables.tf`, `outputs.tf`, `locals.tf` and `versions.tf` are separated, but `main.tf` puts the storage core, RBAC, private endpoint, diagnostics and the lock (distinct concerns, about 250 lines) in one file.",
+          "[1] Variables, outputs, locals and versions have their own files, but `main.tf` holds roughly 250 lines across distinct concerns (RBAC, private endpoint, diagnostics, lock) without a conceptual split.",
+          "[1] Variables, outputs, locals and versions have their own files, but `main.tf` mixes the storage account, RBAC, private endpoint, diagnostics and management lock in one ~270-line file despite these being distinct concerns."
         ],
         "Sensitive values": [
-          "[2] The module handles no secrets: `shared_access_key_enabled = false` and no access keys or connection strings are output.",
-          "[2] The module handles no secrets: `shared_access_key_enabled = false` and no access keys or connection strings are output.",
-          "[2] The module handles no secrets: `shared_access_key_enabled = false`, no access keys or connection strings are output, and access is via the `principal_id` reference."
+          "[2] No secrets are taken or exported: `shared_access_key_enabled = false`, and the outputs expose only endpoints and names for `DefaultAzureCredential` use.",
+          "[2] Shared keys are disabled (`shared_access_key_enabled = false`), no variable or output carries a key or connection string, and access goes through Entra identity references (`principal_id`).",
+          "[2] No secrets are accepted or output, since `shared_access_key_enabled = false` and access is via Entra role assignments, so there is nothing requiring `sensitive`."
         ],
         "Lifecycle meta-arguments": [
-          "[2] Only `precondition` blocks are used, with no `prevent_destroy` or `ignore_changes`, and deletion protection uses the native `azurerm_management_lock` instead.",
-          "[2] The only `lifecycle` blocks are `precondition` checks on the role assignments, there is no `ignore_changes`, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`.",
-          "[2] `lifecycle` blocks contain only `precondition` checks on the role assignments, with no misused `prevent_destroy` or `ignore_changes`, and deletion protection uses the native `azurerm_management_lock`."
+          "[2] There is no `prevent_destroy` or `ignore_changes`; deletion protection uses the native `azurerm_management_lock`, and the lifecycle blocks contain only preconditions.",
+          "[2] Only `precondition` blocks appear in `lifecycle`, with no `ignore_changes` or misused `prevent_destroy`, and deletion protection uses the native `azurerm_management_lock`.",
+          "[2] The module uses only `precondition` checks in `lifecycle` blocks, with no misused `prevent_destroy` or `ignore_changes`, and it uses the native `azurerm_management_lock` for deletion protection."
         ],
         "Documentation": [
-          "[1] Every variable and output has a description, but the `environment` and `replication_type` descriptions say production defaults to ZRS without mentioning the GRS fallback that `local.default_prod_replication` applies in non-AZ regions.",
-          "[0] The `replication_type` and `environment` descriptions say production defaults to ZRS, but `local.default_prod_replication` actually selects GRS in the listed non-AZ regions, so the documentation is inaccurate.",
-          "[0] The `replication_type` and `environment` descriptions say production defaults to ZRS, but `local.default_prod_replication` actually falls back to GRS in non-AZ regions, so the documentation is inaccurate."
+          "[1] Every variable and output has a description and the README is helpful, but the README's \"Private by default\" heading is misleading while public network access defaults to enabled with an \"Allow\" firewall, and the `storage_account_name_override` description promises a path that fails.",
+          "[1] Every variable and output has a description and the README is helpful, but the README's \"Private by default\" heading is misleading given public network access defaults to enabled with firewall action \"Allow\".",
+          "[1] Every variable and output has a description, but the README's \"Private by default\" headline overstates the posture when the default network action is `Allow` with public network access enabled, and the `replication_type` description omits the GRS fallback for non-AZ regions."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] The module uses current forms such as `storage_account_id` on `azurerm_storage_container` and `https_traffic_only_enabled`, with no `null_resource` or `local-exec`.",
-          "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as `storage_account_id` on containers and `enabled_metric` on diagnostic settings.",
+          "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as `storage_account_id` on containers and `enabled_metric` in diagnostic settings.",
+          "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as `storage_account_id` on containers and `enabled_metric` in diagnostic settings.",
           "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument rather than the deprecated `storage_account_name`."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[2] All resources are authored directly with no remote module calls, and the identity-only posture (`shared_access_key_enabled = false`, `allow_nested_items_to_be_public = false`) is hardcoded rather than overridable.",
-          "[1] `public_network_access_enabled` and `network_default_action` let a consumer silently override the private-endpoint lockdown the module otherwise applies, reopening public network access.",
-          "[0] The `network_default_action` input lets a consumer set \"Allow\" alongside `allowed_ip_ranges`/`allowed_subnet_ids`, silently voiding the Deny firewall posture the module otherwise establishes."
+          "[0] `network_default_action` lets a consumer silently override to \"Allow\" the Deny posture the module establishes when IP/subnet rules are given, and `public_network_access_enabled = true` silently reopens an account the module would otherwise make private behind its private endpoint.",
+          "[1] `network_default_action = \"Allow\"` silently overrides the \"Deny\" posture the module establishes when IP or subnet rules or a private endpoint are supplied, letting a consumer quietly negate the firewall.",
+          "[0] `network_default_action = \"Allow\"` silently overrides the Deny posture the module establishes when subnet/IP rules are given, and `public_network_access_enabled = true` can silently re-open public access alongside a private endpoint."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "d3db4376746a33ac",
-      "tf_sloc": 593
+      "tf_sloc": 593,
+      "graded_in_full": "2026-11-24"
     },
     "gemini-4-carbon-e3": {
-      "overall": 78.9,
+      "overall": 76.3,
       "sections": {
         "Interface design": 1,
         "Variables and validation": 1,
-        "Internal logic": 2,
+        "Internal logic": 1,
         "Scope": 2,
         "Inline Resource Configuration vs Separate Resources": 1,
         "Outputs": 2,
@@ -3133,79 +3137,80 @@
       },
       "evidence": {
         "Interface design": [
-          "[1] The `environment` concept usefully drives defaults, but the module also exposes storage-expert knobs to an audience the brief says doesn't know Azure Storage, including `replication_type`, `soft_delete_retention_days`, `noncurrent_version_retention_days`, `default_cool_after_days`/`default_cold_after_days`, `enable_change_feed`, `network_default_action` and `public_network_access_enabled`.",
-          "[1] The required inputs (`app_name`, `environment`, `app_principal_id`) suit developers new to Azure Storage, but the module also exposes many specialist controls the brief gives no reason to vary, such as `network_default_action`, `public_network_access_enabled`, `replication_type`, `noncurrent_version_retention_days`, `default_cool_after_days`/`default_cold_after_days` and `private_dns_zone_ids`.",
-          "[1] Deriving the resource group from `app_name`/`environment` and the redundancy and retention defaults from `environment` suits developers new to Azure Storage, but specialist knobs such as `replication_type`, `soft_delete_retention_days`, `default_cool_after_days`, `cors_rules`, `network_default_action` and `public_network_access_enabled` are attribute-level controls this audience cannot sensibly decide on."
+          "[1] The three required concept inputs (`app_name`, `environment`, `app_principal_id`) suit novice app developers, but the module also exposes attribute-level knobs they can't reasonably decide on (`replication_type`, `network_default_action`, `public_network_access_enabled`, `soft_delete_retention_days`, `noncurrent_version_retention_days`, `default_cool_after_days`/`default_cold_after_days`), and some of these are exposure controls rather than concepts.",
+          "[1] The three required inputs (`app_name`, `environment`, `app_principal_id`) and the env-driven defaults suit developers new to Azure Storage, but the module also exposes specialist attribute-level knobs such as `network_default_action`, `public_network_access_enabled`, `default_cool_after_days` and `noncurrent_version_retention_days`, which this audience cannot reasonably choose and which make network exposure negotiable.",
+          "[1] The three required inputs (`app_name`, `environment`, `app_principal_id`) suit developers new to Azure Storage, but the module also exposes many expertise-level knobs such as `replication_type`, `network_default_action`, `public_network_access_enabled`, `soft_delete_retention_days`, `enable_change_feed` and per-rule CORS headers, and it leaves network exposure open as a choice."
         ],
         "Variables and validation": [
-          "[1] Validation is deliberate and teaching, but the closed `environment` allow-list rejects legitimate environment names (e.g. 'perf', 'prd'), and `network_default_action`/`public_network_access_enabled` form avoidable pairs that can conflict with `allowed_subnet_ids`/`private_endpoint_subnet_id`.",
-          "[1] Validation is deliberate (UUID checks on principal IDs, container name rules, cool/cold day ordering), but the module adds avoidable conflicting pairs: `network_default_action` can contradict `allowed_subnet_ids`/`allowed_ip_ranges`, and `public_network_access_enabled` can contradict `private_endpoint_subnet_id`.",
-          "[1] Validation is thorough and teaches (container name rules, UUID checks, cool < cold ordering), but the module adds avoidable conflicting pairs such as `network_default_action` versus `allowed_subnet_ids`/`allowed_ip_ranges`, and `public_network_access_enabled` versus `private_endpoint_subnet_id`."
+          "[1] Most inputs are carefully validated, but the module adds avoidable conflicting pairs: `network_default_action = \"Allow\"` can contradict `allowed_subnet_ids`, and `public_network_access_enabled = true` can contradict `private_endpoint_subnet_id`; `allowed_ip_ranges` also has no guard against the /31 and /32 forms its own description warns about.",
+          "[1] Validation is thorough and deliberate (container names, lifecycle day ordering, CORS limits, principal UUIDs), but `network_default_action` can be set to conflict with `allowed_subnet_ids`/`allowed_ip_ranges`, and `public_network_access_enabled` can conflict with `private_endpoint_subnet_id`; both are avoidable conflicting pairs, and `allowed_ip_ranges` has no guard against the /31 and /32 prefixes its own description warns about.",
+          "[1] Validation is deliberate and teaches well (container names, tiering ordering, UUID formats), but the module adds avoidable conflicting pairs: `network_default_action = \"Allow\"` with `allowed_subnet_ids`, and `public_network_access_enabled = true` with `private_endpoint_subnet_id`."
         ],
         "Internal logic": [
-          "[2] Locals such as `is_production`, `replication_type`, `network_default_action` and the commented, length-budgeted `storage_account_name` derivation infer values from concept inputs and stay readable.",
-          "[2] Locals turn concept inputs into the details the resources need (`is_production` drives replication, soft-delete and change-feed defaults, and the RG name, hash-suffixed account name and location lookup are derived), and the expressions stay readable.",
-          "[2] Locals such as `is_production` driving `replication_type` and `soft_delete_days`, and the readable `app_slug`/`env_slug`/`unique_hash` naming composition, infer values from concept inputs without convoluted chains."
+          "[2] Locals derive the storage account name (sanitized slugs plus a deterministic sha256 suffix), the resource group, the location, and environment-aware defaults (`is_production` driving replication, soft delete and change feed) from concept inputs, in readable steps.",
+          "[1] Locals sensibly infer the name, replication, retention and network defaults from the `environment` and input concepts, but `local.rg_tags` indexes `data.azurerm_resource_group.this[0]` inside an `&&` expression even when `var.location` is set and that data source has count 0, which risks an evaluation error.",
+          "[1] Most locals derive values sensibly from concepts (environment-based durability defaults, deterministic naming), but `rg_tags` references `data.azurerm_resource_group.this[0]` inside a non-short-circuiting `&&`, so it breaks when `location` is set and the data source has count 0."
         ],
         "Scope": [
-          "[2] The module creates the storage account with encryption and Entra-only auth, private containers, a lifecycle management policy, RBAC role assignments, and optional private endpoint, diagnostics and delete lock, which is proportionate hygiene for app file storage.",
-          "[1] The core job is well covered (account hardening, private containers, lifecycle policy, app RBAC), but the module adds things the brief never implied: reader/additional-contributor role assignments, a Delegator role enabled by default, and private endpoint and diagnostic-setting integrations.",
-          "[2] The module creates the storage account with shared keys disabled, private containers, Entra RBAC role assignments, a lifecycle management policy, and optional private endpoint, diagnostics and delete lock, which is proportionate to an app-team storage standard."
+          "[2] The module creates the account with Entra-only access (`shared_access_key_enabled = false`), private containers, RBAC role assignments for the app identity, and a lifecycle management policy, with optional private endpoint, diagnostics and lock, which is proportionate to app file storage.",
+          "[2] The module creates the storage account with encryption and TLS posture, private containers, Entra RBAC role assignments, and a lifecycle cost-hygiene policy, with the private endpoint, diagnostics and delete lock kept optional, which is proportionate to app file storage.",
+          "[2] The module creates the storage account with private containers, Entra RBAC for the app identity, a lifecycle hygiene policy, encryption settings, and an optional private endpoint, diagnostics and delete lock, which is proportionate to app file storage."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no justification comment, even though the provider offers a separate `azurerm_storage_account_network_rules` resource.",
-          "[1] `azurerm_storage_account.this` configures `network_rules` inline even though the provider offers a separate `azurerm_storage_account_network_rules` resource, and no comment justifies the choice.",
-          "[1] The `network_rules` block is configured inline on `azurerm_storage_account` with no justifying comment, although the provider offers the separate `azurerm_storage_account_network_rules` resource."
+          "[1] `network_rules` is configured inline on `azurerm_storage_account` even though the provider offers `azurerm_storage_account_network_rules`, and no comment justifies the choice.",
+          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` even though `azurerm_storage_account_network_rules` exists as a separate resource, and no comment justifies the inline choice.",
+          "[1] `network_rules` is configured inline on `azurerm_storage_account` even though `azurerm_storage_account_network_rules` exists, and no comment justifies the inline choice."
         ],
         "Outputs": [
-          "[2] Outputs cover what consumers need, including `storage_account_id`, `blob_endpoint`, the per-container id/url map and a ready-made `app_configuration` map, without dumping every attribute.",
-          "[2] Outputs cover what consumers need, including `storage_account_id`, `blob_endpoint`, a per-container map with id and url, and an `app_configuration` map, without dumping every attribute.",
-          "[2] Outputs cover what consumers need, including `storage_account_id`, `blob_endpoint`, the per-container `containers` map with id and url, the ready-made `app_configuration` map, and the private endpoint id and IP, without dumping every attribute."
+          "[2] The outputs cover what consumers need: account ID and name, `blob_endpoint`, a per-container map with id and url, private endpoint ID and IP, and a ready-to-use `app_configuration` map, without dumping every attribute.",
+          "[2] The outputs cover what consumers need, including the account id and name, `blob_endpoint`, a per-container id/url map, the private endpoint IP and a ready-to-use `app_configuration` map, without dumping every attribute.",
+          "[2] The outputs cover what consumers need to use the storage (`storage_account_id`, `storage_account_name`, `blob_endpoint`, the per-container id/url map, and the `app_configuration` env map) without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] `count` is used only as an on/off switch (private endpoint, lock, diagnostics, delegator role), and multiplicity uses `for_each` (`azurerm_storage_container.this`, `additional_blob_contributor`, `blob_reader`).",
-          "[2] Containers and role assignments use `for_each`, and `count` appears only as an on/off switch (e.g. `count = var.private_endpoint_subnet_id != null ? 1 : 0`).",
-          "[2] `count` is used only as an on/off switch (e.g. `azurerm_private_endpoint.blob`, `azurerm_management_lock.this`), while containers and role assignments use `for_each`."
+          "[2] `count` appears only as an on/off switch (e.g. `azurerm_private_endpoint.blob`, `azurerm_management_lock.this`), while containers and principal role assignments use `for_each`.",
+          "[2] `count` is used only as an on/off switch (e.g. `azurerm_private_endpoint.blob`, `azurerm_management_lock.this`), while multiples such as containers and role assignments use `for_each`.",
+          "[2] `count` appears only as an on/off switch (private endpoint, lock, diagnostics, delegator), while containers and role assignments use `for_each`."
         ],
         "Data sources vs inputs": [
-          "[2] `data.azurerm_resource_group.this` looks up the location from the resource group name instead of requiring it, and `azurerm_client_config` supplies the subscription ID for naming.",
-          "[2] Location is looked up from `data.azurerm_resource_group.this` rather than demanded as an input, and the subscription ID comes from `data.azurerm_client_config.current`.",
-          "[2] `data.azurerm_resource_group.this` looks up location from the resource group, and `data.azurerm_client_config.current` supplies the subscription ID for the name hash, rather than asking the consumer for these facts."
+          "[2] The module takes the resource group's identity and looks up its location (and tags) via `data.azurerm_resource_group.this` instead of demanding them as inputs.",
+          "[2] The region is looked up through `data.azurerm_resource_group.this` from the resource group identity, and the subscription id comes from `data.azurerm_client_config.current`, rather than asking for either.",
+          "[2] `data.azurerm_resource_group.this` looks up the region from the resource group identity, and `azurerm_client_config` supplies the subscription ID instead of asking for it."
         ],
         "File layout": [
-          "[1] Variables, outputs, locals and providers are separated, but `main.tf` bundles several distinct concerns (RBAC assignments, private endpoint, diagnostics, management lock, lifecycle policy) in one file of roughly 250 lines.",
-          "[1] Variables, outputs, locals and providers each have their own file, but `main.tf` holds several distinct concerns in one place (account, lifecycle policy, RBAC, private endpoint, diagnostics, lock) without splitting them.",
-          "[1] Variables, outputs, locals and providers have their own files, but `main.tf` packs the storage account, lifecycle policy, five RBAC assignment resources, private endpoint, diagnostics and lock into one file well beyond about 200 lines, without splitting by concern."
+          "[1] Variables, outputs, locals and versions have their own files, but `main.tf` packs the account, lifecycle policy, RBAC, private endpoint, diagnostics and lock (several distinct concerns, over 200 lines) into one file.",
+          "[1] Variables, outputs, locals, providers and versions each have their own files, but `main.tf` holds roughly 250 lines mixing distinct concerns (lifecycle policy, RBAC, private endpoint, diagnostics, lock) that should be split.",
+          "[1] `variables.tf`, `outputs.tf`, `locals.tf` and `versions.tf` are separated, but `main.tf` holds several distinct concerns in one long file (account, lifecycle policy, RBAC, private endpoint, diagnostics, lock)."
         ],
         "Sensitive values": [
-          "[2] There are no secret inputs or outputs, and `shared_access_key_enabled = false` removes account keys entirely in favor of Entra ID principal IDs.",
-          "[2] The module handles no secrets: `shared_access_key_enabled = false` and access is Entra ID RBAC only, so no key outputs or credential inputs exist.",
-          "[2] Shared keys are disabled (`shared_access_key_enabled = false`), and no variable or output carries a secret, so there is nothing to mark sensitive."
+          "[2] The module handles no secrets: shared keys are disabled and the only identifiers taken are principal object IDs, so nothing needs `sensitive = true`.",
+          "[2] No secrets are accepted or output, because shared keys are disabled (`shared_access_key_enabled = false`) and access is identity-based through principal IDs.",
+          "[2] No secrets are accepted or output, since shared keys are disabled and access goes through `app_principal_id` RBAC."
         ],
         "Lifecycle meta-arguments": [
-          "[2] No `lifecycle` blocks are used; deletion protection is provided via the native `azurerm_management_lock` instead of `prevent_destroy`.",
-          "[2] No `lifecycle` blocks are used, and deletion protection relies on the native `azurerm_management_lock` with `CanNotDelete`.",
-          "[2] No `lifecycle` blocks are used, and deletion protection relies on the native `azurerm_management_lock` resource."
+          "[2] No `lifecycle` blocks are used; deletion protection is offered through the native `azurerm_management_lock` instead of `prevent_destroy`.",
+          "[2] No `lifecycle` blocks are used, and deletion protection relies on the native `azurerm_management_lock` rather than `prevent_destroy`.",
+          "[2] No `prevent_destroy` or `ignore_changes` is used, and deletion protection relies on the native `azurerm_management_lock` behind `enable_delete_lock`."
         ],
         "Documentation": [
-          "[2] Every visible variable and output has an accurate description (e.g. `environment` documents its prod-driven defaults), and comments explain the non-obvious naming-length arithmetic and principal-set handling.",
-          "[2] Every variable and output has an accurate description, and the comments explain the non-obvious parts, such as the naming-length budget and the network default logic.",
-          "[2] Every visible variable and output has an accurate description, and comments explain the non-obvious parts, such as the 24-character naming scheme and the automatic Deny/private-endpoint network behaviour, at a level that fits the module."
+          "[2] Every variable and output has an accurate description, and the README's quick start, recipes and defaults table match the module's actual behavior (e.g. GZRS in production vs LRS elsewhere, 30 vs 7 days soft delete).",
+          "[2] Every variable and output has an accurate description, and the README's defaults table and recipes match the implemented behavior (e.g. LRS/GZRS, 7/30-day soft delete, the private endpoint disabling public access).",
+          "[2] Every variable and output has an accurate description, and the README's defaults table and recipes match the module's behavior (GZRS/LRS, 30/7-day soft delete, private-endpoint public-access default)."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] The module uses current forms (`storage_account_id` on `azurerm_storage_container`, `https_traffic_only_enabled`) and contains no `null_resource` or `local-exec`.",
-          "[2] The module uses current forms (`storage_account_id` on `azurerm_storage_container`, `enabled_metric`) and contains no `null_resource` or `local-exec`.",
-          "[2] The module has no `null_resource` or `local-exec`, and uses current forms such as `storage_account_id` on `azurerm_storage_container` and `https_traffic_only_enabled`."
+          "[2] There is no `null_resource` or `local-exec`, and the module uses current azurerm 4.x forms such as `storage_account_id` on `azurerm_storage_container`.",
+          "[2] The module has no `null_resource` or `local-exec` and uses current forms such as `storage_account_id` on `azurerm_storage_container`.",
+          "[2] There is no `null_resource` or `local-exec`, and `azurerm_storage_container` uses the current `storage_account_id` argument."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[0] The `network_default_action` and `public_network_access_enabled` overrides let a consumer silently set 'Allow' or re-enable public access even when the module would otherwise lock the firewall to Deny for configured subnets or a private endpoint.",
-          "[0] The `network_default_action` and `public_network_access_enabled` overrides let a consumer silently reopen public access that the module otherwise locks down when subnets, IP rules or a private endpoint are configured.",
-          "[0] The `network_default_action` input lets a consumer set \"Allow\" even when `allowed_subnet_ids`/`allowed_ip_ranges` are configured, which silently defeats the firewall Deny posture the module otherwise establishes."
+          "[1] `public_network_access_enabled` lets a consumer silently re-enable public access after the module disables it for a private endpoint, and `network_default_action` can override the Deny posture the module derives when firewall rules are set.",
+          "[0] `network_default_action = \"Allow\"` silently overrides the Deny posture the module establishes when `allowed_subnet_ids` are set, and `public_network_access_enabled = true` re-opens public access the module otherwise disables when a private endpoint is configured.",
+          "[0] Setting `public_network_access_enabled = true` silently reverses the lockdown the module otherwise applies when `private_endpoint_subnet_id` is provided, and `network_default_action = \"Allow\"` likewise overrides the automatic Deny."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "0da871f365369776",
-      "tf_sloc": 614
+      "tf_sloc": 614,
+      "graded_in_full": "2026-11-24"
     },
     "gemini-4-hydrogen-e1": {
       "overall": 81.6,
@@ -3490,7 +3495,7 @@
       "tf_sloc": 393
     },
     "gemini-4-neon-e1": {
-      "overall": 81.6,
+      "overall": 78.9,
       "sections": {
         "Interface design": 1,
         "Variables and validation": 1,
@@ -3505,86 +3510,87 @@
         "Lifecycle meta-arguments": 2,
         "Documentation": 2,
         "Deprecated and escape-hatch patterns": 2,
-        "Anti-patterns (immediate credibility loss)": 1
+        "Anti-patterns (immediate credibility loss)": 0
       },
       "evidence": {
         "Interface design": [
-          "[1] Required inputs are concept-level (`application_name`, `environment`, `application_principal_id`, `containers`), but an audience new to Azure Storage also gets service-expert knobs such as `replication_type`, `access_tier`, `network_bypass`, `network_default_action`, `blob_soft_delete_days`, `container_soft_delete_days`, `point_in_time_restore_days`, `noncurrent_version_retention_days` and `name_suffix`, which the brief says the module should decide.",
-          "[1] The core inputs (`application_name`, `environment`, `containers`, `application_principal_id`) are concept-level and drive environment-aware defaults, but the module also exposes many specialist storage knobs to developers who \"don't know Azure Storage\": `replication_type`, `access_tier`, `network_default_action`, `network_bypass`, soft-delete days, PITR days and CORS rules.",
-          "[1] Concept inputs like `environment` drive good defaults, but developers \"who don't know Azure Storage\" are also handed raw service controls such as `replication_type`, `access_tier`, `network_default_action`, `network_bypass`, `point_in_time_restore_days`, `cors_rules` and `malware_scanning_cap_gb_per_month`, which the brief says they shouldn't have to decide."
+          "[1] The module settles naming, auth and protocols, but asks developers new to Azure Storage to decide specialist settings such as `network_bypass`, `network_default_action`, `public_network_access_enabled`, `point_in_time_restore_days`, `noncurrent_version_retention_days`, `cors_rules` and `malware_scanning_cap_gb_per_month`, which is overconfiguration for this audience.",
+          "[1] The required inputs (application_name, environment, resource_group_name, application_principal_id, containers) and the environment-derived defaults fit developers new to Azure, but the module also exposes attribute-level knobs that need storage expertise, such as `network_bypass`, `network_default_action`, `public_network_access_enabled`, `point_in_time_restore_days` and `access_tier`, which the use case gives no reason to vary.",
+          "[1] The required inputs (application_name, environment, resource_group_name, application_principal_id, containers) suit app developers, but the module also exposes specialist knobs this audience cannot reason about, such as `network_bypass`, `network_default_action`, `public_network_access_enabled`, `replication_type`, `point_in_time_restore_days` and `noncurrent_version_retention_days`."
         ],
         "Variables and validation": [
-          "[1] Validation is deliberate and teaches (container name rules, increasing lifecycle day order, UUID and role allow-lists), but the module adds an avoidable conflicting pair: `public_network_access_enabled` can be set to `true` alongside `private_endpoint`, overriding the inferred posture.",
-          "[1] Most inputs are carefully validated (container names, lifecycle day ordering, principal UUIDs, role allow-lists), but `allowed_ip_ranges` has no validation even though Azure rejects private and /31\u2013/32 CIDRs, and `public_network_access_enabled` is an avoidable override that can be set to conflict with `private_endpoint`.",
-          "[1] Validation is deliberate and teaching (environment enum, container naming, ordered lifecycle days), but the module adds avoidable conflicting pairs: a `public_network_access_enabled` override that can contradict `private_endpoint`, and `point_in_time_restore_days` versus `blob_soft_delete_days`, which needs a precondition to reconcile."
+          "[1] Inputs are deliberately guarded (environment enum, lifecycle day ordering, a PITR/soft-delete precondition), but `public_network_access_enabled` is an avoidable override that can conflict with `private_endpoint`, and `allowed_ip_ranges` has no check against private ranges or forms Azure rejects.",
+          "[1] Validation is deliberate and thorough (container names, lifecycle day ordering, PITR-vs-soft-delete preconditions), but the module adds an avoidable conflicting pair in `public_network_access_enabled` versus `private_endpoint`, and leaves `location` free to contradict the resource group's region.",
+          "[1] Most inputs are guarded deliberately, but `allowed_ip_ranges` has no check against private or /31\u2013/32 ranges that Azure rejects, and the avoidable pair `public_network_access_enabled` vs `private_endpoint` can be set to conflict."
         ],
         "Internal logic": [
-          "[2] Locals derive clear values from concepts: the deterministic `storage_account_name` from app, environment and a sha256 suffix, environment-keyed `default_replication_map`, and `public_network_access_enabled` inferred from `private_endpoint`, without convoluted chains.",
-          "[2] `locals.tf` derives values readably from concept inputs: the 24-character-safe `storage_account_name` from app, environment and a sha256 suffix, `default_replication_map` per environment, and `is_prod`-driven retention and lock defaults.",
-          "[2] `locals.tf` derives the storage account name, replication, soft-delete, PITR and lock defaults from `environment` and `application_name` through flat, readable maps and `coalesce` overrides."
+          "[2] `locals.tf` derives the storage account name, replication, retention and PITR settings from the `environment` concept through readable maps and `coalesce` overrides, without convoluted chains.",
+          "[2] The locals in `locals.tf` derive the storage account name, replication, soft-delete, PITR and lock settings from the `environment` concept through readable `coalesce` and map lookups, not deep clever chains.",
+          "[2] Readable locals derive the globally unique name (`sanitized_app`, `env_short`, a sha256 suffix) and environment-aware defaults (`default_replication_map`, `is_prod`-driven retention) from concept inputs without convoluted chains."
         ],
         "Scope": [
-          "[2] The module creates the storage account, private containers, the application RBAC assignment, a lifecycle policy for noncurrent versions, and a prod delete lock, with a private endpoint, diagnostics and malware scanning as opt-in extras proportionate to app file storage.",
-          "[2] The module creates the storage account, private containers, least-privilege RBAC, a lifecycle policy for noncurrent versions, and a delete lock, with the private endpoint, diagnostics and malware scanning as opt-in extras proportionate to app file storage.",
-          "[2] The module creates the account, private containers, least-privilege RBAC, lifecycle cleanup and a prod delete lock, with diagnostics, Defender scanning and private endpoint as optional, proportionate extras for storing user uploads."
+          "[2] The module creates the storage account, private containers, least-privilege RBAC, version-cleanup lifecycle policy and prod delete lock, and keeps the extras (diagnostics, Defender, private endpoint) optional and relevant to user-upload storage.",
+          "[2] The module creates the storage account with private containers, least-privilege `azurerm_role_assignment`, a version-cleanup `azurerm_storage_management_policy` and a prod `CanNotDelete` lock, with private endpoint, diagnostics and Defender left opt-in, which is proportionate to app file storage.",
+          "[2] The module creates the account with private containers, an RBAC grant for the app identity, a version-cleanup lifecycle policy, a prod delete lock, and an optional private endpoint and diagnostics, which is proportionate to standard app storage."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, although the provider offers the separate `azurerm_storage_account_network_rules` resource.",
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, even though the provider offers a separate `azurerm_storage_account_network_rules` resource; containers and the management policy are correctly separate.",
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` with no comment justifying it, even though the provider offers `azurerm_storage_account_network_rules`; the two styles are not mixed."
+          "[1] `network_rules` is configured inline in `azurerm_storage_account.this`, although `azurerm_storage_account_network_rules` exists as a separate resource, and no comment justifies the inline choice.",
+          "[1] Containers and role assignments are separate resources, but `network_rules` is configured inline in `azurerm_storage_account.this` with no justifying comment, even though `azurerm_storage_account_network_rules` exists.",
+          "[1] `network_rules` is configured inline on `azurerm_storage_account` with no justifying comment, even though the provider offers `azurerm_storage_account_network_rules`; the two styles are not mixed."
         ],
         "Outputs": [
-          "[2] Outputs cover what consumers need, including `storage_account_id`, `primary_blob_endpoint`, `container_urls` and `private_endpoint_ip_address`, without dumping every attribute.",
-          "[2] Outputs cover what consumers need (`storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, `container_ids`/`container_urls`, private endpoint details) without dumping every attribute.",
-          "[2] Outputs cover what consumers need (`storage_account_id`, `primary_blob_endpoint`, `container_urls`, `container_ids`, private endpoint details) without dumping every attribute."
+          "[2] The outputs cover what consumers need (`storage_account_id`, `primary_blob_endpoint`, `container_ids`, `container_urls`, private endpoint IP) without dumping every resource attribute.",
+          "[2] The outputs give consumers what they need to use the account, including `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, `container_ids`/`container_urls` and the private endpoint ID/IP, without dumping every attribute.",
+          "[2] The outputs cover what consumers need: `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, `container_ids`/`container_urls` and the private endpoint id/IP, without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] `azurerm_storage_container.this` and `azurerm_role_assignment.additional` use `for_each`, and `count` appears only as `condition ? 1 : 0` toggles (lock, private endpoint, diagnostics, defender).",
-          "[2] `count` is used only as an on/off switch (e.g. `azurerm_management_lock.this`, `azurerm_private_endpoint.blob`), while multiplicity uses `for_each` (`azurerm_storage_container.this`, `azurerm_role_assignment.additional`).",
-          "[2] `count` appears only as on/off switches (management policy, lock, private endpoint, diagnostics), while containers and additional role assignments use `for_each`."
+          "[2] Containers and additional role assignments use `for_each` on maps, and `count` appears only as `condition ? 1 : 0` toggles (lock, management policy, diagnostics, private endpoint).",
+          "[2] `count` is used only as an on/off switch (e.g. `count = var.enable_user_delegation_sas ? 1 : 0`), while containers and additional role assignments use `for_each` over maps.",
+          "[2] Containers and additional role assignments use `for_each`, while `count` appears only as on/off switches (e.g. `count = var.enable_user_delegation_sas ? 1 : 0`)."
         ],
         "Data sources vs inputs": [
-          "[1] `location` is a separate required input whose description says it \"should match the region of the application's resource group\", instead of being looked up from `resource_group_name` with a `data \"azurerm_resource_group\"`.",
-          "[1] `location` is a required input that the description says \"should match the region of the application's resource group\", rather than being looked up with a data source on `resource_group_name`, so the two can disagree.",
-          "[1] `var.location` is required separately even though its description says it \"Should match the region of the application's resource group\", which a `data \"azurerm_resource_group\"` lookup could supply authoritatively."
+          "[1] `location` is a separate required input whose description says it \"should match the region of the application's resource group\", rather than being looked up with a `data \"azurerm_resource_group\"` from `resource_group_name`.",
+          "[1] The module takes `resource_group_name` as an identity but still demands `location` separately (its description says it \"Should match the region of the application's resource group\") instead of looking it up with an `azurerm_resource_group` data source.",
+          "[1] `location` is required separately from `resource_group_name` rather than looked up with an `azurerm_resource_group` data source, so a consumer can enter a region that doesn't match the group."
         ],
         "File layout": [
-          "[2] Concerns are split into `main.tf`, `access.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf` and `outputs.tf`.",
-          "[2] Concerns are split across `main.tf`, `access.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf` and `outputs.tf`.",
-          "[2] Resources are split by concern across `main.tf`, `access.tf`, `networking.tf`, `monitoring.tf` and `locals.tf`, with dedicated `variables.tf` and `outputs.tf`."
+          "[2] Concerns are split across `main.tf`, `access.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] Concerns are split across `main.tf`, `access.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] Concerns are split cleanly into main.tf, access.tf, networking.tf, monitoring.tf, locals.tf, variables.tf, outputs.tf and versions.tf."
         ],
         "Sensitive values": [
-          "[2] There are no secret inputs or outputs: `shared_access_key_enabled = false` and Entra ID RBAC via `application_principal_id` mean no access keys or connection strings are handled.",
-          "[2] `shared_access_key_enabled = false` with Entra ID RBAC means no secrets or access keys are accepted or output, so there is nothing to mark sensitive.",
-          "[2] The module handles no secrets: `shared_access_key_enabled = false` and no access keys or connection strings are output, so nothing needs `sensitive`."
+          "[2] No secrets are accepted or output, since `shared_access_key_enabled = false` removes access keys and identity is passed as an `application_principal_id` reference.",
+          "[2] There are no secrets to protect: `shared_access_key_enabled = false` and Entra ID RBAC by principal ID mean no keys or credentials pass through variables or outputs.",
+          "[2] There are no secrets to protect: `shared_access_key_enabled = false` means no keys or connection strings are exposed, and the inputs are only non-secret identifiers such as principal IDs."
         ],
         "Lifecycle meta-arguments": [
-          "[2] There is no `prevent_destroy` or `ignore_changes`; deletion protection uses the native `azurerm_management_lock` with `CanNotDelete`, and `lifecycle` holds only preconditions.",
-          "[2] `lifecycle` blocks contain only preconditions; deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`, and there is no `ignore_changes`.",
-          "[2] Only `precondition` blocks are used; deletion protection comes from the native `azurerm_management_lock` rather than `prevent_destroy`, and there is no `ignore_changes`."
+          "[2] There is no `prevent_destroy` or `ignore_changes`; the lifecycle blocks contain only preconditions, and deletion protection uses the native `azurerm_management_lock`.",
+          "[2] `lifecycle` blocks carry only preconditions, there is no `ignore_changes`, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`.",
+          "[2] Lifecycle blocks contain only preconditions; there is no `ignore_changes` or `prevent_destroy`, and deletion protection uses the native `azurerm_management_lock`."
         ],
         "Documentation": [
-          "[2] Variables and outputs carry accurate descriptions, and comments explain the non-obvious parts, such as the naming format in `locals.tf` and the PITR sentinel `point_in_time_restore_days = 0`.",
-          "[2] Every visible variable and output has an accurate description, and comments explain non-obvious logic such as the naming-length breakdown and the PITR sentinel (`point_in_time_restore_days = 0` disables it).",
-          "[2] Every visible variable and output has an accurate description, and comments explain the non-obvious parts, such as the naming formula and how PITR is set or disabled with 0."
+          "[2] Every variable and output has a description, and the README's environment-defaults table (e.g., ZRS staging, GRS prod, 30-day prod soft delete) matches `locals.tf`.",
+          "[2] Every variable and output has a description, and the README's environment defaults table (e.g. prod GRS, 30-day soft delete, 7-day PITR) accurately matches the locals.",
+          "[2] Every variable and output has a description, and the README's environment-defaults table (LRS/ZRS/GRS, 7/30-day soft delete, prod PITR and lock) accurately matches the locals."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] There is no `null_resource` or `local-exec`; the module uses current forms such as `storage_account_id` on `azurerm_storage_container` and `enabled_metric` on diagnostic settings.",
-          "[2] There is no `null_resource` or `local-exec`, and the module uses current forms such as `storage_account_id` on containers and `enabled_metric` on diagnostic settings.",
-          "[2] There is no `null_resource` or `local-exec`, and the container uses the current `storage_account_id` argument rather than the deprecated `storage_account_name`."
+          "[2] The module uses current azurerm 4.x forms (`https_traffic_only_enabled`, `storage_account_id` on containers, `enabled_metric`) and contains no `null_resource` or `local-exec`.",
+          "[2] There is no `null_resource` or `local-exec`, and `azurerm_storage_container` uses the current `storage_account_id` argument.",
+          "[2] There is no `null_resource` or `local-exec`, and current resource forms are used, such as `storage_account_id` on `azurerm_storage_container` and `enabled_metric` blocks."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[0] Setting `var.public_network_access_enabled` in `local.public_network_access_enabled` silently re-enables public network access even when a `private_endpoint` is configured, undoing the private posture the module otherwise establishes.",
-          "[1] `local.public_network_access_enabled` honours an explicit `var.public_network_access_enabled` override, so a consumer can re-enable public network access even when a private endpoint is configured, undermining the posture the module otherwise establishes.",
-          "[1] `local.public_network_access_enabled` lets the caller override the module's own rule of disabling public access when a private endpoint is configured, reopening the network perimeter the module otherwise establishes."
+          "[0] The `network_default_action` input accepts \"Allow\", which lets a consumer silently override the module's own default-Deny network perimeter.",
+          "[1] The `network_default_action` variable accepts \"Allow\", letting a consumer undo the module's default-Deny network perimeter with a single input.",
+          "[0] The `network_default_action` input accepts \"Allow\" while `public_network_access_enabled` defaults to true without a private endpoint, letting a consumer silently discard the Deny network posture the module otherwise establishes."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "b6738c6503f3a196",
-      "tf_sloc": 814
+      "tf_sloc": 814,
+      "graded_in_full": "2026-11-24"
     },
     "gemini-4-neon-e2": {
-      "overall": 84.2,
+      "overall": 86.8,
       "sections": {
         "Interface design": 1,
         "Variables and validation": 1,
@@ -3593,7 +3599,7 @@
         "Inline Resource Configuration vs Separate Resources": 1,
         "Outputs": 2,
         "Iteration: for_each vs count": 2,
-        "Data sources vs inputs": 1,
+        "Data sources vs inputs": 2,
         "File layout": 2,
         "Sensitive values": 2,
         "Lifecycle meta-arguments": 2,
@@ -3603,79 +3609,80 @@
       },
       "evidence": {
         "Interface design": [
-          "[1] The required inputs fit the audience, but developers new to Azure Storage are also offered specialist controls such as `point_in_time_restore_days`, `container_soft_delete_days`, `previous_version_retention_days`, `replication_type`, raw `cors_rules` objects and `allow_public_network_access`, rather than having those decisions settled by the module or raised to concepts.",
-          "[1] The required inputs (`app_name`, `environment`, `resource_group_name`, `app_principal_id`, `containers`) fit developers new to Azure Storage, but the module also exposes knobs that take service expertise, such as `point_in_time_restore_days`, `container_soft_delete_days`, `previous_version_retention_days`, `replication_type` and `allow_public_network_access`, which the use case gives no reason to vary.",
-          "[1] The `environment` concept input drives sensible defaults, but the module also exposes service-expert knobs that developers new to Azure Storage have no basis to choose, such as `replication_type`, `point_in_time_restore_days`, `previous_version_retention_days`, `allow_public_network_access` and `defender_malware_scan_cap_gb_per_month`."
+          "[1] The required inputs (`app_name`, `environment`, `resource_group_name`, `app_principal_id`, `containers`) suit app developers, but the module also exposes storage-expertise knobs such as `point_in_time_restore_days`, `container_soft_delete_days`, `previous_version_retention_days`, `replication_type` and `defender_malware_scan_cap_gb_per_month`, which this audience should not have to decide.",
+          "[1] The concept-level `environment` input drives sensible defaults, but the module still exposes specialist storage knobs (`point_in_time_restore_days`, `previous_version_retention_days`, `container_soft_delete_days`, `replication_type`, `access_tier`, `allow_public_network_access`) to developers who \"don't know Azure Storage well\" and were promised they would only fill in a couple of obvious inputs.",
+          "[1] The required inputs (app_name, environment, resource_group_name, app_principal_id, containers) fit developers who don't know Azure Storage, but the module also exposes specialist knobs such as `replication_type`, `point_in_time_restore_days`, `previous_version_retention_days`, `allow_public_network_access` and `defender_malware_scan_cap_gb_per_month`, which this audience cannot reasonably decide on."
         ],
         "Variables and validation": [
-          "[2] Realistic mistakes are guarded with teaching messages, including the strict cool < archive < expire ordering in `containers`, the /31\u2013/32 rejection on `allowed_ip_ranges`, and the precondition enforcing `point_in_time_restore_days` < `blob_soft_delete_days`.",
-          "[1] Validation is deliberate (container name regex, ordered lifecycle thresholds, UUID checks, the /31\u2013/32 ip_rules guard, a PITR-vs-soft-delete precondition), but `allow_public_network_access` is an avoidable override that can conflict with `private_endpoint`, and `storage_account_name_override` duplicates the generated name.",
-          "[1] Validation is thorough and deliberate (lifecycle day ordering, the /31\u2013/32 ip_rules guard, the PITR-vs-soft-delete precondition), but `allow_public_network_access` is an avoidable input that can be set to conflict with `private_endpoint`."
+          "[1] Guards are deliberate (lifecycle day ordering, UUID principal IDs, the /31\u2013/32 IP rule, the PITR-vs-soft-delete precondition), but `allow_public_network_access` forms an avoidable pair with `private_endpoint` that can be set to contradict the private-only intent.",
+          "[1] Inputs are guarded deliberately (UUID checks, container name and lifecycle ordering validation, a precondition tying PITR days to soft-delete days), but `allow_public_network_access` is an avoidable override that can be set to conflict with `private_endpoint`, re-opening the public endpoint the private endpoint was meant to close.",
+          "[1] Inputs are guarded deliberately (environment enum, container-name regex, ordered lifecycle thresholds, the /31-/32 IP rule), but `allow_public_network_access` and `private_endpoint` form an avoidable pair that can be set to conflict (public access re-enabled alongside a private endpoint)."
         ],
         "Internal logic": [
-          "[2] `locals.tf` derives the compliant hashed account name and environment-driven defaults, such as `replication_type = coalesce(var.replication_type, local.is_prod ? \"GRS\" : \"LRS\")`, from concept inputs in readable steps.",
-          "[2] Locals such as `generated_storage_account_name`, the environment-driven `coalesce(var.x, local.is_prod ? ... : ...)` defaults and `containers_with_lifecycle` derive values from concept inputs and stay readable.",
-          "[2] Readable locals in locals.tf derive the deterministic storage account name and the environment-driven defaults (`replication_type`, `pitr_days`, `enable_delete_lock`) from concept inputs via `coalesce`, without deep clever chains."
+          "[2] Readable locals derive environment-driven defaults (`replication_type`, `blob_soft_delete_days`, `enable_delete_lock`) and a deterministic compliant name from `app_name`, `environment` and a hash, without deep clever chains.",
+          "[2] Locals such as `replication_type = coalesce(var.replication_type, local.is_prod ? \"GRS\" : \"LRS\")`, the hashed `generated_storage_account_name` and `containers_with_lifecycle` infer values from concept inputs readably, without deep clever chains.",
+          "[2] locals.tf derives replication, soft-delete, PITR, lock and the deterministic `generated_storage_account_name` from the `environment`/`app_name` concepts using readable `coalesce` defaults rather than demanding more inputs."
         ],
         "Scope": [
-          "[2] The module creates what the job needs (account, private containers, RBAC for the app identity, version-cleanup lifecycle policy, prod delete lock) and keeps extras such as diagnostics, Defender and the private endpoint optional and off by default.",
-          "[2] The module creates the account, private containers, RBAC role assignments, a version-cleanup management policy and a prod delete lock, with diagnostics, Defender and the private endpoint as optional, proportionate additions.",
-          "[2] The module creates what the job needs (account, private containers, RBAC role assignments, version-cleanup lifecycle policy, prod delete lock), and diagnostics, Private Endpoint and Defender are optional and proportionate to app file storage."
+          "[2] The module creates the account plus RBAC role assignments, private containers, a version-cleanup management policy and a prod delete lock, with diagnostics, Defender and the private endpoint as opt-in extras proportionate to application file storage.",
+          "[2] The module creates the account plus private containers, RBAC role assignments, a version-cleanup management policy and a prod delete lock, with diagnostics, Defender and the private endpoint kept optional, which is proportionate to app file storage.",
+          "[2] The module creates the storage account plus the access and hygiene pieces an operator would expect (`azurerm_role_assignment.blob_contributor`, private containers, a version-cleanup management policy, a prod delete lock), and keeps the extras (diagnostics, Defender, private endpoint) optional and proportionate."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] Firewall rules are set in an inline `network_rules` block on `azurerm_storage_account`, although the provider offers the separate `azurerm_storage_account_network_rules` resource, and no comment justifies the inline choice.",
-          "[1] `network_rules` is configured inline on `azurerm_storage_account.this` with no comment justifying it, even though the separate `azurerm_storage_account_network_rules` resource exists; the two styles are not mixed.",
-          "[1] `network_rules` is configured inline in `azurerm_storage_account.this` even though the provider offers `azurerm_storage_account_network_rules`, and no comment justifies the inline choice."
+          "[1] `network_rules` is configured inline on `azurerm_storage_account` with no comment justifying it, even though `azurerm_storage_account_network_rules` exists as a separate resource.",
+          "[1] Containers, role assignments and the management policy are separate resources, but the `network_rules` block is inline on `azurerm_storage_account` with no comment justifying it over `azurerm_storage_account_network_rules`.",
+          "[1] The firewall is configured with an inline `network_rules` block on `azurerm_storage_account.this` even though `azurerm_storage_account_network_rules` exists as a separate resource, and no comment justifies the inline choice."
         ],
         "Outputs": [
-          "[2] Outputs cover what consumers need, including `storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with IDs and URLs, and the ready-to-inject `app_env_vars`, without dumping every attribute.",
-          "[2] Outputs cover what consumers need (`storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with ids and URLs, and `app_env_vars`) without dumping every attribute.",
-          "[2] outputs.tf exports what consumers need (account id and name, blob endpoint and host, a container map with ids and URLs, private endpoint id and IP, `app_env_vars`) without dumping every attribute."
+          "[2] The outputs give consumers what they need to use the storage (`storage_account_id`, `storage_account_name`, `primary_blob_endpoint`, a `containers` map with endpoints, `app_env_vars`) without dumping every attribute.",
+          "[2] Outputs cover what consumers need to use the account (`storage_account_id`, `primary_blob_endpoint`, a `containers` map with IDs and URLs, and a ready-to-inject `app_env_vars`) without dumping every attribute.",
+          "[2] outputs.tf exposes what consumers need (account id and name, `primary_blob_endpoint`, a per-container id and URL map, the private endpoint id) plus a ready-to-use `app_env_vars` map, without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] Multiplicity uses `for_each` (containers and both role-assignment resources), and `count` appears only as on/off switches, as in `count = var.private_endpoint != null ? 1 : 0`.",
-          "[2] Containers and role assignments use `for_each`, and `count` appears only as an on/off switch, e.g. `count = local.enable_delete_lock ? 1 : 0`.",
-          "[2] Containers and role assignments use `for_each`, and `count` appears only as on/off switches such as `count = var.private_endpoint != null ? 1 : 0`."
+          "[2] Role assignments and containers use `for_each`, and `count` appears only as on/off toggles (`local.enable_delete_lock ? 1 : 0`, `var.private_endpoint != null ? 1 : 0`).",
+          "[2] Multiplicity uses `for_each` (`azurerm_storage_container.this`, `azurerm_role_assignment.blob_contributor`), and `count` appears only as an on/off switch (e.g. `count = local.enable_delete_lock ? 1 : 0`).",
+          "[2] Containers and role assignments use `for_each`, and `count` appears only as an on/off switch (e.g. `count = var.private_endpoint != null ? 1 : 0`)."
         ],
         "Data sources vs inputs": [
-          "[1] The module takes `resource_group_name` but still requires a separate `location` input instead of looking it up from the existing resource group with a data source, so the two can disagree.",
-          "[1] The module takes `resource_group_name` as the dependency's identity but still requires a separate `location` input instead of looking up the resource group's region with `data \"azurerm_resource_group\"`.",
-          "[2] Dependencies are taken by identity (`resource_group_name`, `private_endpoint.subnet_id`, `log_analytics_workspace_id`), and the subscription ID is looked up via `data.azurerm_client_config.current` rather than requested as an input."
+          "[2] Dependencies are taken by identity (`resource_group_name`, subnet IDs, `log_analytics_workspace_id`), and the subscription ID is looked up via `data.azurerm_client_config.current` rather than requested as an input.",
+          "[1] The module uses `data.azurerm_client_config` for the subscription, but it takes `location` as a separate input instead of looking it up from the application's existing resource group via `data \"azurerm_resource_group\"`.",
+          "[2] The module takes dependency identities only (resource group name, subnet IDs, workspace ID) and uses `data.azurerm_client_config.current` for the subscription instead of asking for it."
         ],
         "File layout": [
           "[2] Concerns are split into `main.tf`, `iam.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
-          "[2] Concerns are split across `main.tf`, `iam.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
-          "[2] The module is split into variables.tf, outputs.tf, locals.tf, main.tf, iam.tf, networking.tf, monitoring.tf and versions.tf by concern."
+          "[2] Concerns are split into `main.tf`, `iam.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] Concerns are split into main.tf, iam.tf, networking.tf, monitoring.tf, locals.tf, variables.tf, outputs.tf and versions.tf."
         ],
         "Sensitive values": [
-          "[2] No secrets are accepted or emitted: `shared_access_key_enabled = false` removes account keys, and `app_env_vars` explicitly carries only non-secret values.",
-          "[2] No secrets flow through the module: `shared_access_key_enabled = false` and access is granted via RBAC role assignments, so there are no keys to input or output.",
-          "[2] Nothing in the module is a secret: shared keys are disabled (`shared_access_key_enabled = false`), access is identity-based, and no key or connection string is accepted or output."
+          "[2] Shared keys are disabled (`shared_access_key_enabled = false`), and no secret is accepted as an input or emitted as an output, so there is nothing to mark sensitive.",
+          "[2] No secrets are handled at all: `shared_access_key_enabled = false`, and outputs expose only non-secret names and endpoints, with no keys or connection strings.",
+          "[2] No secrets are handled: `shared_access_key_enabled = false` and the outputs carry only non-secret names and endpoints, with no keys or connection strings."
         ],
         "Lifecycle meta-arguments": [
-          "[2] The only `lifecycle` block holds a precondition, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy` or any `ignore_changes`.",
-          "[2] The only lifecycle block is a `precondition`, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy` or `ignore_changes`.",
-          "[2] The only `lifecycle` block holds a `precondition`, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`, with no `ignore_changes`."
+          "[2] The module uses the native `azurerm_management_lock` for protection instead of `prevent_destroy`, and its only `lifecycle` block holds a precondition, with no `ignore_changes`.",
+          "[2] The only `lifecycle` use is a validating `precondition`; deletion protection uses the native `azurerm_management_lock`, with no `prevent_destroy` or `ignore_changes`.",
+          "[2] The `lifecycle` block holds only a PITR-versus-soft-delete `precondition`, and deletion protection uses the native `azurerm_management_lock` rather than `prevent_destroy`."
         ],
         "Documentation": [
-          "[2] Every variable and output has an accurate description, such as the environment-driven defaults documented on `blob_soft_delete_days`, and the README's prod/non-prod behavior summary matches the locals.",
-          "[2] Every variable and output has an accurate description, the comments explain non-obvious choices (naming format, ARM-plane containers, PITR gating), and the README documents the environment-driven defaults accurately.",
-          "[2] Every variable and output has an accurate description, comments explain non-obvious choices (the ARM-plane containers, the naming length math), and the README accurately describes the environment-driven defaults."
+          "[2] Every variable and output has a description, and the README accurately describes the environment-driven defaults, naming scheme and connectivity options at a level that fits the module.",
+          "[2] Every variable and output has a description, and the README's environment-specific behaviour (LRS/GRS, 7/30-day soft delete, 14-day PITR in prod, delete lock) accurately matches the locals.",
+          "[2] Every variable and output has a description, comments explain non-obvious choices (the naming format, the RBAC role's delegation-key permission), and the README's environment defaults match the locals."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] The module uses current forms such as `storage_account_id` on `azurerm_storage_container` and `https_traffic_only_enabled`, with no `null_resource` or `local-exec`.",
-          "[2] The module uses current forms such as `storage_account_id` on `azurerm_storage_container` and `https_traffic_only_enabled`, with no `null_resource` or `local-exec`.",
-          "[2] The module uses current azurerm 4.x forms (`https_traffic_only_enabled`, `storage_account_id` on containers) and has no `null_resource` or `local-exec`."
+          "[2] The module uses current forms (`storage_account_id` on containers, `https_traffic_only_enabled`, `enabled_metric`) and has no `null_resource` or `local-exec`.",
+          "[2] There is no `null_resource` or `local-exec`, and `azurerm_storage_container` uses the current `storage_account_id` argument rather than the deprecated `storage_account_name`.",
+          "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument rather than the deprecated `storage_account_name`."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[2] All resources are authored directly, with no remote module calls or removed resources, and public access always stays behind the hardcoded `default_action = \"Deny\"` firewall.",
-          "[2] All resources are authored directly with no remote module calls or deleted resources, and the firewall keeps `default_action = \"Deny\"` regardless of inputs.",
-          "[2] All resources are authored directly with no remote module calls or deleted resources, and no input bypasses the hardcoded posture (keys off, no anonymous access, default-deny firewall)."
+          "[1] The `allow_public_network_access` input lets a consumer re-enable the public endpoint even when `private_endpoint` is configured, undoing the private-only posture the module otherwise establishes.",
+          "[2] All resources are authored directly with no remote module calls, nothing is commented out to dodge errors, and the network firewall stays `default_action = \"Deny\"` regardless of inputs.",
+          "[2] All resources are authored directly with no remote module calls, nothing is commented out, and the `allow_public_network_access` override still sits behind a `default_action = \"Deny\"` firewall."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "044f7185d7278d55",
-      "tf_sloc": 519
+      "tf_sloc": 519,
+      "graded_in_full": "2026-11-24"
     },
     "gemini-4-neon-e3": {
       "overall": 81.6,
@@ -3772,14 +3779,14 @@
       "tf_sloc": 513
     },
     "glm-5.3-e1": {
-      "overall": 76.3,
+      "overall": 73.7,
       "sections": {
         "Interface design": 1,
         "Variables and validation": 1,
         "Internal logic": 2,
         "Scope": 2,
         "Inline Resource Configuration vs Separate Resources": 1,
-        "Outputs": 2,
+        "Outputs": 1,
         "Iteration: for_each vs count": 2,
         "Data sources vs inputs": 2,
         "File layout": 2,
@@ -3791,79 +3798,80 @@
       },
       "evidence": {
         "Interface design": [
-          "[1] The required inputs (`resource_group_name`, `identity_object_ids`, `containers`) fit novice app developers, but the module also exposes specialist controls they cannot reasonably decide on: per-container `cool_after_days`/`archive_after_days`/`delete_snapshots_after_days`, `private_endpoint_subnet_id`/`private_dns_zone_id`, `allowed_subnet_ids`, and a security knob, `shared_access_key_enabled`.",
-          "[1] The core inputs (`resource_group_name`, `identity_object_ids`, `containers`) suit developers new to Azure Storage, but the per-container `lifecycle` object exposes `prefix`, `delete_snapshots_after_days` and `delete_versions_after_days`, which need storage expertise, and `shared_access_key_enabled` turns the authentication posture into a knob.",
-          "[1] The core inputs fit the use case and audience (`resource_group_name`, `identity_object_ids`, a `containers` list), but developers \"who don't know Azure Storage well\" are also handed storage-expert controls such as `shared_access_key_enabled`, `public_network_access_enabled`, and per-container `archive_after_days`/`delete_snapshots_after_days`/`prefix` lifecycle knobs."
+          "[1] The core inputs (`resource_group_name`, `identity_object_ids`, `containers`) fit novice app developers, but the module also exposes Azure attribute-level controls such as `public_network_access_enabled`, `shared_access_key_enabled`, `private_dns_zone_id` and per-container tiering/version-deletion day counts, which require storage expertise the audience lacks.",
+          "[1] The required inputs (`resource_group_name`, `identity_object_ids`, `containers`) fit developers new to Azure Storage, but the module also exposes specialist controls such as `shared_access_key_enabled`, `public_network_access_enabled`, `allowed_subnet_ids`, `private_dns_zone_id` and seven per-container lifecycle day attributes, which this audience cannot reasonably decide on and which include a security-posture knob.",
+          "[1] The core inputs (`resource_group_name`, `identity_object_ids`, container names) fit developers new to Azure, but the module also exposes specialist controls they cannot reasonably decide on: a per-container `lifecycle` object with seven tiering, snapshot and version day counts, plus raw attribute knobs like `public_network_access_enabled` and `shared_access_key_enabled`."
         ],
         "Variables and validation": [
-          "[1] Validation is deliberate (GUID check on `identity_object_ids`, container-name regex and uniqueness, the `replication_type` enum, lifecycle ordering preconditions), but the avoidable pair `public_network_access_enabled = false` and an unset `private_endpoint_subnet_id` can be set to conflict without any guard, leaving the account unreachable.",
-          "[1] Validations on container names, GUIDs, replication type and CIDRs are deliberate, but `public_network_access_enabled = false` with non-empty `allowed_ip_ranges`, or with no private endpoint, can be set to conflict without any guard.",
-          "[1] Validation on container names, GUID object IDs, replication types and lifecycle day ordering is deliberate and teaches, but the avoidable pair `public_network_access_enabled = false` and `allowed_ip_ranges`/no `private_endpoint_subnet_id` can be set to conflict and nothing guards it."
+          "[1] Validations are deliberate (GUID check on `identity_object_ids`, container naming/uniqueness, the `replication_type` enum), but the module adds avoidable conflicting pairs, e.g. `public_network_access_enabled = false` with no `private_endpoint_subnet_id` is unguarded, and the precondition only enforces `private_dns_zone_id` \u2192 subnet, not the \"required\" reverse.",
+          "[1] Validation is deliberate (GUID checks on `identity_object_ids`, container-name rules, a `replication_type` enum, lifecycle ordering preconditions), but `public_network_access_enabled = false` combined with non-empty `allowed_ip_ranges` and no private endpoint forms an avoidable conflicting pair that nothing cross-checks.",
+          "[1] Inputs are deliberately guarded (GUID format for identity IDs, container-name regex, replication enum, lifecycle ordering preconditions), but `public_network_access_enabled`, `allowed_ip_ranges` and `private_endpoint_subnet_id` form an avoidable trio that can conflict (e.g. public access off with no private endpoint), and `private_dns_zone_id`, described as required, is not enforced when a subnet is set."
         ],
         "Internal logic": [
-          "[2] Locals derive values from concept inputs readably: `storage_account_name` from the resource group name plus a random suffix, `location` via `coalesce` with the resource group lookup, and `lifecycle_rules` with sensible cool-tier fallback logic.",
-          "[2] Locals derive `location` from the resource group, compute a valid globally unique `storage_account_name`, and build `lifecycle_rules` with commented defaults that respect tier ordering, so the module computes rather than asks.",
-          "[2] Locals derive the location (`coalesce` over a resource-group lookup), a valid globally unique account name, deterministic role-assignment names, and per-container lifecycle rules from concept inputs, and each step is readable."
+          "[2] Locals derive values from concept inputs readably: `location` coalesces with the resource-group lookup, `storage_account_name` is built from the RG name plus a `random_id` suffix, and `lifecycle_rules` normalizes per-container defaults.",
+          "[2] Readable locals derive values from concept inputs, e.g. `local.location` coalesces from the resource-group data source, `storage_account_name` is built from the resource group plus `random_id`, and `cool_after_days` is defaulted per container.",
+          "[2] Readable locals derive the account name from the resource group, infer the location via `coalesce` with the resource-group data source, and build per-container lifecycle rules from concept inputs without unnecessary cleverness."
         ],
         "Scope": [
-          "[2] The module creates the account, private containers, per-identity `azurerm_role_assignment`, versioning and soft delete, and a cost-control `azurerm_storage_management_policy`, which is proportionate to the brief; the private endpoint is optional only.",
-          "[2] The module creates the account, private containers, Entra ID role assignments, a cost-control `azurerm_storage_management_policy`, and an opt-in private endpoint, which is proportionate to the brief.",
-          "[2] The module creates the storage account with encryption, soft delete and versioning, private containers, Entra ID role assignments, and a cost-control `azurerm_storage_management_policy`, which is a proportionate set for app file storage."
+          "[2] The module creates the storage account with encryption, soft delete and versioning, private containers, data-plane `azurerm_role_assignment` for the app identities, and an `azurerm_storage_management_policy` for cost hygiene, all proportionate to the brief.",
+          "[2] The module creates the account with an encryption and TLS posture, private containers, Entra ID role assignments, soft delete and versioning, and a cost-control management policy, which is proportionate to app-team blob storage.",
+          "[2] The module creates the storage account with encryption, soft delete and versioning, private containers, Entra ID role assignments, and a cost-control management policy, which is proportionate to the brief, with private networking kept opt-in."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline in `azurerm_storage_account` even though `azurerm_storage_account_network_rules` exists as a separate resource, and the only comment explains why the block is conditional, not why inline was chosen.",
-          "[1] `network_rules` is configured inline via a dynamic block on `azurerm_storage_account` with no stated reason for not using the separate `azurerm_storage_account_network_rules` resource.",
-          "[1] `network_rules` is configured inline via a dynamic block on `azurerm_storage_account` with no stated justification, even though the provider offers the separate `azurerm_storage_account_network_rules` resource; the lifecycle policy, by contrast, correctly uses its own resource."
+          "[1] Containers, role assignments and the management policy are separate resources, but `network_rules` is configured inline via a dynamic block on `azurerm_storage_account`, even though `azurerm_storage_account_network_rules` exists, and no justification is given.",
+          "[1] Firewall rules are set through an inline `dynamic \"network_rules\"` block on `azurerm_storage_account` instead of the separate `azurerm_storage_account_network_rules` resource, and no comment gives a resource-specific justification for inline.",
+          "[1] `network_rules` is configured inline via a dynamic block on `azurerm_storage_account` instead of the separate `azurerm_storage_account_network_rules` resource, and no resource-specific justification comment is given."
         ],
         "Outputs": [
-          "[2] The outputs cover what consumers need to use the storage (`storage_account_name`, `storage_account_id`, `blob_endpoint`, per-container ids and URLs, `private_endpoint_id`) without dumping every attribute.",
-          "[1] The useful values (name, id, `blob_endpoint`, containers) are exported, but the container `url` concatenates `primary_blob_endpoint` (which already ends in \"/\") with \"/${name}\", producing a malformed double-slash URL.",
-          "[2] Outputs cover what consumers need to use the storage (`storage_account_name`, `storage_account_id`, `blob_endpoint`, a per-container id/url map, role assignment IDs) without dumping every attribute."
+          "[2] The outputs cover what consumers need (`storage_account_name`, `storage_account_id`, `blob_endpoint`, `containers` id/url map, `private_endpoint_id`) without dumping every attribute.",
+          "[1] The outputs cover what consumers need (name, id, `blob_endpoint`, containers, role assignment IDs), but the `containers` output builds `url` as `\"${primary_blob_endpoint}/${name}\"`; because that endpoint already ends in a slash, every URL contains a double slash.",
+          "[1] The needed values (name, id, blob endpoint, container ids) are output, but the `containers` output builds `url` as `\"${primary_blob_endpoint}/${name}\"`; since the endpoint already ends in `/`, this produces a double-slash URL."
         ],
         "Iteration: for_each vs count": [
-          "[2] Containers and role assignments use `for_each`, and `count` appears only as on/off switches on the private endpoint, management policy and resource group data source.",
-          "[2] Containers and role assignments use `for_each`, while `count` is only used as on/off switches for the private endpoint, management policy and resource group data source.",
-          "[2] Multiplicity uses `for_each` (`azurerm_storage_container.this`, `azurerm_role_assignment.app_identity`), and `count` appears only as on/off switches on the data source, private endpoint and management policy."
+          "[2] `for_each` keys `azurerm_storage_container.this` and `azurerm_role_assignment.app_identity`, and `count` is used only as an on/off switch on the private endpoint, management policy and RG data source.",
+          "[2] `azurerm_storage_container.this` and `azurerm_role_assignment.app_identity` use `for_each`, and `count` appears only as an on/off switch on the data source, the private endpoint and the management policy.",
+          "[2] Containers and role assignments use `for_each`, and `count` appears only as an on/off switch on the data source, private endpoint and management policy."
         ],
         "Data sources vs inputs": [
-          "[2] `data.azurerm_resource_group.app` looks up the location from the resource group's identity instead of requiring the consumer to supply a matching region.",
-          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the location from the resource group's identity instead of requiring a separate location input.",
-          "[2] The module takes only the resource group's identity and reads its location through `data \"azurerm_resource_group\" \"app\"` instead of asking the consumer to supply it."
+          "[2] `data \"azurerm_resource_group\" \"app\"` looks up the location from the RG name rather than demanding it as an input.",
+          "[2] The region is read from `data \"azurerm_resource_group\" \"app\"` rather than required as an input, and the module asks only for dependency identities such as subnet and zone IDs.",
+          "[2] The module takes the resource group's identity as input and reads its location with `data \"azurerm_resource_group\" \"app\"` rather than requiring the location."
         ],
         "File layout": [
           "[2] Concerns are split into `variables.tf`, `outputs.tf`, `versions.tf`, `main.tf`, `storage.tf`, `iam.tf` and `network.tf`.",
-          "[2] Concerns are split into `storage.tf`, `iam.tf`, `network.tf`, `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
-          "[2] Concerns are split into `storage.tf`, `iam.tf`, `network.tf`, `variables.tf`, `outputs.tf` and `versions.tf`."
+          "[2] Concerns are split across `variables.tf`, `outputs.tf`, `storage.tf`, `iam.tf`, `network.tf`, `main.tf` and `versions.tf`.",
+          "[2] Concerns are split into `storage.tf`, `iam.tf`, `network.tf`, `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`."
         ],
         "Sensitive values": [
-          "[2] The module takes no secrets and outputs none: it uses identity object IDs and Entra ID access, with no keys or connection strings exposed.",
-          "[2] No variable or output carries a secret, since authentication goes through Entra ID role assignments rather than keys.",
-          "[2] No variable or output carries a secret; access is through Entra ID role assignments rather than keys or connection strings."
+          "[2] No secrets are accepted or emitted; access uses Entra ID object IDs and role assignments, and shared keys are disabled by default.",
+          "[2] The module neither accepts nor outputs any secret; there are no keys or connection strings and shared keys are disabled by default, so there is nothing to mark sensitive.",
+          "[2] No secrets are accepted or output, since authentication relies on Entra ID identity object IDs and no keys or connection strings are exposed."
         ],
         "Lifecycle meta-arguments": [
-          "[2] The `lifecycle` blocks contain only `precondition` checks, with no misused `prevent_destroy` or `ignore_changes`.",
-          "[2] Lifecycle blocks contain only `precondition` checks, with no unjustified `ignore_changes` or `prevent_destroy`.",
-          "[2] `lifecycle` blocks hold only `precondition` checks, with no unjustified `ignore_changes` or `prevent_destroy`."
+          "[2] `lifecycle` blocks contain only `precondition` checks, with no misused `prevent_destroy` or `ignore_changes`.",
+          "[2] `lifecycle` blocks contain only `precondition` checks, with no unjustified `prevent_destroy` or `ignore_changes`.",
+          "[2] Only `precondition` blocks are used, with no unjustified `prevent_destroy` or `ignore_changes`."
         ],
         "Documentation": [
-          "[0] Parts of the documentation are inaccurate: the README says `minimal.tfvars` holds just the three required inputs although it also sets `location`, and the `\"lifecycle-uploads\" style` rule-name comment contradicts the code, which strips hyphens.",
-          "[0] The `private_dns_zone_id` description claims it is \"Required when private_endpoint_subnet_id is set,\" but nothing enforces that, and the \"lifecycle-uploads style rule names\" comment contradicts the actual `lifecycle${replace(...)}` output.",
-          "[0] The `private_dns_zone_id` description says it is \"Required when private_endpoint_subnet_id is set\", but nothing enforces this, and the storage.tf comment calls the settings \"deliberately not knobs\" while listing `var.replication_type` and `var.shared_access_key_enabled`, so the documentation is inaccurate."
+          "[0] The README and storage.tf comment state that all lifecycle day counts are \"since the blob was last modified\", but version and snapshot deletion use `delete_after_days_since_creation`; `private_dns_zone_id` is documented as \"Required\" yet never enforced.",
+          "[0] The README states that all lifecycle day counts are \"days since the blob was last modified\", but the module's version and snapshot rules use `delete_after_days_since_creation`, so the documentation is inaccurate.",
+          "[0] Some documentation is inaccurate: the `private_dns_zone_id` description and the README call it \"Required when private_endpoint_subnet_id is set\" but nothing enforces this, and the storage.tf comment calls settings \"deliberately not knobs\" while `replication_type` and `shared_access_key_enabled` are variables."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] There is no `null_resource` or `local-exec`, and `azurerm_storage_container` uses the current `storage_account_id` argument.",
+          "[2] The module uses current forms (`https_traffic_only_enabled`, `storage_account_id` on containers) and contains no `null_resource` or `local-exec`.",
           "[2] There is no `null_resource` or `local-exec`, and containers use the current `storage_account_id` argument.",
-          "[2] The module uses current forms (`storage_account_id` on containers, `https_traffic_only_enabled`) and has no `null_resource` or `local-exec`."
+          "[2] No `null_resource` or `local-exec` is used, and current forms such as `storage_account_id` on `azurerm_storage_container` and `https_traffic_only_enabled` are in place."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[0] The `shared_access_key_enabled` variable lets a consumer re-enable account keys and key-signed SAS, undoing the Entra-ID-only authentication posture the module otherwise establishes.",
-          "[0] The `shared_access_key_enabled` input lets a consumer re-enable account keys and key-signed SAS, overriding the Entra-ID-only posture the module and README establish.",
-          "[0] `var.shared_access_key_enabled` lets a consumer silently re-enable account keys and key-signed SAS, undoing the Entra-ID-only authentication posture the module otherwise establishes."
+          "[1] `var.shared_access_key_enabled` lets a consumer re-enable account keys, undoing the Entra-ID-only posture the module otherwise establishes.",
+          "[0] The module establishes Entra ID-only access, yet `variable \"shared_access_key_enabled\"` lets a consumer silently re-enable account keys and key-signed SAS.",
+          "[0] The `shared_access_key_enabled` input lets a consumer re-enable account keys and key-signed SAS, undoing the Entra-ID-only posture the module otherwise establishes."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "0f00d1726cc121d6",
-      "tf_sloc": 461
+      "tf_sloc": 461,
+      "graded_in_full": "2026-11-24"
     },
     "glm-5.3-e2": {
       "overall": 73.7,
@@ -3885,79 +3893,80 @@
       },
       "evidence": {
         "Interface design": [
-          "[1] Only `name` and `resource_group_name` are required and replication is inferred from the environment, but novice app developers are also handed raw networking and auth controls (`public_network_access_enabled`, `allowed_ip_cidrs`, `allowed_subnet_ids`, `private_endpoint_subnet_id`, `allow_shared_key_access`) that take Azure Storage expertise to decide.",
-          "[1] The README promises developers they decide \"two things\", but the module also exposes specialist network and auth knobs they cannot reasonably choose: `public_network_access_enabled`, `allowed_ip_cidrs`, `allowed_subnet_ids`, `private_endpoint_subnet_id` and `allow_shared_key_access`, while leaving `principal_id`, which every app has and needs, optional with a null default.",
-          "[1] Required inputs are well reduced to `name` and `resource_group_name`, but developers who \"don't know Azure Storage\" are also handed expert networking and security controls they cannot reasonably decide on: `allow_shared_key_access`, `public_network_access_enabled`, `allowed_subnet_ids` and `private_endpoint_subnet_id`."
+          "[1] The `name` and `resource_group_name` required inputs fit the audience, but developers who \"don't know Azure Storage\" are handed raw expert knobs such as `public_network_access_enabled`, `allowed_subnet_ids`, `private_endpoint_subnet_id` and `allow_shared_key_access`, and the last one reopens key/SAS auth, which security posture should never allow.",
+          "[1] The two required inputs (`name`, `resource_group_name`) and inferred defaults fit developers new to Azure Storage, but the module also exposes networking controls that need service expertise (`allowed_subnet_ids` via service endpoints, `public_network_access_enabled`, `private_endpoint_subnet_id`) and a security-posture knob (`allow_shared_key_access`).",
+          "[1] The core inputs (`name`, `resource_group_name`, `containers`, `principal_id`) fit developers who don't know Azure Storage, but `principal_id` is optional even though every application already has an identity, and networking knobs such as `public_network_access_enabled`, `allowed_subnet_ids` and `private_endpoint_subnet_id` ask that audience for decisions that take service expertise."
         ],
         "Variables and validation": [
-          "[1] `name`, `containers`, `file_shares` and `replication_type` are validated, but `public_network_access_enabled` can be set to `true` alongside `private_endpoint_subnet_id`, an avoidable pair that conflicts with the private-endpoint intent.",
-          "[1] `name`, `containers`, `file_shares` and `replication_type` are validated, but the avoidable pair `public_network_access_enabled` and `private_endpoint_subnet_id` can be set to conflict, and `allowed_ip_cidrs` has no guard against the /31, /32 and private ranges that Azure storage ip_rules reject.",
-          "[1] `name`, `containers`, `file_shares` and `replication_type` are deliberately validated, but `public_network_access_enabled` is an avoidable input that can be set to conflict with `private_endpoint_subnet_id` and `allowed_ip_cidrs`, and `allowed_ip_cidrs` has no guard against the private ranges and /31\u2013/32 forms Azure rejects."
+          "[1] `name`, `containers`, `file_shares` and `replication_type` are deliberately validated, but `public_network_access_enabled` and `private_endpoint_subnet_id` form an avoidable pair that can conflict (public access forced on while private endpoints are configured).",
+          "[1] `name`, `containers`, `file_shares` and `replication_type` are guarded deliberately, but `public_network_access_enabled` is an avoidable input that can conflict with `private_endpoint_subnet_id`, and `location` can conflict with the resource group's actual region.",
+          "[1] `name`, `containers`, `file_shares` and `replication_type` are guarded with teaching messages, but `public_network_access_enabled = true` can be set to conflict with `private_endpoint_subnet_id`, which is an avoidable pair of inputs."
         ],
         "Internal logic": [
-          "[2] Readable locals derive the account name, `is_production` and `replication_type` from the concept inputs, and `virtual_network_id` from the subnet ID, so no extra inputs are demanded.",
-          "[2] Readable locals derive everything from the concept inputs: a deterministic `storage_account_name`, `is_production` from the resource group name feeding `replication_type`, `network_default_action`, and `virtual_network_id` parsed from the subnet ID.",
-          "[2] Readable locals derive the account name, `is_production`, `replication_type`, `location`, `network_default_action` and `virtual_network_id` from concept inputs, without convoluted chains."
+          "[2] Readable locals derive `storage_account_name`, `is_production`\u2192`replication_type`, `location` and `network_default_action` from concept inputs, without demanding extra inputs.",
+          "[2] `locals.tf` derives concepts readably from minimal inputs: the deterministic `storage_account_name` hash, `is_production` read from the resource group name to drive `replication_type`, and `network_default_action` from the access inputs.",
+          "[2] `locals.tf` infers the account name, the production flag (from the resource group name pattern), the replication type, the location and the network default action from concept inputs, using readable and commented expressions."
         ],
         "Scope": [
-          "[1] The core job is well covered (RBAC, versioning, soft delete, lifecycle tiering), but `networking.tf` creates per-account `azurerm_private_dns_zone` privatelink zones and VNet links (plus a file private endpoint even with no shares), which is gold-plating the brief never implied.",
-          "[1] The core job is well covered (RBAC role assignments, versioning, soft delete, a tiering lifecycle policy), but `azurerm_private_dns_zone.this` creates shared privatelink DNS zones in each app's own resource group, which is gold-plating that would collide across applications linked to the same VNet.",
-          "[1] The core job is well covered (RBAC role assignments, infrastructure encryption, soft delete and versioning, the tiering management policy), but `networking.tf` creates per-application `privatelink.*.core.windows.net` private DNS zones and VNet links, which is gold-plating the brief never implied and clashes with shared DNS zones."
+          "[1] The core account, private containers, lifecycle tiering and RBAC grants fit the job, but `networking.tf` adds per-application `privatelink.*` private DNS zones and VNet links in each app's resource group, which is gold-plating the brief never implied and will collide when multiple apps link the same VNet.",
+          "[1] Access, encryption, soft delete and lifecycle tiering are proportionate, but `azurerm_private_dns_zone.this` creates privatelink DNS zones (with VNet links) inside each application's resource group, which over-reaches and will clash when several apps link the same VNet.",
+          "[1] Access, encryption, versioning, soft delete and lifecycle tiering are well covered, but `azurerm_private_dns_zone.this` creates per-application `privatelink.*` zones and links them to the shared VNet, which is unrequested architecture that will collide when a second application links a same-named zone to that VNet."
         ],
         "Inline Resource Configuration vs Separate Resources": [
-          "[1] `network_rules` is configured inline on `azurerm_storage_account` with no comment justifying it over the separate `azurerm_storage_account_network_rules` resource, though the two styles are not mixed.",
-          "[1] `azurerm_storage_account.this` uses an inline `network_rules` block instead of the separate `azurerm_storage_account_network_rules` resource, and no comment justifies the choice.",
-          "[1] Network rules are configured in an inline `network_rules` block on `azurerm_storage_account` instead of the separate `azurerm_storage_account_network_rules` resource, with no justifying comment, while containers and shares correctly use separate resources."
+          "[1] `network_rules` is configured inline on `azurerm_storage_account.this`, although the provider offers `azurerm_storage_account_network_rules`, and no comment justifies the inline choice.",
+          "[1] `network_rules` is configured inline on `azurerm_storage_account.this` with no comment justifying it, even though the provider offers the separate `azurerm_storage_account_network_rules` resource.",
+          "[1] The `network_rules` block is configured inline on `azurerm_storage_account.this`, although the provider offers a separate `azurerm_storage_account_network_rules` resource, and no comment justifies the choice."
         ],
         "Outputs": [
-          "[2] `outputs.tf` exposes what consumers need, including `storage_account_id`, `storage_account_name`, `blob_endpoint`, `file_endpoint` and the container and share names, without dumping every attribute.",
-          "[2] The outputs give consumers what they need to use the account (`storage_account_id`, `storage_account_name`, `blob_endpoint`, `file_endpoint`, container names, private endpoint IDs) without dumping every attribute.",
-          "[2] Outputs cover what consumers need, including `storage_account_id`, `storage_account_name`, `blob_endpoint`, `file_endpoint`, container and share names, and `private_endpoint_ids`, without dumping every attribute."
+          "[2] The outputs expose what consumers need (`storage_account_id`, `storage_account_name`, `blob_endpoint`, `file_endpoint`, `container_names`, `private_endpoint_ids`) without dumping every attribute.",
+          "[2] `outputs.tf` exports what a consumer needs (`storage_account_id`, `storage_account_name`, `blob_endpoint`, `file_endpoint`, `container_names`, `private_endpoint_ids`) without dumping every attribute.",
+          "[2] `outputs.tf` exports the account id, name, blob/file endpoints, container and share names, role assignment ids and private endpoint ids, which is what consumers need without dumping every attribute."
         ],
         "Iteration: for_each vs count": [
-          "[2] Containers, shares, DNS zones and private endpoints use `for_each`, and `count` appears only as on/off switches such as `var.principal_id != null ? 1 : 0`.",
-          "[2] Containers, shares, DNS zones and private endpoints use `for_each`, and `count` appears only as an on/off switch, e.g. `count = var.principal_id != null ? 1 : 0`.",
-          "[2] `count` appears only as an on/off switch (for example `var.principal_id != null ? 1 : 0`), and multiplicity uses `for_each` on containers, shares, DNS zones and endpoints."
+          "[2] Containers, shares, private endpoints and DNS zones use `for_each`, and `count` appears only as an on/off switch (e.g. `var.principal_id != null ? 1 : 0`).",
+          "[2] Containers, shares, endpoints and DNS zones use `for_each`, and `count` appears only as an on/off switch (e.g. `count = var.principal_id != null ? 1 : 0`).",
+          "[2] `count` is used only as an on/off switch (role assignments, diagnostic settings, the resource group lookup), and containers, shares, DNS zones and private endpoints use `for_each`."
         ],
         "Data sources vs inputs": [
-          "[2] `data \"azurerm_resource_group\" \"this\"` looks up the region from the resource group identity instead of requiring `location`.",
-          "[2] `data.azurerm_resource_group.this` looks up the region from the resource group's identity instead of requiring a location.",
-          "[2] `data.azurerm_resource_group.this` looks up the region from the resource group's identity rather than demanding it as an input."
+          "[2] `data.azurerm_resource_group.this` looks up the region from the resource group identity, and the VNet ID is derived from the subnet ID rather than requested as a second input.",
+          "[2] `data.azurerm_resource_group.this` looks up the region from the resource group identity, and the VNet ID is derived from `private_endpoint_subnet_id` instead of being asked for separately.",
+          "[2] `data \"azurerm_resource_group\" \"this\"` looks up the region from the resource group identity instead of requiring the consumer to supply it."
         ],
         "File layout": [
-          "[2] Concerns are split across `main.tf`, `access.tf`, `blob_storage.tf`, `file_storage.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf` and `outputs.tf`.",
-          "[2] Concerns are split cleanly across `main.tf`, `access.tf`, `blob_storage.tf`, `file_storage.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
-          "[2] Concerns are split into `main.tf`, `access.tf`, `blob_storage.tf`, `file_storage.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`."
+          "[2] Concerns are split into `main.tf`, `access.tf`, `blob_storage.tf`, `file_storage.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf` and `versions.tf`.",
+          "[2] Resources are split by concern into `main.tf`, `access.tf`, `blob_storage.tf`, `file_storage.tf`, `networking.tf`, `monitoring.tf` and `locals.tf`, with dedicated `variables.tf` and `outputs.tf`.",
+          "[2] The module is split by concern into `main.tf`, `access.tf`, `blob_storage.tf`, `file_storage.tf`, `networking.tf`, `monitoring.tf`, `locals.tf`, `variables.tf` and `outputs.tf`."
         ],
         "Sensitive values": [
-          "[2] No secret is accepted or output, and keys and connection strings are deliberately not exported.",
-          "[2] No secrets are accepted or output; access is via `principal_id` RBAC, and keys and connection strings are deliberately not exported.",
-          "[2] The module handles no secrets, and the README notes that no keys or connection strings are output."
+          "[2] The module handles no secrets: no keys or connection strings are output, and `principal_id` is a non-secret object ID.",
+          "[2] No secrets are accepted or output: authentication uses `principal_id` role assignments, and keys and connection strings are deliberately not exported.",
+          "[2] The module handles no secrets, and it deliberately outputs no access keys or connection strings."
         ],
         "Lifecycle meta-arguments": [
-          "[2] No `lifecycle` blocks are used, so there is no misuse of `ignore_changes` or `prevent_destroy`.",
           "[2] No `lifecycle` blocks are used, so there is no misuse of `prevent_destroy` or `ignore_changes`.",
-          "[2] No `lifecycle` blocks are used, so there is no misuse of `prevent_destroy` or `ignore_changes`."
+          "[2] No `lifecycle` blocks are used, so there is no misused `prevent_destroy` or `ignore_changes`.",
+          "[2] No `lifecycle` blocks are used, so there are no unjustified `prevent_destroy` or `ignore_changes` uses."
         ],
         "Documentation": [
-          "[0] The README Quick start tells users to copy `terraform.tfvars.example`, a file that does not exist in the module (only `minimal.tfvars` and `probe.tfvars` do).",
-          "[0] The README's Quick start tells users to copy `terraform.tfvars.example`, a file that does not exist in the module (only `minimal.tfvars` and `probe.tfvars` do).",
-          "[0] The README Quick start tells users to copy `terraform.tfvars.example`, a file that does not exist in the module (only `minimal.tfvars` and `probe.tfvars` ship), so the documentation is inaccurate."
+          "[0] The README Quick start tells users to \"Copy `terraform.tfvars.example`\", but no such file exists in the module (only `minimal.tfvars` and `probe.tfvars`), so the documentation is wrong.",
+          "[0] The README's Quick start tells users to copy `terraform.tfvars.example`, which does not exist in the module (only `minimal.tfvars` and `probe.tfvars` are present), so the documentation is inaccurate.",
+          "[0] The README's Quick start tells users to copy `terraform.tfvars.example`, a file that does not exist in the module (only `minimal.tfvars` and `probe.tfvars` do), so the documentation is wrong."
         ],
         "Deprecated and escape-hatch patterns": [
-          "[2] No `null_resource` or `local-exec` is used, and containers and shares use the current `storage_account_id` argument.",
-          "[2] The module uses current forms (`storage_account_id` on containers and shares, `https_traffic_only_enabled`) and has no `null_resource` or `local-exec`.",
-          "[2] The module uses current forms such as `storage_account_id` on containers and shares and `https_traffic_only_enabled`, with no `null_resource` or `local-exec`."
+          "[2] The module uses current forms (`storage_account_id` on containers/shares, `https_traffic_only_enabled`) and has no `null_resource` or `local-exec`.",
+          "[2] The module uses current azurerm 4 forms (`https_traffic_only_enabled`, `storage_account_id` on containers and shares) and contains no `null_resource` or `local-exec`.",
+          "[2] There is no `null_resource` or `local-exec`, and containers and shares use the current `storage_account_id` argument rather than the deprecated `storage_account_name` form."
         ],
         "Anti-patterns (immediate credibility loss)": [
-          "[1] `allow_shared_key_access` lets a consumer re-enable key and SAS authorization, undoing the Entra-only posture the module establishes, though it is documented as a narrow escape hatch.",
-          "[1] The `public_network_access_enabled` override can silently re-open the public endpoint that the module disables when `private_endpoint_subnet_id` is set, undoing a posture the module otherwise establishes.",
-          "[0] `allow_shared_key_access` lets a consumer re-enable keys and SAS, undoing the Entra-ID-only posture the module otherwise establishes."
+          "[1] `allow_shared_key_access` lets a consumer undo the Entra-only posture the module establishes (`shared_access_key_enabled = var.allow_shared_key_access`), though the input is documented rather than silent.",
+          "[0] `main.tf` declares an \"Entra ID only\u2026 keys\u2026 SAS\u2026 all off\" posture but sets `shared_access_key_enabled = var.allow_shared_key_access`, so a single boolean lets a consumer re-enable key and SAS access.",
+          "[1] `var.public_network_access_enabled` overrides the private-endpoint posture in `local.public_network_access_enabled`, so setting it to true silently re-opens the public endpoint the module otherwise disables when private endpoints are configured."
         ]
       },
       "unparsed_sections": [],
       "module_sha": "71c2cccf3883f4da",
-      "tf_sloc": 390
+      "tf_sloc": 390,
+      "graded_in_full": "2026-11-24"
     },
     "glm-5.3-e3": {
       "overall": 73.7,
@@ -7070,7 +7079,7 @@
     "agreement": 0.961,
     "unfilled": 0,
     "carried_from": "calibration/G001, calibration/G002, calibration/G003",
-    "carry_basis": "same judge model, judge code (src/iacbench/judge.py unchanged since 2026-10-16), doctrine (principles_sha256 af3ae1dd9fdc1c0c), graded sections and sampling as the calibrated runs; the calibration checks the judge's grading of doctrine sections, which do not depend on the fixture"
+    "carry_basis": "same judge model, doctrine (principles_sha256 af3ae1dd9fdc1c0c), graded sections, prompt and sampling as the calibrated runs; the judge's input limit rose from 30,000 to 200,000 characters on 2026-11-24, which leaves the input of every module under the old limit unchanged, and every module over it was graded again in full; the calibration checks the judge's grading of doctrine sections, which do not depend on the fixture"
   },
   "agreement": 0.961,
   "agreement_method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)"

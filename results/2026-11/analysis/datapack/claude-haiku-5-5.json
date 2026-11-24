@@ -1096,21 +1096,14 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/claude-haiku-5-5-e1",
     "gate": true,
-    "rubric": 0.303,
-    "mechanical": 0.3,
+    "rubric": 0.43,
+    "mechanical": 0.421,
     "judge": 78.9,
-    "composite": 32.87,
-    "mandatory_failures": [
-     "H1",
-     "H3"
-    ],
+    "composite": 41.3,
+    "mandatory_failures": [],
     "items_lost": {
-     "H1": false,
-     "H3": false,
-     "H5": false,
-     "H8": false,
-     "H9": 0.5,
-     "H12": 0.0,
+     "H9": 0.0,
+     "H12": 0.75,
      "H17": false,
      "A5": 0.0
     },
@@ -1127,8 +1120,7 @@
     "variables": 22,
     "tf_sloc": 679,
     "apply_failures": [
-     "F1_secrets_manager_on_global_member",
-     "F2_encrypted_secondary_without_regional_key"
+     "F1_secrets_manager_on_global_member"
     ],
     "output_tokens": 45573,
     "seconds": 447,
@@ -1151,74 +1143,74 @@
     },
     "judge_evidence": {
      "Interface design": [
-      "[1] The environment-to-VPC derivation and the defaults that settle most decisions encode real judgment, but the module still exposes knobs the brief already settles or that need database expertise, such as `replication_lag_alarm_threshold_ms` (the brief fixes the RPO), `kms_deletion_window_days`, `performance_insights_retention_days` and `master_username`.",
-      "[1] Concept-level inputs such as `environment`, which selects the `apps-<environment>` VPC, are well chosen, but the module also exposes knobs the use case already settles or that need database expertise, such as `kms_deletion_window_days`, `performance_insights_retention_days` and `replication_lag_alarm_threshold_ms`, even though the brief fixes the RPO at a few seconds.",
-      "[1] Concept inputs like `environment` select the VPC and pick sensible defaults. But the module still asks consumers who are not database specialists to tune specialist knobs the brief gives no reason to vary, such as `performance_insights_retention_days`, `kms_deletion_window_days` and `master_username`, and `allowed_cidr_blocks` lets them widen network exposure."
+      "[1] Concept inputs such as `environment` selecting the `apps-<environment>` VPC and `service_name` deriving names are well judged, but the module also passes through settings the brief leaves to the module (`kms_deletion_window_days`, `performance_insights_retention_days`, `allowed_cidr_blocks`) for consumers who are not database specialists.",
+      "[1] Most inputs map to real per-service decisions (`service_name`, `environment`, regions, `app_iam_role_names`), but a single `allowed_security_group_ids` list is applied to both regional VPCs, and specialist knobs such as `kms_deletion_window_days` and `performance_insights_retention_days` are exposed to non-DB specialists for no use-case reason.",
+      "[1] Most inputs are concepts with sensible defaults (`service_name`, `environment`, regions), but the single `allowed_security_group_ids` list is passed to both the primary and secondary regional modules, even though security groups are regional and cannot be referenced across regions, so consumers cannot express per-region access correctly."
      ],
      "Variables and validation": [
-      "[1] `environment`, `instance_count`, `backup_retention_days` and the cross-region precondition are guarded deliberately, but `performance_insights_retention_days` accepts invalid values like 30 that the API rejects, and the `preferred_backup_window`/`preferred_maintenance_window` pair can be set to overlap with no check, though the description warns about it.",
-      "[1] Inputs are guarded deliberately (`instance_count >= 2`, an enum on `environment`, a precondition that the two regions differ), but nothing checks the overlap between `preferred_backup_window` and `preferred_maintenance_window`, an avoidable conflicting pair, and `performance_insights_retention_days` accepts invalid values such as 30 that break the apply.",
-      "[1] Several inputs are guarded deliberately, including `instance_count >= 2`, the backup and KMS ranges, and the precondition that the two regions differ. But `performance_insights_retention_days` has no validation, although only 7, 731 or multiples of 31 are accepted and a plausible value like 30 would fail at apply."
+      "[1] Inputs are guarded deliberately (`instance_count >= 2`, backup retention 7\u201335, a precondition that the two regions differ), but `performance_insights_retention_days` accepts any number although only 7, 731 or multiples of 31 are valid, so a realistic mistake would break the deployment.",
+      "[1] Inputs are guarded deliberately (`instance_count >= 2`, a backup retention range, and a `primary_region != secondary_region` precondition), but `performance_insights_retention_days` has no check despite its restricted valid values (7, 731, or multiples of 31), and the shared `allowed_security_group_ids` list cannot be valid in both regions' VPCs.",
+      "[2] Realistic mistakes are guarded: the `primary_region != secondary_region` precondition, `instance_count >= 2`, the 7\u201335 range on `backup_retention_days`, the `environment` allow-list, and private/multi-AZ subnet preconditions; only minor gaps remain, such as no check on `performance_insights_retention_days`."
      ],
      "Internal logic": [
-      "[2] Locals such as `vpc_name = \"apps-${var.environment}\"`, `database_name = coalesce(...)`, `engine_major` and `connect_resources` derive values from concept inputs and stay readable.",
-      "[2] Readable locals derive values from concept inputs instead of asking for them, including `vpc_name = \"apps-${var.environment}\"`, `engine_major` for the parameter group family, `is_primary`, and the flattened `connect_resources` ARN list.",
-      "[2] Readable locals derive values from concept inputs, such as `engine_major` for the parameter group family, `vpc_name = \"apps-${var.environment}\"`, the `database_name` coalesce, and the flattened `connect_resources` ARNs."
+      "[2] Readable locals such as `engine_major = split(\".\", var.engine_version)[0]` for the parameter group family, `coalesce`-derived `database_name` and `is_primary` compute inferred values instead of asking for more inputs.",
+      "[2] Locals derive values from concept inputs readably: `vpc_name = \"apps-${var.environment}\"`, `database_name` via `coalesce`, `engine_major` for the parameter group family, and the flattened `connect_resources` ARNs.",
+      "[2] Readable locals derive values from concept inputs, e.g. `database_name = coalesce(var.database_name, replace(var.service_name, \"-\", \"_\"))`, `vpc_name = \"apps-${var.environment}\"` and `engine_major` for the parameter-group family."
      ],
      "Scope": [
-      "[2] The module creates the global cluster, regional clusters with per-region CMKs, a TLS-enforcing parameter group, a port-5432 security group, enhanced monitoring, an IAM-auth connect policy and an RPO replication-lag alarm, which fits the brief without gold-plating.",
-      "[2] The module creates the global cluster with per-region customer-managed KMS keys, a TLS-enforcing parameter group, port-restricted security groups, enhanced monitoring, an RPO replication-lag alarm and an IAM `rds-db:connect` policy, all proportionate to a production multi-region Aurora brief.",
-      "[2] The module covers what a competent operator expects for this job without gold-plating: a global cluster spanning two regions, per-region CMK encryption, a 5432-only security group, `rds.force_ssl`, IAM database authentication, enhanced monitoring, and an RPO replication-lag alarm."
+      "[2] The module builds the global cluster, a per-region customer-managed KMS key, a 5432-only security group, a parameter group enforcing `rds.force_ssl`, enhanced monitoring, an RPO replication-lag alarm and an IAM `rds-db:connect` policy, all proportionate to a production multi-region payment database.",
+      "[2] The module creates what the job needs and no more: a global cluster spanning two regions, per-region CMK encryption, a TLS-forcing parameter group, port-5432-only security group rules, enhanced monitoring, an RPO replication-lag alarm, and IAM database-auth policies for the EKS roles.",
+      "[2] The module creates what this job needs and nothing gratuitous: the global cluster, per-region CMKs, scoped security groups, a `rds.force_ssl` parameter group, enhanced monitoring, an RPO replication-lag alarm and an IAM `rds-db:connect` policy."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources, and `aws_security_group.this` has no inline rules.",
-      "[2] Security group rules are separate `aws_vpc_security_group_ingress_rule` resources with no inline `ingress` blocks on `aws_security_group.this`.",
-      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources, with no inline `ingress` blocks on `aws_security_group.this`."
+      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources with no inline rules on `aws_security_group.this`.",
+      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources rather than inline blocks on `aws_security_group.this`.",
+      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources rather than inline ingress blocks."
      ],
      "Outputs": [
-      "[2] The outputs expose what consumers need: writer and reader endpoints, port, `master_user_secret_arn`, `cluster_resource_id`, security group IDs and `app_connect_policy_arn`, without dumping every attribute.",
-      "[2] The outputs give consumers what they need to use the database (writer and reader endpoints, port, `master_user_secret` ARN, security group IDs, `app_connect_policy_arn`) without dumping every attribute.",
-      "[2] Outputs give consumers what they need to use the resources, including writer and reader endpoints, port, the master secret ARN, security group IDs, the connect policy ARN and the global cluster ID, without dumping every attribute."
+      "[2] The outputs cover what consumers need: writer and reader endpoints, port, `master_user_secret` ARN, `cluster_resource_id`, security group IDs and `app_connect_policy_arn`, without dumping every attribute.",
+      "[2] Outputs cover what consumers need, including writer/reader endpoints, port, `master_user_secret` ARN, `security_group_id`, `app_connect_policy_arn` and `cluster_resource_id`, without dumping every attribute.",
+      "[2] The `primary`/`secondary` outputs expose the writer and reader endpoints, port, cluster resource ID, security group ID and master secret ARN, and `app_connect_policy_arn` is output too, all of which consumers need."
      ],
      "Iteration: for_each vs count": [
-      "[1] `aws_rds_cluster_instance.this` uses `count = var.instance_count` for multiplicity, which keys instances by index, while other repeated resources correctly use `for_each`.",
-      "[1] `aws_rds_cluster_instance.this` uses `count = var.instance_count` for multiplicity, although SG rules and role attachments correctly use `for_each` and the other `count` uses are on/off switches.",
-      "[1] The security group rules and role attachments use `for_each`, but `aws_rds_cluster_instance.this` uses `count = var.instance_count` for multiplicity, which keys instances by index."
+      "[1] SG rules and role attachments use `for_each`, but `aws_rds_cluster_instance.this` uses `count = var.instance_count` for multiplicity, so instances are keyed by index.",
+      "[1] `aws_rds_cluster_instance.this` uses `count = var.instance_count` for multiplicity, keying instances by index, although the other `count` uses are on/off switches.",
+      "[1] `aws_rds_cluster_instance.this` uses `count = var.instance_count` for multiplicity (index-keyed instances with `promotion_tier = count.index`), while the security group rules and role attachments correctly use `for_each`."
      ],
      "Data sources vs inputs": [
-      "[2] The VPC, database subnets, VPC CIDR, account ID and partition are all looked up with data sources (`aws_vpc`, `aws_subnets` filtered on `tier = database`) instead of being requested as inputs.",
-      "[2] The VPC is looked up by Name tag through `data \"aws_vpc\"`, the subnets through `data \"aws_subnets\"` filtered on `tier = database`, and the VPC CIDR comes from the data source rather than an input.",
-      "[2] The VPC is looked up by Name tag, subnets come from `data.aws_subnets` filtered on `tier = database`, and the VPC CIDR is read from `data.aws_vpc.this.cidr_block` rather than requested as an input."
+      "[2] The VPC is resolved by `tag:Name`, subnets by `tag:tier = database`, and the VPC CIDR comes from `data.aws_vpc.this.cidr_block` rather than being requested as inputs.",
+      "[2] The VPC is looked up by Name tag and the subnets by `tier = database`, with the allowed CIDR taken from `data.aws_vpc.this.cidr_block` rather than asked of the user.",
+      "[2] The VPC is looked up by its `Name` tag, subnets by `tag:tier = database`, and the VPC CIDR comes from `data.aws_vpc.this.cidr_block` rather than being asked for as an input."
      ],
      "File layout": [
-      "[1] The root splits files sensibly, but `modules/aurora_region/main.tf` puts roughly 280 lines of distinct concerns (network, KMS, security group, parameters, monitoring IAM, cluster, alarm) into one file, and a leftover empty `probe/main.tf` remains.",
-      "[1] The root splits `variables.tf`, `outputs.tf` and `providers.tf`, but `modules/aurora_region/main.tf` puts network, KMS, security group, parameter, monitoring-IAM, cluster and alarm concerns into one file of roughly 300 lines, and a leftover empty `probe/main.tf` remains.",
-      "[1] The root splits variables, outputs and providers sensibly. But `modules/aurora_region/main.tf` packs KMS, the security group, the parameter group, the monitoring IAM role, the cluster and the alarm into one file of roughly 300 lines, and an empty `probe/main.tf` is left behind."
+      "[1] Root and submodule separate variables, outputs and versions, but `modules/aurora_region/main.tf` holds roughly 250 lines mixing KMS, security group, parameter group, monitoring IAM, cluster and alarm concerns, and an empty leftover `probe/main.tf` remains.",
+      "[1] The root is split well, but `modules/aurora_region/main.tf` puts roughly 270 lines of distinct concerns (KMS, security group, parameters, monitoring IAM, cluster, alarm) in one file, and a stray empty `probe/main.tf` remains.",
+      "[1] The root is well split (`variables.tf`, `outputs.tf`, `providers.tf`, `versions.tf`), but `modules/aurora_region/main.tf` packs network, KMS, security group, parameter group, monitoring IAM, cluster and alarm concerns into one ~250-line file, and an empty `probe/main.tf` is left behind."
      ],
      "Sensitive values": [
-      "[2] No raw secret is accepted or output: the master password uses `manage_master_user_password = true` with a CMK, and only the secret ARN is exported.",
-      "[2] The master password is never handled as a value, because `manage_master_user_password = true` stores it in Secrets Manager under the module's own KMS key, and only the secret ARN is output.",
-      "[2] `manage_master_user_password = true` keeps the password in Secrets Manager, so no raw secret is ever accepted or output; only the secret ARN is exposed."
+      "[2] The master password is never an input (`manage_master_user_password = true`), and only the Secrets Manager ARN is output, so no secret value flows through variables or outputs.",
+      "[2] `manage_master_user_password = true` with a CMK means no password input or output exists, and only the secret ARN is exported.",
+      "[2] No raw secret is accepted or output: the master password uses `manage_master_user_password = true` with a CMK, and apps use IAM database authentication."
      ],
      "Lifecycle meta-arguments": [
-      "[2] The module uses native `deletion_protection` rather than `prevent_destroy`, has no `ignore_changes`, and limits `lifecycle` to preconditions.",
-      "[2] The module relies on the native `deletion_protection` attribute rather than `prevent_destroy`, and uses no `ignore_changes`.",
-      "[2] The module uses the native `deletion_protection` attribute rather than `prevent_destroy`, and its `lifecycle` blocks contain only preconditions, with no `ignore_changes`."
+      "[2] Only `precondition` blocks are used, and protection relies on the native `deletion_protection` attribute with no `prevent_destroy` or `ignore_changes`.",
+      "[2] The module uses native `deletion_protection` rather than `prevent_destroy`, has no `ignore_changes`, and limits `lifecycle` blocks to preconditions.",
+      "[2] Lifecycle blocks contain only preconditions, and deletion safety uses the native `deletion_protection` attribute rather than `prevent_destroy`."
      ],
      "Documentation": [
-      "[0] Step 2 of the `failover_runbook` output tells operators to run `promote-read-replica-db-cluster` after `remove-from-global-cluster`, an incorrect step for a detached Aurora global secondary that would mislead on-call during an outage.",
-      "[0] The `failover_runbook` output tells operators to run `promote-read-replica-db-cluster` after `remove-from-global-cluster`, which is the wrong procedure for a detached Aurora global secondary, and the submodule's `environment` variable claims to be \"Used for tagging only\" but is never referenced.",
-      "[1] Every variable and output has a description and the comments explain non-obvious ordering. However, the `failover_runbook` step 2 tells operators to run `promote-read-replica-db-cluster` after `remove-from-global-cluster`, which is not how a detached global secondary is promoted. The submodule's `environment` description also claims the value is used for tagging when it is unused."
+      "[0] The `failover_runbook` output instructs running `promote-read-replica-db-cluster` after `remove-from-global-cluster`, which is wrong for Aurora Global Database (detaching already promotes the cluster), and the submodule's `environment` variable claims to be \"used for tagging\" but is never referenced.",
+      "[0] The `failover_runbook` output tells operators to run `promote-read-replica-db-cluster` after `remove-from-global-cluster`, although the detached cluster is already standalone and writable; separately, the submodule's `environment` variable is described as \"Used for tagging only\" but is never used.",
+      "[0] The `failover_runbook` output instructs running `promote-read-replica-db-cluster` after `remove-from-global-cluster`, which is wrong because the detached cluster is already standalone; the submodule's `environment` variable claims \"Used for tagging only\" yet is never used."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module has no `null_resource`, no `local-exec` and no deprecated resource forms, and it uses the current `aws_vpc_security_group_ingress_rule` resources.",
-      "[2] There is no `null_resource` or `local-exec`, and SG rules use the current dedicated `aws_vpc_security_group_ingress_rule` resources.",
-      "[2] The module uses no `null_resource`, no `local-exec`, and no deprecated inline resource forms."
+      "[2] There is no `null_resource` or `local-exec`, and current resource forms are used, such as `aws_vpc_security_group_ingress_rule`.",
+      "[2] There is no `null_resource` or `local-exec`, and current resource forms such as `aws_vpc_security_group_ingress_rule` are used.",
+      "[2] There is no `null_resource` or `local-exec`, and no deprecated resource forms (e.g. modern `aws_vpc_security_group_ingress_rule` is used)."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls, and no input bypasses the established posture: TLS, encryption and `publicly_accessible = false` are hardcoded, and subnets are verified private by precondition.",
-      "[2] All resources are authored locally through the `./modules/aurora_region` submodule with no remote module call, and nothing in the visible code points to a resource removed to hide an error.",
-      "[2] All resources are authored locally through the `./modules/aurora_region` submodule, no remote module is called, and there is no sign that an erroring resource was removed to make an error disappear."
+      "[1] Resources are authored directly with no remote module, but the unvalidated `allowed_cidr_blocks` input lets a consumer silently widen 5432 ingress beyond the VPC-only access the module otherwise establishes.",
+      "[2] All resources are authored locally (`./modules/aurora_region`) with no remote module calls, and no input lets a consumer silently bypass the module's encryption or TLS posture.",
+      "[2] All resources are authored locally (the only module call is the local `./modules/aurora_region`), and no input bypasses the enforced encryption, TLS or `publicly_accessible = false`."
      ]
     }
    },
@@ -1352,8 +1344,8 @@
     "gate": true,
     "rubric": 0.433,
     "mechanical": 0.42,
-    "judge": 86.8,
-    "composite": 42.45,
+    "judge": 89.5,
+    "composite": 42.86,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1391,80 +1383,80 @@
      "File layout": 2,
      "Sensitive values": 2,
      "Lifecycle meta-arguments": 2,
-     "Documentation": 0,
+     "Documentation": 1,
      "Deprecated and escape-hatch patterns": 2,
      "Anti-patterns (immediate credibility loss)": 2
     },
     "judge_evidence": {
      "Interface design": [
-      "[1] Most inputs are concept-level and the module settles the rest (VPC derived from `environment`, managed password, forced TLS), but the single `allowed_security_group_ids` list is applied to both regional security groups even though security group IDs are regional, so a consumer cannot correctly grant their EKS security groups in both regions.",
-      "[2] Inputs center on per-service decisions (`service_name`, `environment`, `primary_region`/`secondary_region`, `instance_class`, `app_iam_role_names`, `allowed_security_group_ids`), while the module settles the expert choices itself: global cluster topology, `rds.force_ssl`, IAM auth, managed master password, backup windows and VPC/subnet selection derived from `environment`.",
-      "[1] Most inputs are concept-level, such as `environment`, which selects the `apps-<environment>` VPC, but the single `allowed_security_group_ids` list is applied to both regional security groups. Security group IDs are region-specific, so the consumer cannot express the per-region EKS security groups the use case requires."
+      "[1] Most inputs fit platform engineers who are not database specialists (`service_name`, `environment`, `instance_class`, with TLS, encryption and IAM auth decided by the module), but `allowed_security_group_ids` is one list applied to both regions' security groups even though security group IDs are regional, so the consumer cannot express the per-region EKS security groups the brief requires.",
+      "[1] Most inputs are concept-level and opinionated (`service_name`, `environment`, derived VPC and subnet lookup, fixed TLS, encryption and windows), but `allowed_security_group_ids` is a single list applied to both regions' security groups even though security group IDs are region-specific, and `allowed_cidr_blocks` adds a knob the IAM-role/EKS use case gives no reason for.",
+      "[2] The required inputs are concept-level (`service_name`, `environment`, `primary_region`, `secondary_region`), and the module settles global-cluster topology, encryption, TLS, IAM auth and VPC selection; tuning knobs like `instance_class` and `instance_count_per_region` have production-safe defaults that AWS-literate platform engineers can choose."
      ],
      "Variables and validation": [
-      "[2] The inputs consumers would realistically get wrong are guarded with teaching error messages: the US region regex, the different-regions precondition, the `engine_version` major range, `instance_count_per_region` 2\u201315, the CloudWatch-accepted `log_retention_days` list, and the `environment` enum.",
-      "[2] Realistic mistakes are guarded with teaching messages, for example `instance_count_per_region` limited to 2\u201315, `log_retention_days` limited to CloudWatch-accepted values, `engine_version` limited to 14\u201317, and a precondition that `primary_region != secondary_region`; leaving `instance_class` to the provider is a minor gap.",
-      "[2] Realistic mistakes are guarded with teaching messages, including `instance_count_per_region` (2\u201315), `backup_retention_days` (7\u201335), the CloudWatch-accepted values for `log_retention_days`, and the `primary_region != secondary_region` precondition, and no condition rejects a valid value."
+      "[2] Realistic mistakes are guarded with teaching messages: the `environment` enum, `instance_count_per_region` 2\u201315, `log_retention_days` limited to CloudWatch-accepted values, `engine_version` major range, and a precondition that `primary_region != secondary_region`.",
+      "[2] Inputs consumers realistically get wrong are guarded with teaching messages: engine_version major range, instance_count_per_region 2\u201315, the CloudWatch-legal log_retention_days set, writer_region enum, and a precondition that primary_region differs from secondary_region; no condition rejects a valid value for the brief's US regions.",
+      "[2] Realistic mistakes are guarded with teaching messages: `environment` limited to staging/prod, `instance_count_per_region` held at 2\u201315, `log_retention_days` restricted to CloudWatch-accepted values, and a precondition that `primary_region != secondary_region`."
      ],
      "Internal logic": [
-      "[2] `locals.tf` derives `engine_family` from `engine_version`, `vpc_name` from `environment`, and `writer_endpoint` from `writer_region` with simple, readable expressions.",
-      "[2] Small readable locals infer values from concept inputs, such as `engine_family` from the major of `engine_version`, `vpc_name = \"apps-${var.environment}\"` and `writer_endpoint` selected by `writer_region`, with no clever chains.",
-      "[2] `locals.tf` derives values readably from concept inputs, for example `engine_family` from the engine version's major number, `vpc_name` from `environment`, and `writer_endpoint` from `writer_region`."
+      "[2] Locals stay readable and derive values from concept inputs, e.g. `engine_family` from the engine version's major number and `vpc_name = \"apps-${var.environment}\"`, rather than asking for more inputs.",
+      "[2] locals.tf derives names, `vpc_name = \"apps-${var.environment}\"`, `engine_family` from the engine major version, and `writer_endpoint` from writer_region with simple, readable expressions.",
+      "[2] `locals.tf` derives `vpc_name`, `engine_family` (from the major of `engine_version`), the regional cluster IDs and `writer_endpoint` with simple, readable expressions instead of extra inputs."
      ],
      "Scope": [
-      "[2] The module builds a Global Database with per-region KMS keys, security groups, subnet groups, parameter groups enforcing TLS, IAM `rds-db:connect` access, a log group with retention, and a replication-lag alarm, all proportionate to a cross-region production payment database.",
-      "[2] The module creates what this job needs (global cluster, per-region CMKs, parameter groups enforcing TLS, security groups, an IAM connect policy, log groups with retention, and the replication-lag alarm tied to the RPO) without unrelated gold-plating.",
-      "[2] The module builds a Global Database with per-region KMS keys, `rds.force_ssl`, IAM auth and policy, log groups with retention, and a replication-lag alarm, which together cover the multi-region RPO/RTO requirement without unrequested architecture."
+      "[2] The module builds what a competent operator expects for a cross-region production database: a Global Database with per-region CMK encryption, `rds.force_ssl`, managed master secret, IAM connect policy, log groups with retention, and a replication-lag alarm, without unrelated extras.",
+      "[2] The module builds a Global Database with per-region CMKs, a force_ssl parameter group, security groups, IAM-auth connect policy, log groups with retention, a replication-lag alarm and an optional writer CNAME, all proportionate to a cross-region, low-RPO payment database.",
+      "[2] The module covers what the cross-region RPO/RTO job needs (an `aws_rds_global_cluster` with clusters in both regions, per-region CMKs, security groups, the `rds.force_ssl` parameter group, log retention, a replication-lag alarm and an IAM connect policy) without unrelated gold-plating."
      ],
      "Inline Resource Configuration vs Separate Resources": [
-      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources, and `aws_security_group` has no inline rules.",
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources rather than inline rules, and the inline `parameter` blocks have no separate-resource alternative.",
-      "[2] Security group ingress uses separate `aws_vpc_security_group_ingress_rule` resources rather than inline rules."
+      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources, and no inline `ingress`/`egress` blocks are mixed in.",
+      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources with no inline ingress/egress blocks on `aws_security_group`.",
+      "[2] Security group rules use separate `aws_vpc_security_group_ingress_rule` resources rather than inline rules, and the inline `parameter` blocks have no separate-resource alternative."
      ],
      "Outputs": [
-      "[2] The `primary`/`secondary` outputs expose the cluster IDs, resource IDs, writer/reader endpoints, port, KMS ARN and master secret ARN, and `db_connect_policy_arn` covers attaching access to other roles.",
-      "[2] Outputs cover what consumers need: `writer_endpoint`, per-region `reader_endpoint`/`port`/`cluster_resource`, the master secret ARN, `db_connect_policy_arn` and `global_cluster_identifier`, without dumping every attribute.",
-      "[2] The outputs expose what consumers need to connect: writer and reader endpoints, port, `cluster_resource_id`, the master secret ARN, KMS ARNs and `db_connect_policy_arn`."
+      "[2] The `primary`/`secondary` objects expose what consumers need to use the clusters (cluster IDs, writer and reader endpoints, port, KMS ARN, master secret ARN), alongside `db_connect_policy_arn`, without dumping every attribute.",
+      "[2] Outputs cover what consumers need: global cluster ID, writer/reader endpoints and port per region, cluster_resource_id, KMS ARNs, master secret ARN and `db_connect_policy_arn`, without dumping every attribute.",
+      "[2] The outputs expose what consumers need: writer/reader endpoints, port, cluster resource IDs, KMS ARNs, the master secret ARN, `db_connect_policy_arn` and `global_cluster_identifier`."
      ],
      "Iteration: for_each vs count": [
-      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = var.instance_count_per_region` for multiplicity, although `for_each` is used correctly elsewhere and `count` is used as an on/off switch for the Route 53 record.",
-      "[1] `aws_rds_cluster_instance.primary`/`secondary` use `count = var.instance_count_per_region` for multiplicity, although `for_each` is correctly used for ingress rules and role attachments and `count` serves as an on/off switch for the DNS record.",
-      "[1] `aws_rds_cluster_instance.primary` and `aws_rds_cluster_instance.secondary` use `count = var.instance_count_per_region` for multiplicity, though `for_each` is used correctly for ingress rules and role attachments."
+      "[1] `aws_rds_cluster_instance.primary` and `.secondary` use `count = var.instance_count_per_region` for multiplicity rather than as an on/off switch, while the security group rules and role attachments correctly use `for_each`.",
+      "[1] Rules and role attachments use for_each, but `aws_rds_cluster_instance.primary`/`secondary` use `count = var.instance_count_per_region` for multiplicity, keying instances by index.",
+      "[1] `aws_rds_cluster_instance.primary`/`secondary` use `count = var.instance_count_per_region` for multiplicity, while SG rules and role attachments correctly use `for_each` and the DNS record uses count only as an on/off switch."
      ],
      "Data sources vs inputs": [
-      "[2] VPCs and database subnets are looked up with `data.aws_vpc` and `data.aws_subnets` by Name tag and `tier = database`, and the partition and account ID come from data sources instead of inputs.",
-      "[2] The VPC is looked up by its Name tag (`data \"aws_vpc\"`) and database subnets by `tag:tier = database` (`data \"aws_subnets\"`), and account and partition come from `aws_caller_identity`/`aws_partition`, so none of these are taken as inputs.",
-      "[2] VPCs are looked up by Name tag and subnets by `tier = database` via `data.aws_vpc` and `data.aws_subnets`, and partition and account come from data sources instead of inputs."
+      "[2] The VPC is looked up via `data \"aws_vpc\"` by Name tag and the subnets via `data \"aws_subnets\"` filtered on `tier = database`, instead of asking for IDs or CIDRs.",
+      "[2] VPCs are looked up by Name tag and subnets by `tag:tier = database` via `data.aws_vpc`/`data.aws_subnets`, and account and partition come from data sources rather than inputs.",
+      "[2] The VPCs are looked up by `tag:Name` from `apps-${environment}` and the subnets by `tag:tier = database` via `data.aws_subnets`, rather than asking for VPC or subnet IDs."
      ],
      "File layout": [
-      "[2] Resources are split by concern into `database.tf`, `network.tf`, `kms.tf`, `access.tf`, `monitoring.tf`, `locals.tf` and `providers.tf`, alongside `variables.tf` and `outputs.tf`.",
-      "[2] The module is split by concern into `database.tf`, `network.tf`, `kms.tf`, `access.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`.",
-      "[2] Concerns are split into `database.tf`, `network.tf`, `kms.tf`, `access.tf`, `monitoring.tf`, `locals.tf`, `variables.tf` and `outputs.tf`."
+      "[2] Concerns are split into `database.tf`, `network.tf`, `kms.tf`, `access.tf`, `monitoring.tf`, `locals.tf`, `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`.",
+      "[2] Concerns are split into database.tf, network.tf, kms.tf, access.tf, monitoring.tf, locals.tf, providers.tf, variables.tf and outputs.tf.",
+      "[2] Resources are split by concern into `database.tf`, `network.tf`, `kms.tf`, `access.tf`, `monitoring.tf` and `locals.tf`, alongside `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`."
      ],
      "Sensitive values": [
-      "[2] `manage_master_user_password = true` keeps the password out of inputs and state, and only the secret's ARN reference is output.",
-      "[2] No secret is accepted or hardcoded, because `manage_master_user_password = true` keeps the password in Secrets Manager and only the secret ARN is output.",
-      "[2] `manage_master_user_password = true` keeps the password out of inputs and state, and only the secret's ARN is output."
+      "[2] The master password is never handled (`manage_master_user_password = true`), and only the secret ARN reference is output.",
+      "[2] There is no raw secret input; `manage_master_user_password = true` keeps the password in Secrets Manager, and only the secret ARN is output.",
+      "[2] No secret passes through inputs: `manage_master_user_password = true` keeps the password in Secrets Manager, and only the non-secret secret ARN is output."
      ],
      "Lifecycle meta-arguments": [
-      "[2] The only lifecycle blocks are preconditions, and there is no `prevent_destroy` or `ignore_changes`; protection uses the native `deletion_protection` attribute.",
-      "[2] The module relies on native `deletion_protection` instead of `prevent_destroy`, uses no `ignore_changes`, and uses `lifecycle` only for preconditions.",
-      "[2] The module uses native `deletion_protection` rather than `prevent_destroy`, has no `ignore_changes`, and uses lifecycle blocks only for preconditions."
+      "[2] The module relies on the native `deletion_protection` attribute instead of `prevent_destroy`, uses no `ignore_changes`, and uses only preconditions in `lifecycle` blocks.",
+      "[2] lifecycle is used only for preconditions; protection relies on the native `deletion_protection` attribute rather than `prevent_destroy`, and there is no `ignore_changes`.",
+      "[2] The module uses the native `deletion_protection` attribute instead of `prevent_destroy`, has no `ignore_changes`, and uses `lifecycle` only for preconditions."
      ],
      "Documentation": [
-      "[0] The README runbook calls an unplanned regional-loss failover with `aws rds failover-global-cluster` but omits `--allow-data-loss`, which makes the command default to a switchover that requires a healthy primary, so the documented recovery step is wrong.",
-      "[0] The README failover runbook gives `aws rds failover-global-cluster` for an unplanned failover without the required `--allow-data-loss` flag, so the critical recovery instructions are wrong as written.",
-      "[1] Descriptions are complete and the README is thorough, but some guidance appears inaccurate: the runbook's \"unplanned\" failover command seems to omit `--allow-data-loss`, and the `allowed_security_group_ids` description promises per-region security groups the shared list cannot deliver."
+      "[2] Every variable and output has a description, and the README gives proportionate coverage of what is built, the recovery objectives, the assumptions and a failover runbook that matches the `writer_region` mechanism.",
+      "[1] All variables and outputs have descriptions and the README carries a useful runbook, but the `allowed_security_group_ids` description (\"in the regional VPC\u2026 for that region\") implies per-region groups while one list is applied to both regions, and the failover CLI example omits `--allow-data-loss` for an unplanned failover.",
+      "[0] The README's runbook for the unplanned \"primary region lost\" case gives `aws rds failover-global-cluster` without `--allow-data-loss`, which as far as I know runs a managed failover that needs a healthy primary, so the documented recovery step would likely fail in the very outage it is written for."
      ],
      "Deprecated and escape-hatch patterns": [
-      "[2] The module contains no `null_resource` or `local-exec`, and it uses current resource forms such as `aws_vpc_security_group_ingress_rule`.",
-      "[2] No `null_resource`, `local-exec` or deprecated inline forms are used, and security group rules use the current `aws_vpc_security_group_ingress_rule` resources.",
-      "[2] There is no `null_resource`, `local-exec` or deprecated resource form, and security group rules use the current dedicated rule resources."
+      "[2] There is no `null_resource` or `local-exec`, and no deprecated forms; security group rules use the current `aws_vpc_security_group_ingress_rule` resource.",
+      "[2] There is no `null_resource` or `local-exec`, and the module uses current resources such as `aws_vpc_security_group_ingress_rule`.",
+      "[2] There is no `null_resource` or `local-exec`, and security group rules use the current standalone rule resources rather than deprecated forms."
      ],
      "Anti-patterns (immediate credibility loss)": [
-      "[2] All resources are authored directly with no remote module calls, no removed resources, and no input that overrides the forced TLS, encryption or `publicly_accessible = false` posture.",
-      "[2] All resources are authored directly with no remote module calls or deleted resources, and no input disables the established posture (`publicly_accessible = false`, `storage_encrypted = true` and `rds.force_ssl` are hardcoded).",
-      "[2] All resources are authored directly with no remote module calls, and no input disables an established protection such as `storage_encrypted`, `rds.force_ssl` or `publicly_accessible = false`."
+      "[2] All resources are authored directly with no remote module calls, nothing has been deleted or commented out to hide an error, and no input silently bypasses the module's posture (`publicly_accessible = false` and `storage_encrypted = true` are hardcoded).",
+      "[2] All resources are authored directly with no remote module call, and no input bypasses the hardcoded `storage_encrypted = true`, `publicly_accessible = false` or `rds.force_ssl` posture.",
+      "[2] All resources are authored directly with no remote module calls, and instances are hardcoded `publicly_accessible = false` with no input that silently undoes the established posture."
      ]
     }
    }
@@ -2289,23 +2281,19 @@
    "median_seconds": 367
   },
   "G004": {
-   "composite_median": 40.61,
+   "composite_median": 41.3,
    "composite_range": [
-    32.87,
-    42.45
+    40.61,
+    42.86
    ],
    "rubric_median": 0.433,
    "judge_median": 78.9,
    "gate_failures": 0,
-   "insecure_attempts": 1,
+   "insecure_attempts": 0,
    "item_loss_counts": {
     "A5": 3,
-    "H1": 1,
     "H12": 3,
     "H17": 3,
-    "H3": 1,
-    "H5": 1,
-    "H8": 1,
     "H9": 3
    },
    "expertise_rate": {
@@ -2383,5 +2371,5 @@
    "median_seconds": 174
   }
  },
- "overall": 82.1
+ "overall": 82.3
 }
