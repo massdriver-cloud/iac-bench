@@ -1,0 +1,110 @@
+data "azurerm_resource_group" "application" {
+  name = var.resource_group_name
+}
+
+locals {
+  tags = merge(data.azurerm_resource_group.application.tags, var.tags)
+}
+
+resource "azurerm_storage_account" "application" {
+  name                = var.storage_account_name
+  resource_group_name = data.azurerm_resource_group.application.name
+  location            = data.azurerm_resource_group.application.location
+
+  account_kind             = "StorageV2"
+  account_tier             = "Standard"
+  account_replication_type = var.replication_type
+  access_tier              = "Hot"
+
+  https_traffic_only_enabled        = true
+  min_tls_version                   = "TLS1_2"
+  shared_access_key_enabled         = false
+  default_to_oauth_authentication   = true
+  allow_nested_items_to_be_public   = false
+  public_network_access_enabled     = var.private_endpoint == null
+  cross_tenant_replication_enabled  = false
+  infrastructure_encryption_enabled = true
+
+  blob_properties {
+    versioning_enabled       = true
+    change_feed_enabled      = false
+    last_access_time_enabled = false
+
+    delete_retention_policy {
+      days                     = var.recovery_days
+      permanent_delete_enabled = false
+    }
+    container_delete_retention_policy {
+      days = var.recovery_days
+    }
+  }
+
+  # Do not let a routine root-module destroy delete all application data.
+  # Account replacement also requires a deliberate code change to this guard.
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  tags = local.tags
+}
+
+resource "azurerm_storage_container" "application" {
+  for_each = var.containers
+
+  name                  = each.value
+  storage_account_id    = azurerm_storage_account.application.id
+  container_access_type = "private"
+}
+
+resource "azurerm_role_assignment" "application" {
+  for_each = var.containers
+
+  scope                            = azurerm_storage_container.application[each.key].resource_manager_id
+  role_definition_name             = "Storage Blob Data Contributor"
+  principal_id                     = var.application_principal_id
+  principal_type                   = "ServicePrincipal"
+  skip_service_principal_aad_check = true
+}
+
+resource "azurerm_storage_management_policy" "versions" {
+  storage_account_id = azurerm_storage_account.application.id
+
+  rule {
+    name    = "expire-previous-versions-and-snapshots"
+    enabled = true
+    filters {
+      blob_types = ["blockBlob"]
+    }
+    actions {
+      version {
+        delete_after_days_since_creation = var.recovery_days
+      }
+      snapshot {
+        delete_after_days_since_creation_greater_than = var.recovery_days
+      }
+    }
+  }
+}
+
+resource "azurerm_private_endpoint" "blob" {
+  count = var.private_endpoint == null ? 0 : 1
+
+  name                = "${var.storage_account_name}-blob"
+  location            = data.azurerm_resource_group.application.location
+  resource_group_name = data.azurerm_resource_group.application.name
+  subnet_id           = var.private_endpoint.subnet_id
+
+  private_service_connection {
+    name                           = "${var.storage_account_name}-blob"
+    private_connection_resource_id = azurerm_storage_account.application.id
+    subresource_names              = ["blob"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "blob"
+    private_dns_zone_ids = var.private_endpoint.private_dns_zone_ids
+  }
+
+  tags = local.tags
+}

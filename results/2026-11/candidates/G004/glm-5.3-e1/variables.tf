@@ -1,0 +1,298 @@
+# ---------------------------------------------------------------------------
+# Required inputs: only what is specific to each service
+# ---------------------------------------------------------------------------
+
+variable "service_name" {
+  description = "Name of the customer-facing service this database backs (e.g. \"checkout\"). Every resource is named \"<service_name>-<environment>\"."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]{1,38}[a-z0-9]$", var.service_name))
+    error_message = "service_name must be 3-40 characters, start with a letter, and contain only lowercase letters, digits and hyphens."
+  }
+}
+
+variable "environment" {
+  description = "Deployment environment. Must match the network team's VPC naming: the module looks up the VPC named \"apps-<environment>\" in each region and uses its private subnets tagged tier = database."
+  type        = string
+
+  validation {
+    condition     = contains(["staging", "prod"], var.environment)
+    error_message = "environment must be one of: \"staging\", \"prod\"."
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Regions
+# ---------------------------------------------------------------------------
+
+variable "primary_region" {
+  description = "AWS region hosting the primary (writable) cluster. Defaults to the first of the two US regions the platform runs EKS in."
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "secondary_region" {
+  description = "AWS region hosting the continuously replicated warm-standby cluster used for regional failover and local reads. Must differ from primary_region."
+  type        = string
+  default     = "us-west-2"
+}
+
+# ---------------------------------------------------------------------------
+# Networking (the network team's VPCs and private database subnets)
+# ---------------------------------------------------------------------------
+
+variable "vpc_name" {
+  description = "Name tag of the environment VPC in each region. Defaults to \"apps-<environment>\" (one VPC per environment, owned by the network team)."
+  type        = string
+  default     = null
+}
+
+variable "subnet_tags" {
+  description = "Tags that identify the network team's private database subnets within the VPC."
+  type        = map(string)
+  default = {
+    tier = "database"
+  }
+}
+
+variable "primary_subnet_ids" {
+  description = "Private database subnet IDs for the primary region. Leave null (default) to auto-discover the subnets matching subnet_tags in the primary region's VPC."
+  type        = list(string)
+  default     = null
+}
+
+variable "secondary_subnet_ids" {
+  description = "Private database subnet IDs for the secondary region. Leave null (default) to auto-discover the subnets matching subnet_tags in the secondary region's VPC."
+  type        = list(string)
+  default     = null
+}
+
+variable "allowed_cidr_blocks" {
+  description = "CIDR blocks allowed to open PostgreSQL connections (applied in both regions). If neither CIDR blocks nor security groups are provided, access defaults to the VPC CIDR of each region."
+  type        = list(string)
+  default     = []
+}
+
+variable "primary_allowed_security_group_ids" {
+  description = "Security group IDs in the primary region allowed to connect (e.g. EKS node or pod security groups)."
+  type        = list(string)
+  default     = []
+}
+
+variable "secondary_allowed_security_group_ids" {
+  description = "Security group IDs in the secondary region allowed to connect (e.g. EKS node or pod security groups)."
+  type        = list(string)
+  default     = []
+}
+
+# ---------------------------------------------------------------------------
+# Engine, credentials and sizing
+# ---------------------------------------------------------------------------
+
+variable "engine_version" {
+  description = "Aurora PostgreSQL engine version used by the entire global database. Leave null (recommended) to use the AWS default version for the primary region, resolved automatically - always a creatable version, with the matching parameter group family derived from the same lookup. Pin explicitly to control upgrades; both regional clusters then use exactly this version."
+  type        = string
+  default     = null
+}
+
+variable "database_name" {
+  description = "Initial database created inside the cluster. Defaults to the service name with hyphens replaced by underscores."
+  type        = string
+  default     = null
+
+  validation {
+    condition     = var.database_name == null || can(regex("^[a-zA-Z][a-zA-Z0-9_]{0,62}$", var.database_name))
+    error_message = "database_name must be a valid PostgreSQL identifier of up to 63 characters."
+  }
+}
+
+variable "master_username" {
+  description = "Master user of the database. Services on EKS should not use this account; they connect with IAM database authentication instead. The master password is generated by the module and stored in Secrets Manager in both regions."
+  type        = string
+  default     = "postgres"
+
+  validation {
+    condition     = can(regex("^[a-zA-Z][a-zA-Z0-9]{0,15}$", var.master_username))
+    error_message = "master_username must start with a letter and contain up to 16 alphanumeric characters."
+  }
+}
+
+variable "port" {
+  description = "Port the clusters listen on."
+  type        = number
+  default     = 5432
+
+  validation {
+    condition     = var.port >= 1150 && var.port <= 65535
+    error_message = "port must be between 1150 and 65535."
+  }
+}
+
+variable "instance_class" {
+  description = "Aurora instance class for all DB instances. Defaults to db.r6g.large in prod (memory-optimised, the platform standard) and db.t4g.medium in staging."
+  type        = string
+  default     = null
+}
+
+variable "primary_instance_count" {
+  description = "Number of instances in the primary region (1 writer, plus readers for availability and read scaling). Defaults to 2 in prod (writer + reader in different AZs) and 1 in staging."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.primary_instance_count == null || var.primary_instance_count >= 1
+    error_message = "primary_instance_count must be at least 1 (the writer)."
+  }
+}
+
+variable "secondary_instance_count" {
+  description = "Number of instances in the secondary region. These serve local reads and are promoted on regional failover. Defaults to 1."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.secondary_instance_count == null || var.secondary_instance_count >= 1
+    error_message = "secondary_instance_count must be at least 1 (the regional failover target)."
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Security and compliance (customer and payment data)
+# ---------------------------------------------------------------------------
+
+variable "storage_type" {
+  description = "Aurora storage configuration: \"aurora\" (standard) or \"aurora-iopt1\" (I/O-Optimized). The secondary region inherits this setting."
+  type        = string
+  default     = "aurora"
+
+  validation {
+    condition     = contains(["aurora", "aurora-iopt1"], var.storage_type)
+    error_message = "storage_type must be \"aurora\" or \"aurora-iopt1\"."
+  }
+}
+
+variable "storage_kms_key_id" {
+  description = "Optional customer-managed KMS key (in the primary region) for storage encryption. If omitted, the AWS managed key for RDS is used. Storage is always encrypted; the secondary cluster inherits encryption from the global database."
+  type        = string
+  default     = null
+}
+
+variable "iam_database_authentication_enabled" {
+  description = "Enable IAM database authentication so services on EKS connect with their IAM roles (no database passwords in workloads)."
+  type        = bool
+  default     = true
+}
+
+variable "iam_db_users" {
+  description = "Database users (created by your services, e.g. \"checkout_app\") for which the module publishes an IAM policy granting rds-db:connect on both regional clusters. Attach the policy (output rds_db_connect_policy_arn) to your EKS service account roles. Each user must also exist in the database and be granted the rds_iam role."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for user in var.iam_db_users : can(regex("^[a-zA-Z0-9_]{1,63}$", user))])
+    error_message = "Each entry in iam_db_users must be a valid PostgreSQL user name."
+  }
+}
+
+variable "cluster_parameters" {
+  description = "Additional Aurora cluster parameters, merged over the module defaults. The default set enforces TLS (rds.force_ssl = 1) because these databases hold customer and payment data."
+  type        = map(string)
+  default     = {}
+}
+
+# ---------------------------------------------------------------------------
+# Backups and operational posture
+# ---------------------------------------------------------------------------
+
+variable "backup_retention_period" {
+  description = "Days of automated backups retained in each region. Defaults to 14 in prod and 1 in staging. Backups are regional; cross-region resilience comes from the global database itself."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.backup_retention_period == null || (var.backup_retention_period >= 1 && var.backup_retention_period <= 35)
+    error_message = "backup_retention_period must be between 1 and 35 days."
+  }
+}
+
+variable "preferred_backup_window" {
+  description = "Daily UTC window for automated backups."
+  type        = string
+  default     = "03:00-04:00"
+}
+
+variable "preferred_maintenance_window" {
+  description = "Weekly UTC window for maintenance (engine patching etc.)."
+  type        = string
+  default     = "sun:04:00-sun:05:00"
+}
+
+variable "deletion_protection" {
+  description = "Protect the clusters against accidental deletion. Defaults to true in prod and false in staging (so teardown of ephemeral environments works)."
+  type        = bool
+  default     = null
+}
+
+variable "skip_final_snapshot" {
+  description = "Skip the final DB cluster snapshot on destroy. Defaults to false in prod (a final snapshot \"<name>-final\" is kept) and true in staging."
+  type        = bool
+  default     = null
+}
+
+variable "apply_immediately" {
+  description = "Apply destructive cluster modifications immediately instead of during the maintenance window. Leave false for production."
+  type        = bool
+  default     = false
+}
+
+variable "auto_minor_version_upgrade" {
+  description = "Let AWS apply minor engine version upgrades automatically. Disabled by default: global database upgrades should be deliberate, coordinated operations across both regions."
+  type        = bool
+  default     = false
+}
+
+variable "enabled_cloudwatch_logs_exports" {
+  description = "PostgreSQL log types published to CloudWatch Logs."
+  type        = list(string)
+  default     = ["postgresql", "upgrade"]
+
+  validation {
+    condition     = alltrue([for t in var.enabled_cloudwatch_logs_exports : contains(["postgresql", "upgrade"], t)])
+    error_message = "Aurora PostgreSQL can export the log types \"postgresql\" and \"upgrade\"."
+  }
+}
+
+variable "performance_insights_enabled" {
+  description = "Enable Performance Insights on every DB instance."
+  type        = bool
+  default     = true
+}
+
+variable "performance_insights_retention_period" {
+  description = "Days of Performance Insights data retained (7 days is free)."
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = contains([7, 31, 62, 124, 365], var.performance_insights_retention_period)
+    error_message = "performance_insights_retention_period must be one of: 7, 31, 62, 124, 365 days."
+  }
+}
+
+variable "monitoring_interval" {
+  description = "Enhanced monitoring collection interval in seconds; 0 disables it. When enabled, the module creates the required IAM role."
+  type        = number
+  default     = 60
+
+  validation {
+    condition     = contains([0, 1, 5, 10, 15, 30, 60], var.monitoring_interval)
+    error_message = "monitoring_interval must be one of: 0, 1, 5, 10, 15, 30, 60 seconds."
+  }
+}
+
+variable "tags" {
+  description = "Additional tags applied to every resource, on top of the module's Service / Environment / managed-by tags."
+  type        = map(string)
+  default     = {}
+}

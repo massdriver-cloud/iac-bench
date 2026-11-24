@@ -1,0 +1,2 @@
+name        = "checkout"
+environment = "staging"

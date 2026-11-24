@@ -1,0 +1,5 @@
+project_id             = "my-gcp-project"
+region                 = "us-central1"
+cluster_name           = "my-prod-cluster"
+vpc_name               = "apps-prod"
+master_ipv4_cidr_block = "172.16.0.0/28"

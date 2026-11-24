@@ -1,0 +1,2 @@
+application = "assets"
+environment = "dev"

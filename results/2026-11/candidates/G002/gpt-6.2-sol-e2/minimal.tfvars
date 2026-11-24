@@ -1,0 +1,5 @@
+environment      = "dev"
+instance_name    = "dba-postgres-dev"
+region           = "us-central1"
+database_version = "POSTGRES_16"
+tier             = "db-custom-1-3840"

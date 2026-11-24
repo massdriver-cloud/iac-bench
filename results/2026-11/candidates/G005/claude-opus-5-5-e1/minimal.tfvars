@@ -1,0 +1,5 @@
+project_id             = "acme-apps-platform"
+name                   = "apps-staging-use1"
+environment            = "staging"
+region                 = "us-east1"
+master_ipv4_cidr_block = "172.16.0.0/28"

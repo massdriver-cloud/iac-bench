@@ -1,0 +1,5 @@
+name             = "app-db-dev"
+environment      = "dev"
+region           = "us-central1"
+database_version = "POSTGRES_16"
+tier             = "db-custom-2-7680"

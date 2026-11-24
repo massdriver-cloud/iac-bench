@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+# Copy to terraform.tfvars and edit. The first two values are the only ones
+# every team must supply; everything else already has the platform default.
+# ---------------------------------------------------------------------------
+
+name                = "orders"          # your application's name
+resource_group_name = "orders-staging"  # the resource group your app lives in
+
+# Object ID of your application's Entra ID identity (AKS workload identity /
+# user-assigned managed identity, or the App Service system-assigned managed
+# identity). Strongly recommended - this is what grants your app access.
+# Find it with:  az identity show -g <rg> -n <identity> --query principalId
+# principal_id = "00000000-0000-0000-0000-000000000000"
+
+# Blob containers for the things your app stores. If you say nothing, a
+# single "uploads" container is created.
+# containers = ["uploads", "media", "reports"]
+
+# Azure file shares (SMB), only if something genuinely needs one.
+# file_shares = { content = 100 }
+
+# ---------------------------------------------------------------------------
+# Escape hatches - only if the README says you have a reason.
+# ---------------------------------------------------------------------------
+
+# Omit to inherit the resource group's region.
+# location = "westeurope"
+
+# Omit for the module default: ZRS in production, LRS elsewhere.
+# replication_type = "GRS"
+
+# Only for mounting an Azure file share with the storage account key
+# (AKS CSI driver / App Service content mounts). Everything else should stay
+# on Entra ID.
+# allow_shared_key_access = true
+
+# Restrict who can reach the account over the public endpoint.
+# allowed_ip_cidrs  = ["203.0.113.0/24"]
+# allowed_subnet_ids = ["/subscriptions/.../subnets/app"]
+
+# Full private access: private endpoints + privatelink DNS, public access off.
+# private_endpoint_subnet_id = "/subscriptions/.../subnets/private-endpoints"
+
+# Metrics and data-plane audit logs.
+# log_analytics_workspace_id = "/subscriptions/.../workspaces/log"
+
+# Extra tags; an `application` tag is always set from `name`.
+# tags = { cost_center = "CC-1234" }

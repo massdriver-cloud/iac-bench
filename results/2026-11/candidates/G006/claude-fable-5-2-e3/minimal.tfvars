@@ -1,0 +1,5 @@
+application                = "orders"
+environment                = "staging"
+location                   = "westeurope"
+application_principal_id   = "3f2b8c1e-7a4d-4e6b-9c0f-5d1a2b3c4e5f"
+private_endpoint_subnet_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/network-staging/providers/Microsoft.Network/virtualNetworks/vnet-staging/subnets/private-endpoints"

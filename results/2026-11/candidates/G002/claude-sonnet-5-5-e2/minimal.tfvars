@@ -1,0 +1,5 @@
+project_id  = "my-project"
+name        = "orders-dev"
+environment = "dev"
+region      = "us-central1"
+tier        = "db-custom-2-7680"

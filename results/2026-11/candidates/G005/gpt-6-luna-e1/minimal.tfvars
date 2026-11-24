@@ -1,0 +1,5 @@
+project_id             = "example-production-project"
+cluster_name           = "apps-prod-gke"
+region                 = "us-central1"
+vpc_name               = "apps-prod"
+master_ipv4_cidr_block = "172.16.0.0/28"

@@ -1,0 +1,6 @@
+project_id       = "example-project"
+name             = "orders"
+environment      = "dev"
+region           = "europe-west1"
+database_version = "POSTGRES_16"
+tier             = "db-custom-1-3840"

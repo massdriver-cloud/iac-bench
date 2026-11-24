@@ -1,0 +1,5 @@
+project_id             = "apps-prod-123456"
+cluster_name           = "shared-prod-us-central1"
+environment            = "prod"
+region                 = "us-central1"
+master_ipv4_cidr_block = "172.16.0.0/28"

@@ -1,0 +1,11 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+# Commit only the sanitized, literal minimal example; real service values are private.
+*.tfvars
+*.tfvars.json
+!minimal.tfvars
+!minimal.tfvars.json

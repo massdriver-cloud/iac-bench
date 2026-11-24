@@ -1,0 +1,556 @@
+{
+  "module_sha": {
+    "f37a44cbd869c14f": "c9ebf2d134bc83e8",
+    "97992e2966c74f42": "fb7bb14beb1ee91d",
+    "09984c6c47a5b427": "71c2cccf3883f4da",
+    "d2ef5fb3252477ef": "524d1ec294ec5d1b"
+  },
+  "files": [
+    {
+      "file": "logs/2026-10-22T23-33-09-00-00_generate-module_77oQgunwpb9PtEP2Pyt2x2.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-33-09-00-00_generate-module_WP9Nhhb65SmsxGXMMF3kWn.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-23-00-00_generate-module_EkYFqiqbWFVgzj4zda6Kgq.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-42-24-00-00_generate-module_kpthNtpRCxsabuuKQbwB7t.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-49-53-00-00_generate-module_2yWzFa24BkG44iXjtLrou8.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-49-53-00-00_generate-module_Ts6XjsV8Wv7qVjcCYvFh5k.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-10-22T23-49-53-00-00_generate-module_WA2Pwqxvzo3btKC8qeqXiB.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_3DhYCyU6VjLg7krdtCZxrp.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_8PYBkHszL5CLRM5KstAJA2.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_EWSSXc7vJs63vJ4jHgBnMV.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_EnJmREHhDH6TgpgFyAkt9P.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_SsDa3wvWXEViQQp8miEEMa.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_U8ApFuhnoH5jFgL3Tntuzo.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_W7bgkBSrqBnJeoS2CY2p5x.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_bqtEagAh2PzMGUt6LoW93h.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-44-00-00_generate-module_cZ7GtSirDqQpRKyHS3toTo.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-17-45-00-00_generate-module_BtxTdPb74ray565DgN2jLC.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-43-13-00-00_generate-module_5kAsbDHUQE6JEFwzXYMCC3.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-43-13-00-00_generate-module_KfAZXgaNpdGyKrj4iZBWSm.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-43-13-00-00_generate-module_dRGMs7xmQ9Td8dX4FdveNg.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-43-13-00-00_generate-module_hqoPET7YW35GADpNJwf9VU.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-43-14-00-00_generate-module_MBtSR8UGJyTTRu5dZgQfG6.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_2kAsqw65khixPepNkR4D8F.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_3MKcpLfhNCqDh8YjRvXtMs.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_5cnc6FZdeK6BA2AJqtPmBZ.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_8L4dqgc4L88m867xvBxZSy.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_EYnwaYCXR3xkhhFzSPWxx9.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_EydS7h5ZK5g5N9Jgf2RUAV.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_JhCwYRukFYncU87nfofWij.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_JmMypzHdTGfJmhUMXJdjFv.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_WEUpoMoHx3Lf25cbUmQQFt.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_ZQ8eRTKa4yuPkJUajmNuBV.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_bctqbFvgeYTJBGWtuRVSSY.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_eEuYaebYmXGv99sk4F7zX5.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T19-50-35-00-00_generate-module_kCG9DnjxiKXmkZh8PGUY4s.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-06-38-00-00_generate-module_K4YRcLikKGZYkPQNtUGLys.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-06-38-00-00_generate-module_gVPdhDwG6f72c8JoRqDMqP.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-06-38-00-00_generate-module_nWmQTajUK3HgHvb5ojJRRA.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-22-37-00-00_generate-module_PW2naN3EsFVh3cdXpsNFh4.eval",
+      "replaced": [
+        "GCP project ID",
+        "GCP project number"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-22-37-00-00_generate-module_VLRRhncGkzhCUjWqkcjguU.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-22-37-00-00_generate-module_YEcAqJxvybHEbL4cppwwa3.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-22-37-00-00_generate-module_gaAseNbfeR9SiUzwCuRq3B.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-03-00-00_generate-module_8m8ggqECemzeqDcxzxcuvC.eval",
+      "replaced": [
+        "Azure client ID",
+        "Azure subscription ID",
+        "Azure tenant ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-03-00-00_generate-module_S3Ls9bELdDxH7i9Fn56Lmy.eval",
+      "replaced": [
+        "Azure subscription ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-03-00-00_generate-module_aQa7gsK78AWZtwnWy6K56W.eval",
+      "replaced": [
+        "Azure client ID",
+        "Azure subscription ID",
+        "Azure tenant ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-03-00-00_generate-module_g5VprHWBvuzrCFnyFUpPbg.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-03-00-00_generate-module_j3go5ENRAZ5hzT6J2XBmhA.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-04-00-00_generate-module_FXjDaPS9RquDviqXdYz4fu.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T20-40-04-00-00_generate-module_cf9rCaFmXcdaeTjkHSYb6j.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-07-43-00-00_generate-module_27WqeC2saR5He78TFPgCZc.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-07-43-00-00_generate-module_5hLSoH64bzskxmUvP6fnJN.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-07-43-00-00_generate-module_DQrmRbQheYn5kkLMnE2V5U.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-07-43-00-00_generate-module_QuoZ67gZ5mnaji7UnCDLsG.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-07-43-00-00_generate-module_U6YcDYSffBkcku2trQPEPU.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-07-43-00-00_generate-module_VkQJZpt7UMpDuWEnV796Ln.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_6vx5VPMAs6pobwxpdrsG9i.eval",
+      "replaced": [
+        "GCP project ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_8g54VgyEVj6owDaHtsnGbK.eval",
+      "replaced": [
+        "GCP project ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_C8pgMQbkZMj3pkGqnJioqx.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_NhiBtHCYwXN7dvT3499YvZ.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_TZXgiVpRiQ4cy6LrsLtf4C.eval",
+      "replaced": [
+        "GCP project ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_VyucipshtfVmUKmgEwnr5i.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-40-55-00-00_generate-module_dKPFaEZstZSiGau4SW9FFv.eval",
+      "replaced": [
+        "GCP project ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-55-01-00-00_generate-module_77mJ6cFYvpxxithbLtLaKA.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-55-01-00-00_generate-module_ATTri9ihkDMTRtr32T2PYL.eval",
+      "replaced": [
+        "GCP project ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-55-01-00-00_generate-module_PAQAoKeVAQFrACtuXjseTi.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-23T21-55-01-00-00_generate-module_gvTYNoTV8d8MxufhiGEac4.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T00-33-06-00-00_generate-module_AK2G3YF2TDFpkCdYKRcjyj.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T00-33-06-00-00_generate-module_WFqyYf5dPpqwVXjQQmmTz3.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T01-16-35-00-00_generate-module_gdKegzJS2tTxFu8VfHk9xK.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T02-20-27-00-00_generate-module_BYKUvXtyXDLQFw3Cp4SBrh.eval",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T02-43-00-00-00_generate-module_6r4vWPRuZeHkxQi6xQ4kL6.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T03-13-03-00-00_generate-module_2QdrwyXsCLnd8Bb6M5Cc26.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T03-13-03-00-00_generate-module_HJihtDBSyoZqwhQcdUucWS.eval",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T04-56-53-00-00_generate-module_fP3D4BTHx8BCF2xo5E5BU6.eval",
+      "replaced": [
+        "AWS account ID"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T14-22-08-00-00_generate-module_MRa7NJzAKGSkVJBQzmPWhs.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T14-35-27-00-00_generate-module_BjebQGKA5MqGMX8xKd2KDH.eval",
+      "replaced": [
+        "Azure client ID",
+        "Azure subscription ID",
+        "Azure tenant ID",
+        "client notice",
+        "credential"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T14-48-41-00-00_generate-module_KbnLRjsCVGK3p42oCdZ9Pd.eval",
+      "replaced": [
+        "Azure subscription ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T15-12-21-00-00_generate-module_hHiU8Vg7ApwvJVunZdWWSF.eval",
+      "replaced": [
+        "AWS account ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T15-27-33-00-00_generate-module_czDfVsFoYCRN7BiwZsAq8h.eval",
+      "replaced": [
+        "Azure subscription ID",
+        "Azure tenant ID",
+        "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-24T17-09-56-00-00_generate-module_YywueU87e3vYZZoaeJV8yr.eval",
+      "replaced": [
+        "client notice"
+      ]
+    },
+    {
+      "file": "candidates/G006/gpt-6.2-sol-e1/minimal.tfvars",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "candidates/G005/gemini-4-neon-e2/_test_prod.tfvars",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "candidates/G005/gemini-4-neon-e2/minimal.tfvars",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "candidates/G006/glm-5.3-e2/probe.tfvars",
+      "replaced": [
+        "Azure subscription ID"
+      ]
+    },
+    {
+      "file": "candidates/G005/glm-5.3-e2/minimal.tfvars",
+      "replaced": [
+        "GCP project ID"
+      ]
+    },
+    {
+      "file": "candidates/G005/glm-5.3-e2/variables.tf",
+      "replaced": [
+        "GCP project ID"
+      ]
+    }
+  ]
+}

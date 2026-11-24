@@ -1,0 +1,1210 @@
+{
+ "bootstrap_resamples": 10000,
+ "method": "resample each model's 3 samples per fixture with replacement; statistic = mean over fixtures of the per-fixture median",
+ "models": {
+  "glm-5.3": {
+   "composite": 77.69333333333333,
+   "ci95": [
+    74.17833333333333,
+    79.00333333333333
+   ],
+   "mechanical_only": 77.58333333333333,
+   "judge_only": 83.33333333333333,
+   "per_fixture": {
+    "G001": 85.31,
+    "G002": 91.96,
+    "G003": 88.17,
+    "G004": 34.33,
+    "G005": 90.37,
+    "G006": 76.02
+   },
+   "rank_composite": 16,
+   "rank_mechanical_only": 15,
+   "rank_judge_only": 18,
+   "rank_ci95": [
+    12,
+    20
+   ]
+  },
+  "gpt-6.2-sol": {
+   "composite": 90.985,
+   "ci95": [
+    90.05166666666666,
+    92.41499999999999
+   ],
+   "mechanical_only": 89.06666666666666,
+   "judge_only": 95.61666666666666,
+   "per_fixture": {
+    "G001": 87.05,
+    "G002": 88.24,
+    "G003": 96.86,
+    "G004": 92.1,
+    "G005": 93.13,
+    "G006": 88.53
+   },
+   "rank_composite": 2,
+   "rank_mechanical_only": 3,
+   "rank_judge_only": 2,
+   "rank_ci95": [
+    2,
+    5
+   ]
+  },
+  "claude-sonnet-5-5": {
+   "composite": 82.12166666666667,
+   "ci95": [
+    81.17,
+    82.96
+   ],
+   "mechanical_only": 80.68333333333334,
+   "judge_only": 92.53333333333333,
+   "per_fixture": {
+    "G001": 86.72,
+    "G002": 91.88,
+    "G003": 85.16,
+    "G004": 44.54,
+    "G005": 91.35,
+    "G006": 93.08
+   },
+   "rank_composite": 8,
+   "rank_mechanical_only": 9,
+   "rank_judge_only": 7,
+   "rank_ci95": [
+    6,
+    10
+   ]
+  },
+  "gemini-4-hydrogen": {
+   "composite": 78.77166666666666,
+   "ci95": [
+    75.31833333333333,
+    80.09666666666666
+   ],
+   "mechanical_only": 78.31666666666666,
+   "judge_only": 85.5,
+   "per_fixture": {
+    "G001": 82.09,
+    "G002": 89.5,
+    "G003": 86.03,
+    "G004": 43.18,
+    "G005": 87.08,
+    "G006": 84.75
+   },
+   "rank_composite": 14,
+   "rank_mechanical_only": 13,
+   "rank_judge_only": 15,
+   "rank_ci95": [
+    11,
+    19
+   ]
+  },
+  "gpt-6.2-astra": {
+   "composite": 78.455,
+   "ci95": [
+    77.17666666666666,
+    79.14
+   ],
+   "mechanical_only": 74.73333333333333,
+   "judge_only": 95.16666666666667,
+   "per_fixture": {
+    "G001": 77.95,
+    "G002": 84.83,
+    "G003": 93.73,
+    "G004": 34.95,
+    "G005": 90.26,
+    "G006": 89.01
+   },
+   "rank_composite": 15,
+   "rank_mechanical_only": 19,
+   "rank_judge_only": 3,
+   "rank_ci95": [
+    11,
+    17
+   ]
+  },
+  "kimi-k3.1-pro": {
+   "composite": 81.185,
+   "ci95": [
+    79.85166666666667,
+    82.52833333333334
+   ],
+   "mechanical_only": 80.33333333333333,
+   "judge_only": 90.33333333333333,
+   "per_fixture": {
+    "G001": 87.27,
+    "G002": 87.29,
+    "G003": 89.18,
+    "G004": 41.5,
+    "G005": 92.16,
+    "G006": 89.71
+   },
+   "rank_composite": 10,
+   "rank_mechanical_only": 10,
+   "rank_judge_only": 9,
+   "rank_ci95": [
+    7,
+    12
+   ]
+  },
+  "deepseek-v4-pro-0813": {
+   "composite": 71.39166666666667,
+   "ci95": [
+    62.218333333333334,
+    74.97166666666666
+   ],
+   "mechanical_only": 71.36666666666667,
+   "judge_only": 69.73333333333333,
+   "per_fixture": {
+    "G001": 84.27,
+    "G002": 65.81,
+    "G003": 66.73,
+    "G004": 76.86,
+    "G005": 70.06,
+    "G006": 64.62
+   },
+   "rank_composite": 21,
+   "rank_mechanical_only": 21,
+   "rank_judge_only": 23,
+   "rank_ci95": [
+    19,
+    24
+   ]
+  },
+  "qwen4-max": {
+   "composite": 79.02166666666668,
+   "ci95": [
+    77.31833333333333,
+    81.14
+   ],
+   "mechanical_only": 77.96666666666667,
+   "judge_only": 87.71666666666667,
+   "per_fixture": {
+    "G001": 83.9,
+    "G002": 81.68,
+    "G003": 91.26,
+    "G004": 40.84,
+    "G005": 87.55,
+    "G006": 88.9
+   },
+   "rank_composite": 12,
+   "rank_mechanical_only": 14,
+   "rank_judge_only": 12,
+   "rank_ci95": [
+    9,
+    16
+   ]
+  },
+  "kimi-k3": {
+   "composite": 74.61833333333334,
+   "ci95": [
+    71.49833333333333,
+    78.01833333333333
+   ],
+   "mechanical_only": 73.28333333333333,
+   "judge_only": 85.51666666666667,
+   "per_fixture": {
+    "G001": 86.09,
+    "G002": 81.18,
+    "G003": 89.18,
+    "G004": 39.78,
+    "G005": 76.31,
+    "G006": 75.17
+   },
+   "rank_composite": 20,
+   "rank_mechanical_only": 20,
+   "rank_judge_only": 14,
+   "rank_ci95": [
+    15,
+    21
+   ]
+  },
+  "gemini-3.8-flash": {
+   "composite": 66.38166666666666,
+   "ci95": [
+    62.69166666666667,
+    69.97666666666666
+   ],
+   "mechanical_only": 67.81666666666666,
+   "judge_only": 69.75,
+   "per_fixture": {
+    "G001": 67.47,
+    "G002": 70.99,
+    "G003": 79.94,
+    "G004": 40.73,
+    "G005": 83.09,
+    "G006": 56.07
+   },
+   "rank_composite": 23,
+   "rank_mechanical_only": 23,
+   "rank_judge_only": 22,
+   "rank_ci95": [
+    21,
+    24
+   ]
+  },
+  "gemini-3.1-pro-preview": {
+   "composite": 69.045,
+   "ci95": [
+    66.34833333333333,
+    75.25666666666666
+   ],
+   "mechanical_only": 69.55,
+   "judge_only": 71.93333333333334,
+   "per_fixture": {
+    "G001": 77.13,
+    "G002": 81.4,
+    "G003": 69.11,
+    "G004": 30.9,
+    "G005": 78.12,
+    "G006": 77.61
+   },
+   "rank_composite": 22,
+   "rank_mechanical_only": 22,
+   "rank_judge_only": 21,
+   "rank_ci95": [
+    19,
+    23
+   ]
+  },
+  "qwen3.8-2.4t-a95b": {
+   "composite": 75.77333333333334,
+   "ci95": [
+    71.29833333333333,
+    84.32000000000001
+   ],
+   "mechanical_only": 74.89999999999999,
+   "judge_only": 82.45,
+   "per_fixture": {
+    "G001": 86.09,
+    "G002": 90.07,
+    "G003": 75.26,
+    "G004": 41.34,
+    "G005": 86.23,
+    "G006": 75.65
+   },
+   "rank_composite": 19,
+   "rank_mechanical_only": 18,
+   "rank_judge_only": 20,
+   "rank_ci95": [
+    6,
+    21
+   ]
+  },
+  "gemini-4-neon": {
+   "composite": 79.965,
+   "ci95": [
+    78.77166666666668,
+    81.685
+   ],
+   "mechanical_only": 79.9,
+   "judge_only": 87.28333333333333,
+   "per_fixture": {
+    "G001": 82.31,
+    "G002": 89.15,
+    "G003": 89.18,
+    "G004": 42.31,
+    "G005": 88.87,
+    "G006": 87.97
+   },
+   "rank_composite": 11,
+   "rank_mechanical_only": 11,
+   "rank_judge_only": 13,
+   "rank_ci95": [
+    8,
+    13
+   ]
+  },
+  "gpt-6-luna": {
+   "composite": 77.34333333333333,
+   "ci95": [
+    75.57,
+    78.55499999999999
+   ],
+   "mechanical_only": 76.38333333333333,
+   "judge_only": 84.21666666666667,
+   "per_fixture": {
+    "G001": 77.69,
+    "G002": 85.88,
+    "G003": 86.79,
+    "G004": 35.66,
+    "G005": 89.99,
+    "G006": 88.05
+   },
+   "rank_composite": 17,
+   "rank_mechanical_only": 17,
+   "rank_judge_only": 17,
+   "rank_ci95": [
+    13,
+    19
+   ]
+  },
+  "gemini-3.6-flash": {
+   "composite": 57.09,
+   "ci95": [
+    55.60333333333333,
+    66.35833333333333
+   ],
+   "mechanical_only": 56.06666666666666,
+   "judge_only": 65.36666666666667,
+   "per_fixture": {
+    "G001": 66.84,
+    "G002": 54.04,
+    "G003": 60.82,
+    "G004": 39.87,
+    "G005": 70.41,
+    "G006": 50.56
+   },
+   "rank_composite": 24,
+   "rank_mechanical_only": 24,
+   "rank_judge_only": 24,
+   "rank_ci95": [
+    23,
+    24
+   ]
+  },
+  "gemini-4-carbon": {
+   "composite": 78.92999999999999,
+   "ci95": [
+    76.68333333333334,
+    79.59833333333333
+   ],
+   "mechanical_only": 79.31666666666666,
+   "judge_only": 85.08333333333333,
+   "per_fixture": {
+    "G001": 83.72,
+    "G002": 87.85,
+    "G003": 80.71,
+    "G004": 42.39,
+    "G005": 91.05,
+    "G006": 87.86
+   },
+   "rank_composite": 13,
+   "rank_mechanical_only": 12,
+   "rank_judge_only": 16,
+   "rank_ci95": [
+    11,
+    18
+   ]
+  },
+  "claude-haiku-5-5": {
+   "composite": 82.14333333333333,
+   "ci95": [
+    70.81166666666667,
+    84.46
+   ],
+   "mechanical_only": 83.01666666666667,
+   "judge_only": 88.15,
+   "per_fixture": {
+    "G001": 89.31,
+    "G002": 85.09,
+    "G003": 90.21,
+    "G004": 40.61,
+    "G005": 94.19,
+    "G006": 93.45
+   },
+   "rank_composite": 7,
+   "rank_mechanical_only": 7,
+   "rank_judge_only": 11,
+   "rank_ci95": [
+    6,
+    21
+   ]
+  },
+  "claude-fable-5-1": {
+   "composite": 81.64833333333333,
+   "ci95": [
+    80.19,
+    83.56333333333333
+   ],
+   "mechanical_only": 81.63333333333333,
+   "judge_only": 89.45,
+   "per_fixture": {
+    "G001": 87.27,
+    "G002": 87.28,
+    "G003": 90.58,
+    "G004": 41.58,
+    "G005": 93.1,
+    "G006": 90.08
+   },
+   "rank_composite": 9,
+   "rank_mechanical_only": 8,
+   "rank_judge_only": 10,
+   "rank_ci95": [
+    6,
+    11
+   ]
+  },
+  "gpt-6.1-sol": {
+   "composite": 89.54,
+   "ci95": [
+    88.29666666666667,
+    92.63
+   ],
+   "mechanical_only": 87.9,
+   "judge_only": 92.98333333333333,
+   "per_fixture": {
+    "G001": 80.91,
+    "G002": 90.62,
+    "G003": 94.54,
+    "G004": 88.44,
+    "G005": 89.5,
+    "G006": 93.23
+   },
+   "rank_composite": 5,
+   "rank_mechanical_only": 5,
+   "rank_judge_only": 5,
+   "rank_ci95": [
+    2,
+    5
+   ]
+  },
+  "gpt-6-astra": {
+   "composite": 89.83,
+   "ci95": [
+    89.17833333333333,
+    91.345
+   ],
+   "mechanical_only": 88.03333333333333,
+   "judge_only": 92.53333333333333,
+   "per_fixture": {
+    "G001": 76.36,
+    "G002": 92.44,
+    "G003": 96.08,
+    "G004": 87.33,
+    "G005": 93.69,
+    "G006": 93.08
+   },
+   "rank_composite": 4,
+   "rank_mechanical_only": 4,
+   "rank_judge_only": 6,
+   "rank_ci95": [
+    2,
+    5
+   ]
+  },
+  "gpt-6.1-terra": {
+   "composite": 86.67,
+   "ci95": [
+    77.69666666666667,
+    87.83833333333334
+   ],
+   "mechanical_only": 84.15,
+   "judge_only": 92.11666666666666,
+   "per_fixture": {
+    "G001": 79.91,
+    "G002": 86.5,
+    "G003": 93.84,
+    "G004": 83.57,
+    "G005": 91.45,
+    "G006": 84.75
+   },
+   "rank_composite": 6,
+   "rank_mechanical_only": 6,
+   "rank_judge_only": 8,
+   "rank_ci95": [
+    5,
+    15
+   ]
+  },
+  "claude-opus-5-5": {
+   "composite": 90.90833333333333,
+   "ci95": [
+    81.82666666666667,
+    92.44
+   ],
+   "mechanical_only": 89.83333333333333,
+   "judge_only": 93.41666666666667,
+   "per_fixture": {
+    "G001": 89.49,
+    "G002": 90.06,
+    "G003": 91.14,
+    "G004": 83.16,
+    "G005": 96.3,
+    "G006": 95.3
+   },
+   "rank_composite": 3,
+   "rank_mechanical_only": 2,
+   "rank_judge_only": 4,
+   "rank_ci95": [
+    2,
+    8
+   ]
+  },
+  "claude-fable-5-2": {
+   "composite": 94.51333333333334,
+   "ci95": [
+    93.17833333333334,
+    95.53833333333333
+   ],
+   "mechanical_only": 93.6,
+   "judge_only": 97.81666666666666,
+   "per_fixture": {
+    "G001": 90.27,
+    "G002": 95.58,
+    "G003": 98.03,
+    "G004": 94.32,
+    "G005": 96.43,
+    "G006": 92.45
+   },
+   "rank_composite": 1,
+   "rank_mechanical_only": 1,
+   "rank_judge_only": 1,
+   "rank_ci95": [
+    1,
+    1
+   ]
+  },
+  "gemini-4-argon": {
+   "composite": 76.04833333333333,
+   "ci95": [
+    74.605,
+    77.77666666666667
+   ],
+   "mechanical_only": 76.4,
+   "judge_only": 83.33333333333333,
+   "per_fixture": {
+    "G001": 81.76,
+    "G002": 87.06,
+    "G003": 83.03,
+    "G004": 41.64,
+    "G005": 82.86,
+    "G006": 79.94
+   },
+   "rank_composite": 18,
+   "rank_mechanical_only": 16,
+   "rank_judge_only": 19,
+   "rank_ci95": [
+    15,
+    20
+   ]
+  }
+ },
+ "order": [
+  "claude-fable-5-2",
+  "gpt-6.2-sol",
+  "claude-opus-5-5",
+  "gpt-6-astra",
+  "gpt-6.1-sol",
+  "gpt-6.1-terra",
+  "claude-haiku-5-5",
+  "claude-sonnet-5-5",
+  "claude-fable-5-1",
+  "kimi-k3.1-pro",
+  "gemini-4-neon",
+  "qwen4-max",
+  "gemini-4-carbon",
+  "gemini-4-hydrogen",
+  "gpt-6.2-astra",
+  "glm-5.3",
+  "gpt-6-luna",
+  "gemini-4-argon",
+  "qwen3.8-2.4t-a95b",
+  "kimi-k3",
+  "deepseek-v4-pro-0813",
+  "gemini-3.1-pro-preview",
+  "gemini-3.8-flash",
+  "gemini-3.6-flash"
+ ],
+ "win_probability": {
+  "claude-fable-5-2": {
+   "gpt-6.2-sol": 1.0,
+   "claude-opus-5-5": 1.0,
+   "gpt-6-astra": 1.0,
+   "gpt-6.1-sol": 1.0,
+   "gpt-6.1-terra": 1.0,
+   "claude-haiku-5-5": 1.0,
+   "claude-sonnet-5-5": 1.0,
+   "claude-fable-5-1": 1.0,
+   "kimi-k3.1-pro": 1.0,
+   "gemini-4-neon": 1.0,
+   "qwen4-max": 1.0,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 1.0,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 1.0,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gpt-6.2-sol": {
+   "claude-fable-5-2": 0.0,
+   "claude-opus-5-5": 0.5721,
+   "gpt-6-astra": 0.881,
+   "gpt-6.1-sol": 0.7697,
+   "gpt-6.1-terra": 1.0,
+   "claude-haiku-5-5": 1.0,
+   "claude-sonnet-5-5": 1.0,
+   "claude-fable-5-1": 1.0,
+   "kimi-k3.1-pro": 1.0,
+   "gemini-4-neon": 1.0,
+   "qwen4-max": 1.0,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 1.0,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 1.0,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "claude-opus-5-5": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.4275,
+   "gpt-6-astra": 0.6677,
+   "gpt-6.1-sol": 0.5874,
+   "gpt-6.1-terra": 0.8007,
+   "claude-haiku-5-5": 0.9072,
+   "claude-sonnet-5-5": 0.9386,
+   "claude-fable-5-1": 0.9325,
+   "kimi-k3.1-pro": 0.9868,
+   "gemini-4-neon": 0.9988,
+   "qwen4-max": 0.9996,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 1.0,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 0.977,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gpt-6-astra": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.1188,
+   "claude-opus-5-5": 0.3322,
+   "gpt-6.1-sol": 0.5531,
+   "gpt-6.1-terra": 1.0,
+   "claude-haiku-5-5": 1.0,
+   "claude-sonnet-5-5": 1.0,
+   "claude-fable-5-1": 1.0,
+   "kimi-k3.1-pro": 1.0,
+   "gemini-4-neon": 1.0,
+   "qwen4-max": 1.0,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 1.0,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 1.0,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gpt-6.1-sol": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.2301,
+   "claude-opus-5-5": 0.4125,
+   "gpt-6-astra": 0.4467,
+   "gpt-6.1-terra": 0.9997,
+   "claude-haiku-5-5": 1.0,
+   "claude-sonnet-5-5": 1.0,
+   "claude-fable-5-1": 1.0,
+   "kimi-k3.1-pro": 1.0,
+   "gemini-4-neon": 1.0,
+   "qwen4-max": 1.0,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 1.0,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 1.0,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gpt-6.1-terra": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.1993,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0003,
+   "claude-haiku-5-5": 0.811,
+   "claude-sonnet-5-5": 0.7447,
+   "claude-fable-5-1": 0.7455,
+   "kimi-k3.1-pro": 0.7484,
+   "gemini-4-neon": 0.7755,
+   "qwen4-max": 0.861,
+   "gemini-4-carbon": 0.9185,
+   "gemini-4-hydrogen": 0.9173,
+   "gpt-6.2-astra": 0.9319,
+   "glm-5.3": 0.9704,
+   "gpt-6-luna": 0.9832,
+   "gemini-4-argon": 0.9955,
+   "qwen3.8-2.4t-a95b": 0.9301,
+   "kimi-k3": 0.9962,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "claude-haiku-5-5": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0927,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.1889,
+   "claude-sonnet-5-5": 0.4715,
+   "claude-fable-5-1": 0.4842,
+   "kimi-k3.1-pro": 0.6257,
+   "gemini-4-neon": 0.7029,
+   "qwen4-max": 0.7295,
+   "gemini-4-carbon": 0.7408,
+   "gemini-4-hydrogen": 0.7399,
+   "gpt-6.2-astra": 0.7411,
+   "glm-5.3": 0.7416,
+   "gpt-6-luna": 0.7411,
+   "gemini-4-argon": 0.7411,
+   "qwen3.8-2.4t-a95b": 0.6859,
+   "kimi-k3": 0.7631,
+   "deepseek-v4-pro-0813": 0.925,
+   "gemini-3.1-pro-preview": 0.9393,
+   "gemini-3.8-flash": 0.9994,
+   "gemini-3.6-flash": 1.0
+  },
+  "claude-sonnet-5-5": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0613,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.2553,
+   "claude-haiku-5-5": 0.5283,
+   "claude-fable-5-1": 0.5647,
+   "kimi-k3.1-pro": 0.875,
+   "gemini-4-neon": 0.9817,
+   "qwen4-max": 0.997,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 1.0,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 0.8889,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "claude-fable-5-1": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0675,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.2545,
+   "claude-haiku-5-5": 0.5152,
+   "claude-sonnet-5-5": 0.435,
+   "kimi-k3.1-pro": 0.7601,
+   "gemini-4-neon": 0.9286,
+   "qwen4-max": 0.9798,
+   "gemini-4-carbon": 1.0,
+   "gemini-4-hydrogen": 0.9987,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 0.8796,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "kimi-k3.1-pro": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0131,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.2516,
+   "claude-haiku-5-5": 0.374,
+   "claude-sonnet-5-5": 0.1249,
+   "claude-fable-5-1": 0.2392,
+   "gemini-4-neon": 0.816,
+   "qwen4-max": 0.9438,
+   "gemini-4-carbon": 0.9989,
+   "gemini-4-hydrogen": 0.9959,
+   "gpt-6.2-astra": 1.0,
+   "glm-5.3": 1.0,
+   "gpt-6-luna": 1.0,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 0.8444,
+   "kimi-k3": 1.0,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gemini-4-neon": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0012,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.2244,
+   "claude-haiku-5-5": 0.2971,
+   "claude-sonnet-5-5": 0.0183,
+   "claude-fable-5-1": 0.0712,
+   "kimi-k3.1-pro": 0.1838,
+   "qwen4-max": 0.8066,
+   "gemini-4-carbon": 0.9628,
+   "gemini-4-hydrogen": 0.9363,
+   "gpt-6.2-astra": 0.988,
+   "glm-5.3": 0.9961,
+   "gpt-6-luna": 0.9996,
+   "gemini-4-argon": 1.0,
+   "qwen3.8-2.4t-a95b": 0.8014,
+   "kimi-k3": 0.9997,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "qwen4-max": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0004,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.1389,
+   "claude-haiku-5-5": 0.2705,
+   "claude-sonnet-5-5": 0.003,
+   "claude-fable-5-1": 0.0202,
+   "kimi-k3.1-pro": 0.0562,
+   "gemini-4-neon": 0.1932,
+   "gemini-4-carbon": 0.7063,
+   "gemini-4-hydrogen": 0.7126,
+   "gpt-6.2-astra": 0.773,
+   "glm-5.3": 0.9138,
+   "gpt-6-luna": 0.9557,
+   "gemini-4-argon": 0.9914,
+   "qwen3.8-2.4t-a95b": 0.7421,
+   "kimi-k3": 0.9912,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gemini-4-carbon": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0815,
+   "claude-haiku-5-5": 0.2592,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0011,
+   "gemini-4-neon": 0.0372,
+   "qwen4-max": 0.2932,
+   "gemini-4-hydrogen": 0.5468,
+   "gpt-6.2-astra": 0.5621,
+   "glm-5.3": 0.8087,
+   "gpt-6-luna": 0.8836,
+   "gemini-4-argon": 0.9645,
+   "qwen3.8-2.4t-a95b": 0.7002,
+   "kimi-k3": 0.9786,
+   "deepseek-v4-pro-0813": 0.9999,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gemini-4-hydrogen": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0825,
+   "claude-haiku-5-5": 0.2601,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0013,
+   "kimi-k3.1-pro": 0.0041,
+   "gemini-4-neon": 0.0633,
+   "qwen4-max": 0.287,
+   "gemini-4-carbon": 0.4531,
+   "gpt-6.2-astra": 0.4981,
+   "glm-5.3": 0.7235,
+   "gpt-6-luna": 0.7534,
+   "gemini-4-argon": 0.8777,
+   "qwen3.8-2.4t-a95b": 0.6685,
+   "kimi-k3": 0.938,
+   "deepseek-v4-pro-0813": 0.9983,
+   "gemini-3.1-pro-preview": 0.9983,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gpt-6.2-astra": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0681,
+   "claude-haiku-5-5": 0.2589,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.012,
+   "qwen4-max": 0.2267,
+   "gemini-4-carbon": 0.4371,
+   "gemini-4-hydrogen": 0.5014,
+   "glm-5.3": 0.8075,
+   "gpt-6-luna": 0.9009,
+   "gemini-4-argon": 0.981,
+   "qwen3.8-2.4t-a95b": 0.6933,
+   "kimi-k3": 0.9795,
+   "deepseek-v4-pro-0813": 1.0,
+   "gemini-3.1-pro-preview": 1.0,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "glm-5.3": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0295,
+   "claude-haiku-5-5": 0.2584,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0039,
+   "qwen4-max": 0.0861,
+   "gemini-4-carbon": 0.191,
+   "gemini-4-hydrogen": 0.2764,
+   "gpt-6.2-astra": 0.1922,
+   "gpt-6-luna": 0.5139,
+   "gemini-4-argon": 0.7129,
+   "qwen3.8-2.4t-a95b": 0.5717,
+   "kimi-k3": 0.8508,
+   "deepseek-v4-pro-0813": 0.9916,
+   "gemini-3.1-pro-preview": 0.9899,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gpt-6-luna": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0168,
+   "claude-haiku-5-5": 0.2589,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0004,
+   "qwen4-max": 0.0442,
+   "gemini-4-carbon": 0.1163,
+   "gemini-4-hydrogen": 0.2462,
+   "gpt-6.2-astra": 0.0988,
+   "glm-5.3": 0.4859,
+   "gemini-4-argon": 0.7733,
+   "qwen3.8-2.4t-a95b": 0.5996,
+   "kimi-k3": 0.8968,
+   "deepseek-v4-pro-0813": 0.9983,
+   "gemini-3.1-pro-preview": 0.9994,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "gemini-4-argon": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0045,
+   "claude-haiku-5-5": 0.2588,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0,
+   "qwen4-max": 0.0086,
+   "gemini-4-carbon": 0.0353,
+   "gemini-4-hydrogen": 0.122,
+   "gpt-6.2-astra": 0.0189,
+   "glm-5.3": 0.2869,
+   "gpt-6-luna": 0.2262,
+   "qwen3.8-2.4t-a95b": 0.4862,
+   "kimi-k3": 0.7656,
+   "deepseek-v4-pro-0813": 0.9905,
+   "gemini-3.1-pro-preview": 0.9885,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "qwen3.8-2.4t-a95b": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.023,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0698,
+   "claude-haiku-5-5": 0.3139,
+   "claude-sonnet-5-5": 0.111,
+   "claude-fable-5-1": 0.1204,
+   "kimi-k3.1-pro": 0.1554,
+   "gemini-4-neon": 0.1986,
+   "qwen4-max": 0.2579,
+   "gemini-4-carbon": 0.2998,
+   "gemini-4-hydrogen": 0.3314,
+   "gpt-6.2-astra": 0.3065,
+   "glm-5.3": 0.4281,
+   "gpt-6-luna": 0.4003,
+   "gemini-4-argon": 0.5137,
+   "kimi-k3": 0.679,
+   "deepseek-v4-pro-0813": 0.9479,
+   "gemini-3.1-pro-preview": 0.945,
+   "gemini-3.8-flash": 0.9995,
+   "gemini-3.6-flash": 1.0
+  },
+  "kimi-k3": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0037,
+   "claude-haiku-5-5": 0.2369,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0003,
+   "qwen4-max": 0.0088,
+   "gemini-4-carbon": 0.0214,
+   "gemini-4-hydrogen": 0.062,
+   "gpt-6.2-astra": 0.0205,
+   "glm-5.3": 0.1491,
+   "gpt-6-luna": 0.1032,
+   "gemini-4-argon": 0.2343,
+   "qwen3.8-2.4t-a95b": 0.321,
+   "deepseek-v4-pro-0813": 0.9267,
+   "gemini-3.1-pro-preview": 0.9185,
+   "gemini-3.8-flash": 1.0,
+   "gemini-3.6-flash": 1.0
+  },
+  "deepseek-v4-pro-0813": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0,
+   "claude-haiku-5-5": 0.075,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0,
+   "qwen4-max": 0.0,
+   "gemini-4-carbon": 0.0001,
+   "gemini-4-hydrogen": 0.0017,
+   "gpt-6.2-astra": 0.0,
+   "glm-5.3": 0.0084,
+   "gpt-6-luna": 0.0017,
+   "gemini-4-argon": 0.0094,
+   "qwen3.8-2.4t-a95b": 0.0521,
+   "kimi-k3": 0.0733,
+   "gemini-3.1-pro-preview": 0.5368,
+   "gemini-3.8-flash": 0.7829,
+   "gemini-3.6-flash": 0.9713
+  },
+  "gemini-3.1-pro-preview": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0,
+   "claude-haiku-5-5": 0.0607,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0,
+   "qwen4-max": 0.0,
+   "gemini-4-carbon": 0.0,
+   "gemini-4-hydrogen": 0.0017,
+   "gpt-6.2-astra": 0.0,
+   "glm-5.3": 0.0101,
+   "gpt-6-luna": 0.0006,
+   "gemini-4-argon": 0.0115,
+   "qwen3.8-2.4t-a95b": 0.0549,
+   "kimi-k3": 0.0814,
+   "deepseek-v4-pro-0813": 0.4632,
+   "gemini-3.8-flash": 0.8885,
+   "gemini-3.6-flash": 0.9979
+  },
+  "gemini-3.8-flash": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0,
+   "claude-haiku-5-5": 0.0006,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0,
+   "qwen4-max": 0.0,
+   "gemini-4-carbon": 0.0,
+   "gemini-4-hydrogen": 0.0,
+   "gpt-6.2-astra": 0.0,
+   "glm-5.3": 0.0,
+   "gpt-6-luna": 0.0,
+   "gemini-4-argon": 0.0,
+   "qwen3.8-2.4t-a95b": 0.0005,
+   "kimi-k3": 0.0,
+   "deepseek-v4-pro-0813": 0.2171,
+   "gemini-3.1-pro-preview": 0.1115,
+   "gemini-3.6-flash": 0.9532
+  },
+  "gemini-3.6-flash": {
+   "claude-fable-5-2": 0.0,
+   "gpt-6.2-sol": 0.0,
+   "claude-opus-5-5": 0.0,
+   "gpt-6-astra": 0.0,
+   "gpt-6.1-sol": 0.0,
+   "gpt-6.1-terra": 0.0,
+   "claude-haiku-5-5": 0.0,
+   "claude-sonnet-5-5": 0.0,
+   "claude-fable-5-1": 0.0,
+   "kimi-k3.1-pro": 0.0,
+   "gemini-4-neon": 0.0,
+   "qwen4-max": 0.0,
+   "gemini-4-carbon": 0.0,
+   "gemini-4-hydrogen": 0.0,
+   "gpt-6.2-astra": 0.0,
+   "glm-5.3": 0.0,
+   "gpt-6-luna": 0.0,
+   "gemini-4-argon": 0.0,
+   "qwen3.8-2.4t-a95b": 0.0,
+   "kimi-k3": 0.0,
+   "deepseek-v4-pro-0813": 0.0287,
+   "gemini-3.1-pro-preview": 0.0021,
+   "gemini-3.8-flash": 0.0468
+  }
+ }
+}

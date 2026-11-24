@@ -1,0 +1,5 @@
+name                = "orders-api"
+resource_group_name = "sre-orders-api-rg"
+location            = "eastus2"
+docker_image        = "acrsreprod.azurecr.io/orders-api:1.0.0"
+docker_registry_url = "https://acrsreprod.azurecr.io"

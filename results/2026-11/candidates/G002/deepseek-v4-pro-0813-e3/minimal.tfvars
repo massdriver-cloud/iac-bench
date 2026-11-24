@@ -1,0 +1,6 @@
+name        = "payments-db"
+project_id  = "example-project"
+environment = "apps-dev"
+region      = "us-central1"
+tier        = "db-custom-1-3840"
+network     = "projects/example-project/global/networks/apps-dev"

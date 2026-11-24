@@ -1,0 +1,5 @@
+application_name          = "orders"
+environment               = "staging"
+resource_group_name       = "orders-staging"
+location                  = "eastus"
+app_identity_principal_id = "11111111-1111-1111-1111-111111111111"

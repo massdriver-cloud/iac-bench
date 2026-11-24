@@ -1,0 +1,43 @@
+# A fuller example than minimal.tfvars: an HA production instance with a
+# replica, two databases and access for a DBA group and a workload.
+name               = "orders"
+environment        = "prod"
+region             = "europe-west1"
+network_project_id = "acme-network-host"
+
+database_version = "POSTGRES_17"
+tier             = "db-custom-8-32768"
+disk_size_gb     = 200
+
+database_flags = {
+  "max_connections" = "400"
+  "pgaudit.log"     = "ddl,role,write"
+}
+
+databases = {
+  orders   = {}
+  invoices = { collation = "en_US.UTF8" }
+}
+
+iam_members = [
+  "group:dba-team@example.com",
+  "serviceAccount:orders-api@acme-apps-prod.iam.gserviceaccount.com",
+]
+
+read_replicas = {
+  a = { zone = "europe-west1-c" }
+}
+
+backup = {
+  start_time       = "01:00"
+  retained_backups = 30
+}
+
+maintenance_window = {
+  day  = 6
+  hour = 23
+}
+
+labels = {
+  team = "payments"
+}

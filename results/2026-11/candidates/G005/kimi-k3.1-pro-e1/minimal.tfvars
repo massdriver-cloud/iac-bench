@@ -1,0 +1,6 @@
+project_id             = "apps-platform-prod"
+project_number         = "123456789012"
+cluster_name           = "products-us-central1"
+environment            = "prod"
+region                 = "us-central1"
+master_ipv4_cidr_block = "172.16.0.0/28"
