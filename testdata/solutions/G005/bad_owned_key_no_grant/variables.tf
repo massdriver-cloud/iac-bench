@@ -59,12 +59,6 @@ variable "maintenance_window" {
   }
 }
 
-variable "secrets_encryption_key" {
-  description = "Cloud KMS key (projects/.../cryptoKeys/...) that encrypts Kubernetes Secrets in etcd."
-  type        = string
-  default     = null
-}
-
 variable "rbac_security_group" {
   description = "Google Group (gke-security-groups@<domain>) whose member groups can be bound in Kubernetes RBAC."
   type        = string

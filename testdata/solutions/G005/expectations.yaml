@@ -11,14 +11,14 @@ ref_standard:
   gate: true
   min_score: 0.99
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
-              A1, A2, A3, A4, A5, A6, B1_provider_constraints, B2_descriptions,
-              E1_release_channel, E2_google_groups_rbac, E3_binary_authorization,
-              E4_vulnerability_scanning, E5_cost_allocation, E6_surge_upgrades,
-              E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke,
-              E10_dns_endpoint, E11_node_sa_minimal_role, B3_plans_required_only]
+              A1, A2, A3, A4, A5, A6, A7, B1_provider_constraints, B2_descriptions,
+              E1_release_channel, E2_google_groups_rbac,
+              E3_vulnerability_scanning, E4_cost_allocation, E5_surge_upgrades,
+              E6_apiserver_logs, E7_managed_prometheus,
+              E8_dns_endpoint, E9_node_sa_minimal_role, E10_release_channel_input, B3_plans_required_only]
 ref_lean:
   # A different good design: network and subnet names as inputs, one node
-  # pool, eight inputs. Private nodes on the pool (network_config), the IP
+  # pool, ten inputs. Private nodes on the pool (network_config), the IP
   # endpoints off in favour of the DNS endpoint, no default pool ever created
   # (initial_node_count 0), Calico network policy, blue-green upgrades, labels
   # through resource_labels, and the individual minimal node roles. Its key
@@ -28,11 +28,11 @@ ref_lean:
   gate: true
   min_score: 0.99
   must_pass: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16,
-              A1, A2, A3, A4, A5, A6, B1_provider_constraints, B2_descriptions,
-              B3_plans_required_only, E1_release_channel, E6_surge_upgrades,
-              E10_dns_endpoint, E11_node_sa_minimal_role]
-  must_fail: [E2_google_groups_rbac, E3_binary_authorization, E4_vulnerability_scanning,
-              E5_cost_allocation, E7_apiserver_logs, E8_managed_prometheus, E9_backup_for_gke]
+              A1, A2, A3, A4, A5, A6, A7, B1_provider_constraints, B2_descriptions,
+              B3_plans_required_only, E1_release_channel, E5_surge_upgrades,
+              E8_dns_endpoint, E9_node_sa_minimal_role]
+  must_fail: [E10_release_channel_input, E2_google_groups_rbac, E3_vulnerability_scanning,
+              E4_cost_allocation, E6_apiserver_logs, E7_managed_prometheus]
 bad_no_pool_stable:
   # ref_lean on the STABLE channel: no default pool below Kubernetes 1.36,
   # which GKE rejects at create (F1, verified 2026-11-20) although the plan
@@ -57,7 +57,7 @@ bad_default_sa:
   must_fail: [H4, H5]
 bad_public:
   gate: true
-  must_fail: [H2, H3, E10_dns_endpoint]
+  must_fail: [H2, H3, E8_dns_endpoint]
 bad_pinned_version:
   gate: true
   must_fail: [H14, E1_release_channel]
@@ -66,12 +66,17 @@ bad_minimal:
   max_score: 0.4
   must_fail: [H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H13, H15, A6]
   items: {H11: 0.0}
-bad_cmek_no_grant:
-  # Secrets encryption key input with no grant to the GKE service agent and
-  # no mention of one: supplying a key fails the create (verified 2026-11-18).
+bad_owned_key_no_grant:
+  # Encrypts Secrets at defaults with a key the module creates, but never
+  # grants the GKE service agent use of it: GKE rejects the create (verified
+  # 2026-11-18 with a key lacking the grant).
   gate: true
   must_pass: [H1, H2, H4, H5]
   must_fail: [H9]
+ok_owned_key:
+  # bad_owned_key_no_grant with the grant to the GKE service agent.
+  gate: true
+  must_pass: [H1, H2, H4, H5, H9]
 ok_placeholder_project:
   # A required project input with a made-up ID that a data lookup reads:
   # scoring substitutes the sandbox project, so the module plans and scores

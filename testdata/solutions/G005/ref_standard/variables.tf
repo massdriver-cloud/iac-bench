@@ -82,3 +82,14 @@ variable "labels" {
   type        = map(string)
   default     = {}
 }
+
+variable "release_channel" {
+  description = "GKE release channel: REGULAR for most clusters, STABLE for the most conservative upgrade cadence."
+  type        = string
+  default     = "REGULAR"
+
+  validation {
+    condition     = contains(["REGULAR", "STABLE"], var.release_channel)
+    error_message = "Use REGULAR or STABLE."
+  }
+}

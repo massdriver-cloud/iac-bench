@@ -20,6 +20,17 @@ resource "google_project_iam_member" "nodes" {
   member  = google_service_account.nodes.member
 }
 
+resource "google_kms_key_ring" "secrets" {
+  name     = "gke-${var.name}"
+  location = var.region
+}
+
+resource "google_kms_crypto_key" "secrets" {
+  name            = "secrets"
+  key_ring        = google_kms_key_ring.secrets.id
+  rotation_period = "7776000s"
+}
+
 resource "google_container_cluster" "this" {
   name     = var.name
   location = var.region
@@ -82,12 +93,9 @@ resource "google_container_cluster" "this" {
     }
   }
 
-  dynamic "database_encryption" {
-    for_each = var.secrets_encryption_key == null ? [] : [var.secrets_encryption_key]
-    content {
-      state    = "ENCRYPTED"
-      key_name = database_encryption.value
-    }
+  database_encryption {
+    state    = "ENCRYPTED"
+    key_name = google_kms_crypto_key.secrets.id
   }
 
   dynamic "authenticator_groups_config" {

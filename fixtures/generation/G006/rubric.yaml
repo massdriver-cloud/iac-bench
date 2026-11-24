@@ -219,10 +219,10 @@ items:
     weight: 8
     posture: budget
     description: >
-      Interface budget — full credit at 8 or fewer inputs, falling linearly to
-      zero at 16. This audience fills in a couple of obvious inputs; every
+      Interface budget — full credit at 9 or fewer inputs, falling linearly to
+      zero at 17. This audience fills in a couple of obvious inputs; every
       other input is an Azure Storage decision handed back to them.
-    budget: {soft: 8, hard: 16}
+    budget: {soft: 9, hard: 17}
 
   - id: A5
     weight: 1
@@ -231,6 +231,14 @@ items:
       the account.
     check:
       var_feeds_attr: {type: azurerm_storage_account, attr: tags, has_default: true}
+
+  - id: A6
+    weight: 2
+    description: >
+      Exposure — the application's containers are an input, so each app
+      gets the containers it stores its files in.
+    check:
+      var_feeds_attr: {type: azurerm_storage_container, attr: name}
 
 expertise:
   - id: E1_infrastructure_encryption
@@ -298,19 +306,7 @@ expertise:
         quantifier: any
         type: azurerm_management_lock
         where: {lock_level: CanNotDelete}
-  - id: E7_malware_scanning
-    description: >
-      Microsoft Defender for Storage scans uploads for malware
-      (azurerm_security_center_storage_defender with malware scanning on).
-      The account takes user uploads.
-    discovered_via: draft, 2026-11-20
-    check:
-      resource:
-        plans: [defaults, sweep]
-        quantifier: any
-        type: azurerm_security_center_storage_defender
-        where: {malware_scanning_on_upload_enabled: true}
-  - id: E8_location_from_resource_group
+  - id: E7_location_from_resource_group
     description: >
       The account's location comes from its resource group (a data source
       lookup), so it lands beside the application's other resources.
@@ -320,7 +316,7 @@ expertise:
         type: azurerm_storage_account
         attr: location
         pattern: 'data\.azurerm_resource_group\.'
-  - id: E9_local_users_off
+  - id: E8_local_users_off
     description: >
       Local users (SFTP accounts outside Entra ID) are disabled
       (local_user_enabled false).

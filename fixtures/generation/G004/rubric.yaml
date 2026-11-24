@@ -394,11 +394,39 @@ items:
     weight: 8
     posture: budget
     description: >
-      Interface budget — full credit at 15 or fewer inputs, falling linearly to
-      zero at 25. The audience is not database specialists; a module that
+      Interface budget — full credit at 12 or fewer inputs, falling linearly to
+      zero at 22. The audience is not database specialists; a module that
       hands them every Aurora setting has made none of the decisions they
       trust it to make.
-    budget: {soft: 15, hard: 25}
+    budget: {soft: 12, hard: 22}
+
+  - id: A6
+    weight: 2
+    description: >
+      Exposure — the engine version is set per database, so a service can
+      choose its PostgreSQL version and upgrade it through the module.
+    check:
+      any_of:
+        - var_feeds_attr: {type: aws_rds_global_cluster, attr: engine_version, through_data: true}
+        - var_feeds_attr: {type: aws_rds_cluster, attr: engine_version, through_data: true}
+
+  - id: A7
+    weight: 2
+    description: >
+      Exposure — the number of instances is set per database, so a service
+      sizes its readers to its load.
+    check:
+      any_of:
+        - var_feeds_attr: {type: aws_rds_cluster_instance, attr: count}
+        - var_feeds_attr: {type: aws_rds_cluster_instance, attr: for_each}
+
+  - id: A8
+    weight: 2
+    description: >
+      Exposure — automated backup retention is set per database, since the
+      retention a service's data requires varies by service.
+    check:
+      var_feeds_attr: {type: aws_rds_cluster, attr: backup_retention_period}
 
 # Expertise checklist — service-specific touches, each weighing 1, pooled into
 # the mechanical score.
