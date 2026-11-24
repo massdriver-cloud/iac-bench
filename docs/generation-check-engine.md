@@ -108,8 +108,17 @@ references it makes and its expression tree. Static checks never evaluate
 expressions: `local.strict`, ternaries, `merge()` calls all arrive as `"${...}"`
 expression text. Tofu's evaluator is the only trustworthy one, and plan JSON is
 its output; the solver evaluates expression trees only to propose inputs for a
-plan to confirm (see Solve-then-confirm). So every
-check declares which lens it looks through, chosen by what the question is:
+plan to confirm (see Solve-then-confirm).
+
+The static lens reads the module as deployed: every local module it calls
+(`source = "./..."`) joins the root's source. The child's resources, data
+sources and locals appear under names prefixed with the call's label, each
+`var.<name>` inside them reads as the call's argument (or the child
+variable's default), and the child's variables, outputs and provider settings
+stay out, so interface checks see only the root's. Directories the module never
+calls, such as examples, are not read.
+
+So every check declares which lens it looks through, chosen by what the question is:
 
 - **Static HCL lens** (`hclq`, parsed source) — questions about *how the code
   is written*: is this attribute a hardcoded literal; is it fed by any

@@ -147,6 +147,10 @@ structure, scope, outputs, documentation, and the like.
 **Blind to authorship.** The judge sees the brief, the doctrine, and the module files —
 never the model that wrote them.
 
+**The whole module.** Every `.tf`, tfvars and Markdown file, child modules included, HCL
+first. The input is cut only past 200,000 characters, far beyond any module the benchmark
+has produced.
+
 Two modes, implemented in `src/iacbench/judge.py`:
 
 - **Absolute grading** (`iacbench judge --grade`): each candidate scored per graded

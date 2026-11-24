@@ -31,7 +31,9 @@ from .artifacts import module_sha
 from .paths import PROMPTS_DIR, REPO_ROOT
 
 DEFAULT_PRINCIPLES = REPO_ROOT / "docs" / "good-opentofu.md"
-MAX_MODULE_CHARS = 30_000
+# Every module the benchmark has produced fits well inside this; the cut is a
+# guard against a runaway file, not a budget.
+MAX_MODULE_CHARS = 200_000
 
 
 def principles_sha(path: Path = DEFAULT_PRINCIPLES) -> str | None:
