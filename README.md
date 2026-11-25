@@ -51,7 +51,8 @@ The engine refuses a helper built from a different source; rebuild it with `make
 Scoring plans against real clouds, so it needs credentials in the environment (they are not
 baked into the container). Each fixture's rubric declares its cloud, and scoring only ever
 plans, so read-only credentials suffice and are recommended. `scripts/cloud-env` prints
-short-lived credentials for all three clouds on the host, for piping into the container.
+short-lived credentials for all three clouds on the host, for piping into the container. A generation
+run refuses to start when its fixture's cloud has no credentials in the environment.
 
 ```bash
 # unit-test the static analysis (solver, value proofs) without cloud credentials
