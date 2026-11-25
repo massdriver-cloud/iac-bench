@@ -1,0 +1,6 @@
+project_id       = "dba-platform-dev"
+region           = "us-central1"
+instance_name    = "dba-postgres-dev"
+environment      = "dev"
+database_version = "POSTGRES_16"
+tier             = "db-custom-2-7680"

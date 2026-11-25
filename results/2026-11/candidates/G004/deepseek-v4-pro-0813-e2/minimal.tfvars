@@ -1,0 +1,5 @@
+service_name     = "checkout"
+environment      = "apps-prod"
+primary_region   = "us-east-1"
+secondary_region = "us-west-2"
+database_name    = "checkout"

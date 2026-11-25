@@ -1,0 +1,842 @@
+{
+  "fixture": "G002",
+  "mode": "absolute_grading",
+  "judge_model": "anthropic/claude-opus-5-5",
+  "principles_sha256": "af3ae1dd9fdc1c0c",
+  "samples_per_candidate": 3,
+  "graded_sections": [
+    "Interface design",
+    "Variables and validation",
+    "Internal logic",
+    "Scope",
+    "Inline Resource Configuration vs Separate Resources",
+    "Outputs",
+    "Iteration: for_each vs count",
+    "Data sources vs inputs",
+    "File layout",
+    "Sensitive values",
+    "Lifecycle meta-arguments",
+    "Documentation",
+    "Deprecated and escape-hatch patterns",
+    "Anti-patterns (immediate credibility loss)"
+  ],
+  "section_weights": {
+    "Sensitive values": 3.0,
+    "Interface design": 2.0,
+    "Variables and validation": 2.0,
+    "Scope": 2.0
+  },
+  "status": "calibrated (every section agrees with the doctrine owner)",
+  "author_label": null,
+  "grades": {
+    "claude-opus-5-5": 100.0,
+    "claude-sonnet-5-5": 100.0,
+    "ref-flexible": 100.0,
+    "ref-lean": 94.7,
+    "claude-fable-5-1": 92.1,
+    "gpt-5.5-2026-04-23": 84.2,
+    "gemini-3.1-pro-preview": 78.9,
+    "claude-haiku-4-5-20251001": 65.8
+  },
+  "detail": {
+    "claude-fable-5-1": {
+      "overall": 92.1,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The module gives DBAs the controls their discipline expects (`tier`, `edition`, `database_version`, `database_flags`, backup and `maintenance_window`), derives the network from the `environment` concept (`apps-${var.environment}`), and fixes the exposure decisions (`ipv4_enabled = false`, `ssl_mode = \"ENCRYPTED_ONLY\"`, IAM-only users) as non-negotiable.",
+          "[1] The inputs suit a DBA audience (sizing, flags, backup schedule, IAM principals, with `environment` deriving the VPC and HA default), but `enable_private_path_for_google_cloud_services` and the ability to override baseline audit flags like `cloudsql.enable_pgaudit` through `database_flags` make parts of the security and audit posture negotiable.",
+          "[2] Inputs are pitched at the DBA audience: `environment` derives the `apps-<env>` network and the availability default, while `tier`, `edition`, `database_flags`, backup and maintenance remain DBA-owned; network exposure (`ipv4_enabled = false`, `ssl_mode = ENCRYPTED_ONLY`) and IAM auth are fixed rather than exposed as knobs."
+        ],
+        "Variables and validation": [
+          "[1] Most inputs are guarded deliberately (`environment`, `tier`, `maintenance_window`, the `database_flags` lock on `cloudsql.iam_authentication`), but the optional `network_name` override is an avoidable input that can conflict with `environment`, for example `environment = \"prod\"` attached to `apps-dev`.",
+          "[2] Realistic mistakes are guarded with teaching messages: `environment`, `edition`, `tier` format, `backup_start_time` HH:MM, the `maintenance_window` ranges, and the rejection of `cloudsql.iam_authentication` in `database_flags`; the only unchecked pairing (`edition` vs `tier`) is one the service itself constrains.",
+          "[1] Most inputs are guarded with teaching messages, but `network_name` is an avoidable input that can be set to conflict with `environment` (e.g. environment=prod with a dev VPC), and the `databases` regex rejects valid hyphenated Cloud SQL database names."
+        ],
+        "Internal logic": [
+          "[2] Readable locals compute inferred values from concept inputs, such as `availability_type` from `environment`, the `iam_principals` map with the service-account `trimsuffix`, and the `setproduct` that builds `project_iam_grants`.",
+          "[2] Locals derive values from concept inputs in readable steps, such as `availability_type` from `environment`, `network_id` from `apps-${var.environment}`, and the `iam_principals` map that applies `trimsuffix` to service accounts.",
+          "[2] Locals such as `iam_principals` (mapping each principal type to its SQL type and IAM member) and `database_flags` (baseline, then overrides, then enforced) infer values from concept inputs readably."
+        ],
+        "Scope": [
+          "[2] The module creates the instance, its `google_sql_database` databases, IAM `google_sql_user`s and an optional `google_project_iam_member` connect grant, plus backups/PITR, CMEK support and Query Insights, which is proportionate to a standard DBA-owned Postgres module without gold-plating.",
+          "[2] The module creates the instance, databases, IAM database users and the `cloudsql.client`/`instanceUser` project grants needed to connect, with encryption, backups/PITR and private-only networking built in and no unrequested architecture.",
+          "[2] The module creates the instance with backups/PITR, CMEK support, Query Insights, logical databases, IAM database users and the `cloudsql.client`/`instanceUser` grants needed to connect, which is proportionate to the brief without extra architecture."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] Databases, users and IAM grants are separate resources (`google_sql_database`, `google_sql_user`, `google_project_iam_member`), and the settings blocks such as `database_flags` have no separate-resource alternative.",
+          "[2] The inline `settings` sub-blocks (`database_flags`, `ip_configuration`, `backup_configuration`) have no separate-resource alternative, while databases and users use dedicated `google_sql_database` and `google_sql_user` resources.",
+          "[2] Databases and users are separate `google_sql_database`/`google_sql_user` resources, and `database_flags` is an inline-only block with no separate-resource alternative."
+        ],
+        "Outputs": [
+          "[2] The outputs cover what consumers need to connect (`connection_name`, `private_ip_address`, `dns_name`, and `iam_database_users` giving the exact PostgreSQL role names) without dumping every attribute.",
+          "[2] The outputs cover what consumers need to connect and administer the instance (`connection_name`, `private_ip_address`, `dns_name`, and `iam_database_users` mapping principals to PostgreSQL role names) without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including `connection_name`, `private_ip_address`, `dns_name` and `iam_database_users` (the exact PostgreSQL role names), without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] All multiplicity uses `for_each` (`google_sql_database.this`, `google_sql_user.iam`, `google_project_iam_member.cloudsql`) or dynamic blocks, and no `count` is used.",
+          "[2] `google_sql_database`, `google_sql_user.iam` and `google_project_iam_member.cloudsql` all use `for_each` over keyed maps or sets, and `count` is never used.",
+          "[2] `google_sql_database`, `google_sql_user.iam` and `google_project_iam_member.cloudsql` all use `for_each` over keyed maps or sets, with no `count` anywhere."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module takes only the network's identity (`network_project_id`/`network_name`, derived from `environment`) and asks for no redundant dependency facts such as a CIDR.",
+          "[2] The module takes only the network's identity (`network_project_id`/`network_name`, defaulting to `apps-<environment>`) and never asks for derived facts such as a CIDR that could contradict it.",
+          "[2] The module takes only the network's identity (project and name derived from environment) and never asks for derivable facts such as a CIDR."
+        ],
+        "File layout": [
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` (~200 lines) mixes the instance with a distinct access concern (`google_sql_user.iam` and `google_project_iam_member.cloudsql`) that could live in its own file.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` mixes locals, the instance, databases and the separate access concern (`google_sql_user`/`google_project_iam_member`) in about 200 lines without splitting them.",
+          "[1] `variables.tf`, `outputs.tf` and `versions.tf` are separate, but `main.tf` (~220 lines) mixes locals, the instance and the distinct access concern (`google_sql_user` plus project IAM grants) without splitting them out."
+        ],
+        "Sensitive values": [
+          "[2] The module creates only IAM-authenticated users with no passwords, so there are no secrets in its inputs or outputs.",
+          "[2] The module creates only IAM-authenticated `google_sql_user` resources and handles no passwords or other secrets, so nothing needs `sensitive` marking.",
+          "[2] The module handles no secrets: it creates only IAM-authenticated users with no passwords, so nothing requires `sensitive`."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] `ignore_changes = [settings[0].disk_size]` is legitimate because `disk_autoresize = true` changes the value outside IaC, and protection uses the native `deletion_protection`/`deletion_protection_enabled` rather than `prevent_destroy`.",
+          "[2] `ignore_changes = [settings[0].disk_size]` is legitimate because `disk_autoresize` changes that value outside IaC, and protection uses the native `deletion_protection`/`deletion_protection_enabled` rather than `prevent_destroy`.",
+          "[2] `ignore_changes = [settings[0].disk_size]` is legitimate because `disk_autoresize = true` changes the value outside IaC, and protection uses the native `deletion_protection` attributes rather than `prevent_destroy`."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has a description, and the README accurately explains the fixed decisions (private IP, TLS, IAM auth, the 4-hex `random_id` suffix), the access model including the `.iam` service-account login names, and the prerequisites.",
+          "[2] Every variable and output has a description, and the README accurately explains the fixed and DBA-owned decisions, the access model (e.g. the `<sa>@<project>.iam` login name) and prerequisites in proportion to the module.",
+          "[2] Every variable and output has a description, and the README accurately documents fixed versus DBA-owned decisions, the access model and the prerequisites at an appropriate length."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, no `local-exec` and no deprecated resource forms.",
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form, and the README notes the module deliberately doesn't run SQL.",
+          "[2] There is no `null_resource`, no `local-exec` and no deprecated resource form; the README notes the module deliberately runs no SQL."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[1] `database_flags` is merged over `baseline_flags`, so a consumer can turn off `cloudsql.enable_pgaudit` or `log_connections` and undo the audit trail the module establishes for the security team; only `cloudsql.iam_authentication` is locked.",
+          "[2] All resources are authored directly with no remote module calls, nothing is commented out to dodge errors, and the critical `cloudsql.iam_authentication` posture is enforced against override by validation.",
+          "[2] All resources are authored directly with no remote module call, and the IAM-authentication posture is locked by validation on `database_flags`, so consumers cannot silently override it."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "2a4aa04f7a120279",
+      "tf_sloc": 451
+    },
+    "claude-haiku-4-5-20251001": {
+      "overall": 65.8,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 1,
+        "Internal logic": 1,
+        "Scope": 1,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 1,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 1,
+        "File layout": 1,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 0,
+        "Deprecated and escape-hatch patterns": 1,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The module settles posture well (`ipv4_enabled = false`, IAM authentication hardcoded on) and gives DBAs real controls, but it requires a redundant `network_name` alongside `network_id` and exposes a `query_insights_retention_days` knob that maps to no real retention setting.",
+          "[1] The module settles real decisions for the DBA audience, such as private IP only and IAM auth always on, but it requires `reserved_peering_ranges` for a networking connection the network team already owns and requires a `network_name` that nothing uses.",
+          "[1] Security posture is settled sensibly (`ipv4_enabled = false`, `require_ssl = true`, IAM auth flag forced on), but the interface requires both `network_name` and `network_id`, demands `reserved_peering_ranges` for a connection the network team already owns, and exposes `query_insights_retention_days`, which maps to no real setting."
+        ],
+        "Variables and validation": [
+          "[1] Inputs are deliberately validated, but the `region` regex `^[a-z]{2}-[a-z]+\\d+$` rejects valid regions such as `europe-west1`, and `backup_enabled = false` with `pitr_enabled = true` is an unguarded, deployment-breaking combination.",
+          "[1] Validation is deliberate, but the `region` regex `^[a-z]{2}-[a-z]+\\d+$` rejects valid regions like `europe-west1`, the `machine_type` regex rejects valid tiers like `db-f1-micro`, and `network_name`/`network_id` form an avoidable pair that can conflict.",
+          "[1] Inputs are deliberately guarded, but the `region` regex `^[a-z]{2}-[a-z]+\\d+$` rejects valid regions such as `europe-west1`, the `machine_type` regex rejects tiers like `db-f1-micro`, and `query_insights_enabled` and `query_insights_retention_days` are an avoidable pair that can be set to conflict."
+        ],
+        "Internal logic": [
+          "[1] `query_plans_per_minute = var.query_insights_retention_days > 0 ? 5 : 0` derives an unrelated setting from a mislabeled input, and `google_sql_user.iam_service_accounts` passes the full SA email instead of the trimmed form `CLOUD_IAM_SERVICE_ACCOUNT` users require.",
+          "[1] The `instance_name` local is clean, but `query_plans_per_minute = var.query_insights_retention_days > 0 ? 5 : 0` derives plan sampling from a misnamed \"retention\" input, which misleads rather than clarifies.",
+          "[1] `local.instance_name` is simple and readable, but `query_plans_per_minute = var.query_insights_retention_days > 0 ? 5 : 0` derives an unrelated setting from a misleading input, and `environment` is never used to infer anything else."
+        ],
+        "Scope": [
+          "[1] The module creates `google_service_networking_connection.private_vpc_connection` on networks the network team already owns, and it omits the `roles/cloudsql.instanceUser` grant needed for IAM database login.",
+          "[1] The module creates `google_service_networking_connection.private_vpc_connection` even though the brief says the network team already set up private services access, and it never grants `roles/cloudsql.instanceUser`, which IAM database login needs.",
+          "[1] The module covers backups, PITR, private IP and IAM database users, but it creates `google_service_networking_connection` even though the brief says the network team already set up private services access, and it grants project-wide `roles/cloudsql.client` while omitting the `roles/cloudsql.instanceUser` that IAM database login requires."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The inline `settings`/`database_flags` blocks on `google_sql_database_instance` have no separate-resource alternative, and the module never mixes styles.",
+          "[2] The `settings` sub-blocks have no separate-resource alternative, and users and databases are already separate `google_sql_user`/`google_sql_database` resources, with no mixed styles.",
+          "[2] `database_flags`, `backup_configuration` and `ip_configuration` exist only as inline blocks of `google_sql_database_instance`, and users, databases and IAM members are separate resources."
+        ],
+        "Outputs": [
+          "[2] The module exports the values consumers need, `instance_connection_name`, `primary_private_ip` and `instance_name`, alongside a few modest config echoes.",
+          "[1] The needed `instance_connection_name`, `primary_private_ip` and `instance_name` are exported, but so are input echoes like `machine_type`, `region`, `availability_type`, `backup_enabled` and `pitr_enabled`.",
+          "[1] The useful `instance_connection_name`, `primary_private_ip` and `instance_name` are exported, but several outputs merely echo configuration back (`machine_type`, `availability_type`, `backup_enabled`, `pitr_enabled`, `postgres_version`, `region`)."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] Repeated resources (`google_sql_database.additional`, `google_sql_user.iam_users`, `google_project_iam_member.*`) all use `for_each` keyed by stable names.",
+          "[2] All repeated resources (`google_sql_database.additional`, `google_sql_user.iam_users`, `google_project_iam_member.*`) use `for_each`, and `count` is never used.",
+          "[2] Repeated resources such as `google_sql_user.iam_users`, `google_sql_database.additional` and the IAM members all use `for_each`, and `count` is never used."
+        ],
+        "Data sources vs inputs": [
+          "[1] The module requires both `network_name` and `network_id`, which can disagree, instead of taking one identity and looking up the rest.",
+          "[1] The module requires both `network_name` and `network_id` for the same VPC instead of taking one identity and looking the rest up with a data source.",
+          "[1] The module requires both `network_name` and `network_id` for the same VPC instead of taking one identity and looking up the rest, and `network_name` is never even used."
+        ],
+        "File layout": [
+          "[2] The module is split into `variables.tf`, `outputs.tf`, `locals.tf` and a `main.tf` holding the core resource bundle.",
+          "[1] `variables.tf`, `outputs.tf` and `locals.tf` exist, but `main.tf` mixes the `terraform` block, the instance, service networking, users and project IAM bindings rather than splitting these distinct concerns.",
+          "[1] `variables.tf`, `outputs.tf` and `locals.tf` are separated, but `main.tf` mixes the instance, the networking connection, users and project IAM bindings rather than splitting the IAM/access concern into its own file."
+        ],
+        "Sensitive values": [
+          "[2] The root password comes from `random_password`, is never taken as an input or default, and the `root_password` output is marked `sensitive = true`.",
+          "[2] The generated `root_password` output is marked `sensitive = true`, and no secret is hardcoded or taken as a plain input.",
+          "[2] The only secret, `random_password.root_password`, is generated rather than input or hardcoded, and the `root_password` output is marked `sensitive = true`."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The module uses no `lifecycle` blocks and relies on the native `deletion_protection` attribute instead.",
+          "[2] There are no `lifecycle` blocks, and protection uses the native `deletion_protection` attribute instead.",
+          "[2] No `lifecycle` blocks are used, and the native `deletion_protection = var.deletion_protection` attribute provides protection instead."
+        ],
+        "Documentation": [
+          "[0] Several documented claims are wrong: the comment on `google_service_networking_connection` says it \"assumes network team set up private services access\" yet creates the connection, `query_insights_retention_days` is described as retention it does not control, and the `europe-west1` example in `examples.tfvars` fails the module's own region validation.",
+          "[0] The `query_insights_retention_days` description (\"Days to retain Query Insights data\") is wrong, since it only toggles `query_plans_per_minute`, and the networking comment both \"assumes network team set up private services access\" and claims to create it.",
+          "[0] Several pieces are wrong: the networking comment says it \"assumes network team set up private services access\" yet also \"creates the private services access connection\", `query_insights_retention_days` is described as retaining data when it does no such thing, and example 5 uses `europe-west1`, which the module's own validation rejects."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[1] `ip_configuration` uses `require_ssl = true`, which google provider 5.x deprecates in favor of `ssl_mode`, though the module has no `null_resource` or `local-exec`.",
+          "[1] `ip_configuration` uses `require_ssl = true`, which is deprecated in google provider 5.x in favor of `ssl_mode`; there is no `null_resource` or `local-exec`.",
+          "[1] There is no `null_resource` or `local-exec`, but `ip_configuration` uses the deprecated `require_ssl = true` instead of `ssl_mode`."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The module authors its resources directly, with no remote module call, no deleted resources, and no input that toggles off public-IP blocking or IAM authentication.",
+          "[2] Resources are authored directly with no remote module calls, no input reopens public IP or disables IAM auth, and there is no sign of a deleted resource.",
+          "[2] All resources are authored directly with no remote module calls and no deleted or commented-out resources, and no input can re-enable public IP or disable SSL."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "85af14ed4fd40e0b",
+      "tf_sloc": 489
+    },
+    "claude-opus-5-5": {
+      "overall": 100.0,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The DBAs get the controls their discipline expects (`tier`, `edition`, `database_version`, `database_flags`, `maintenance_window`, backup retention), while settled decisions are made by the module: the network is derived from `environment` as `apps-${var.environment}`, `ipv4_enabled = false` is fixed, and IAM authentication flags are enforced and cannot be overridden.",
+          "[2] The DBA-owned controls (`edition`, `tier`, `database_version`, `database_flags`, `maintenance_window`, backup and WAL retention) are exposed, while the `environment` concept derives the VPC (`apps-${var.environment}`), HA and retention defaults, and `ipv4_enabled = false` with IAM-only logins is fixed by the module.",
+          "[2] A single `environment` concept selects the `apps-<environment>` VPC and drives the availability and backup defaults, while DBA-owned controls (`edition`, `tier`, `database_flags`, `maintenance_window`) are exposed and IAM auth, private-IP-only and enforced SSL are fixed by the module."
+        ],
+        "Variables and validation": [
+          "[2] Realistic mistakes are guarded with teaching messages, including the `environment` enum, `iam_service_accounts` requiring the `.gserviceaccount.com` suffix, `maintenance_window` ranges, and a precondition tying `transaction_log_retention_days` above 7 to ENTERPRISE_PLUS; no check rejects a valid value, and the unchecked tier/edition pairing is a service-constrained pair, so its missing cross-check is only a minor gap.",
+          "[2] Realistic mistakes are guarded: `environment`, `edition`, `ssl_mode`, `maintenance_window` and `backup_start_time` are validated, the IAM email lists are cross-checked (`!endswith(u, \".gserviceaccount.com\")`), and a precondition ties `transaction_log_retention_days > 7` to ENTERPRISE_PLUS; the missing `tier`/`edition` cross-check is a minor gap between two genuinely needed inputs.",
+          "[1] The guards are deliberate (enum checks, the edition/WAL-retention precondition, the user/service-account email split), but the `database_version` regex `^POSTGRES_[0-9]+$` rejects the valid Cloud SQL value `POSTGRES_9_6`."
+        ],
+        "Internal logic": [
+          "[2] Readable locals derive values from concepts, such as `availability_type` and `backup_retained` from `local.is_prod`, `network_self_link` from `environment`, and the `sql_iam_users` map that trims service-account suffixes, without convoluted chains.",
+          "[2] Readable locals derive `availability_type` and `backup_retained` from `is_prod`, build `sql_iam_users` with `trimsuffix` for service-account names, and expand role bindings with a single `setproduct`.",
+          "[2] Readable locals derive the network self link, prod-sensitive defaults, enforced flags merged last, and IAM user names via `trimsuffix(sa, \".gserviceaccount.com\")`, without convoluted chains."
+        ],
+        "Scope": [
+          "[2] The module creates the instance with private-only networking, enforced SSL, backups with PITR, query insights, databases, IAM database users, and instance-conditioned `google_project_iam_member` login roles, which is proportionate to the brief without unrequested extras.",
+          "[2] The module creates the instance with private-only networking, PITR backups, query insights and audit flags, plus `google_sql_database`, IAM `google_sql_user` and instance-conditioned `google_project_iam_member` bindings, which matches the brief without gold-plating.",
+          "[2] The module creates the instance with backups, PITR, insights and private networking, plus databases, IAM database users and instance-conditioned `google_project_iam_member` login grants, matching the identity-audited access the brief describes without gold-plating."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The `database_flags`, `ip_configuration` and `backup_configuration` blocks exist only as inline settings of `google_sql_database_instance`, and databases and users use their separate `google_sql_database`/`google_sql_user` resources.",
+          "[2] Databases, users and IAM bindings are separate resources, and the only inline blocks (`database_flags`, `backup_configuration`) have no separate-resource alternative in the provider.",
+          "[2] Users and databases are separate `google_sql_user`/`google_sql_database` resources, and the inline `settings` blocks have no separate-resource alternative."
+        ],
+        "Outputs": [
+          "[2] The outputs cover what consumers need, namely `connection_name`, `private_ip_address`, `instance_name`, `self_link`, `databases`, and the `iam_database_users` role names, without dumping every attribute.",
+          "[2] The outputs cover what consumers need, including `connection_name` for connectors, `private_ip_address`, `databases`, and `iam_database_users` for GRANTs, without dumping every attribute.",
+          "[2] The outputs provide what consumers need, namely `connection_name`, `private_ip_address`, `instance_name`, `databases` and `iam_database_users` for GRANTs, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] Databases, IAM users and role bindings all use `for_each` over sets or maps, and `count` is never used.",
+          "[2] `google_sql_database`, `google_sql_user.iam` and `google_project_iam_member.sql_login` all use `for_each` with stable keys, and no `count` is used.",
+          "[2] Databases, IAM users and role bindings all use `for_each` over stable keys, and no `count` is used for multiplicity."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module takes only the network's identity (via `environment` and `network_project_id`) and never asks for derived facts such as CIDRs that could conflict with the real network.",
+          "[2] The network is identified only by its identity (project and the `apps-<environment>` name), and no derived facts such as a CIDR are requested that could conflict with that VPC.",
+          "[2] The network is identified by project and environment name, and no redundant dependency facts such as CIDRs are requested as inputs."
+        ],
+        "File layout": [
+          "[1] Variables, outputs and versions are split properly, but main.tf mixes the instance with a distinct access concern (the `sql_iam_users`/`iam_role_bindings` locals, `google_sql_user.iam`, and `google_project_iam_member.sql_login`) that could live in its own file.",
+          "[2] The module is split into `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, with roughly 150 lines of core resources in `main.tf`.",
+          "[2] Code is split across main.tf, variables.tf, outputs.tf and versions.tf, with main.tf holding the core resource bundle at a reasonable length."
+        ],
+        "Sensitive values": [
+          "[2] No secrets are handled at all, because the module creates only IAM-authenticated `google_sql_user` resources with no password-based built-in users.",
+          "[2] There are no secrets anywhere, since the module creates only IAM-authenticated users and no password-based `google_sql_user`.",
+          "[2] No secrets are handled, because the module creates only IAM-type `google_sql_user` resources and no password users."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The only lifecycle use is a validation `precondition`, and deletion safety relies on the native `deletion_protection`/`deletion_protection_enabled` attributes rather than `prevent_destroy`.",
+          "[2] The module uses the native `deletion_protection`/`deletion_protection_enabled` attributes rather than `prevent_destroy`, and its `lifecycle` block contains only a precondition with no `ignore_changes`.",
+          "[2] The module uses native `deletion_protection`/`deletion_protection_enabled` rather than `prevent_destroy`, and its `lifecycle` block contains only a validation precondition."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate description (e.g. `disk_size_gb` explains autoresize behaviour, `iam_database_users` explains GRANT usage), and short comments explain the enforced flags and the service-account name trimming.",
+          "[2] Every variable and output has an accurate description (for example, the `database_flags` note on enforced flags), and comments explain the non-obvious parts such as the service-account suffix trimming and the IAM-only login design.",
+          "[2] Every variable and output has an accurate description (e.g. `disk_autoresize_limit_gb` \"0 means no limit\"), and comments explain the enforced flags and the IAM naming."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] There is no `null_resource`, `local-exec`, or deprecated resource form, and the module uses current attributes such as `ssl_mode` and `edition`.",
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form, and the module uses the current `edition` and `ssl_mode` attributes.",
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form anywhere in the module."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The resources are authored directly with no remote module call, and no input can undo the established posture: `ssl_mode` validation allows only encrypted modes, and the enforced flags override `database_flags`.",
+          "[2] `local.enforced_flags` is merged last so consumers cannot override IAM auth or connection logging, `ssl_mode` excludes unencrypted modes, and every resource is authored directly with no remote module call.",
+          "[2] Resources are authored directly with no remote module calls, and no input can bypass the enforced flags, private-only IP or encryption."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "43b572dbfbb313e9",
+      "tf_sloc": 363
+    },
+    "claude-sonnet-5-5": {
+      "overall": 100.0,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The DBA-owned decisions are exposed as inputs (`tier`, `edition`, `database_flags`, `pgaudit_log_classes`, backup and maintenance windows), while `environment` selects the `apps-<env>` VPC and sets HA and update-track defaults, and private IP, IAM auth and pgaudit are fixed rather than offered as knobs.",
+          "[2] The DBA-facing controls (`tier`, `edition`, `database_version`, `database_flags`, `pgaudit_log_classes`, backup and maintenance inputs) are exposed, while the network is derived from `environment` as `apps-${var.environment}`, HA and update track default from prod/non-prod, and private-IP-only, SSL and IAM auth are fixed rather than exposed as knobs.",
+          "[2] The `environment` concept input selects the `apps-<env>` VPC and drives HA and update-track defaults, while DBA-owned controls (`tier`, `edition`, `database_version`, `database_flags`, backup and maintenance inputs) are exposed and private IP, SSL and IAM auth are fixed rather than offered as knobs."
+        ],
+        "Variables and validation": [
+          "[2] Realistic mistakes are guarded: `environment`, `edition`, `backup_start_time` and `maintenance_window` have teaching error messages, `iam_service_accounts` must end in `.gserviceaccount.com`, and a precondition ties `point_in_time_recovery_days` above 7 to `ENTERPRISE_PLUS`.",
+          "[2] Realistic mistakes are guarded: `environment`, `edition`, `disk_type`, the `backup_start_time` format and maintenance ranges all have validations, and a `precondition` rejects `point_in_time_recovery_days > 7` outside ENTERPRISE_PLUS. The missing `tier`/`edition` cross-check is only a minor gap between service-constrained inputs.",
+          "[2] Realistic mistakes are guarded with teaching messages: `environment` is restricted to dev/staging/prod, `backup_start_time` is regex-checked, `maintenance_window` bounds are checked, `iam_service_accounts` must end in `.gserviceaccount.com`, and a precondition ties `point_in_time_recovery_days` above 7 to `ENTERPRISE_PLUS`."
+        ],
+        "Internal logic": [
+          "[2] Readable locals do the inference: `private_network` is built from `environment`, `availability_type` and `update_track` fall back to prod-based defaults, and `db_users` normalizes the three identity lists, including trimming the service-account suffix.",
+          "[2] Readable locals do the inference, such as `availability_type` from `coalesce(var.high_availability, local.is_prod)`, IAM user names via `trimsuffix(e, \".gserviceaccount.com\")`, and `access_grants` built with `setproduct`, without convoluted chains.",
+          "[2] Readable locals derive `availability_type`, `update_track` and `private_network` from `environment`, and `db_users`/`access_grants` build IAM user types, service-account names and role pairs cleanly with `setproduct`."
+        ],
+        "Scope": [
+          "[2] The module creates the instance, its databases, IAM-only database users, and instance-scoped conditional `google_project_iam_member` grants, with CMEK option, backups, PITR and query insights, and adds no unrequested architecture.",
+          "[2] The module creates the instance, databases, IAM-only users and instance-scoped conditional `google_project_iam_member` grants, and sets proportionate posture (pgaudit, backups with PITR, optional CMEK via `kms_key_name`) without unrequested extra architecture.",
+          "[2] The module creates the instance with backups, PITR, optional CMEK, pgaudit and Query Insights, plus databases, IAM-only `google_sql_user` entries and instance-scoped conditional `google_project_iam_member` grants, which is proportionate to the brief without gold-plating."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The only inline blocks (`database_flags`, `ip_configuration`, `backup_configuration`) have no separate-resource alternative, and databases and users use dedicated `google_sql_database` and `google_sql_user` resources.",
+          "[2] Users and databases are separate `google_sql_user`/`google_sql_database` resources, and `database_flags` exists only as an inline block, so there are no mixed styles.",
+          "[2] Databases and users use separate `google_sql_database` and `google_sql_user` resources, and the inline `database_flags` and `ip_configuration` blocks have no separate-resource alternative in the provider."
+        ],
+        "Outputs": [
+          "[2] The outputs cover what consumers need to connect \u2014 `connection_name`, `private_ip_address`, `instance_name`, `database_names` and `iam_database_users` \u2014 without dumping every attribute.",
+          "[2] The outputs give consumers what they need to connect and use the instance (`connection_name`, `private_ip_address`, `instance_name`, `database_names`, `iam_database_users`) without dumping every attribute.",
+          "[2] Outputs cover what consumers need, including `connection_name` for connectors, `private_ip_address`, `instance_name`, and the created database and IAM user names, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] Databases, users and IAM grants all use `for_each` with stable keys (database names, emails, `member|role`), and `count` is never used.",
+          "[2] `google_sql_database`, `google_sql_user` and `google_project_iam_member` all use `for_each` over sets or maps, and no `count` is used for multiplicity.",
+          "[2] `google_sql_database`, `google_sql_user` and `google_project_iam_member` all use `for_each` over stable keys, and `count` is not used anywhere."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module takes only the network identity, via `environment` and `network_project_id`, and derives the network path rather than asking for redundant facts that could conflict.",
+          "[2] The module takes no redundant dependency facts such as a network CIDR; the VPC is identified only by the derived `private_network` path, and the provider resolves it.",
+          "[2] The network is identified from `network_project_id`/`environment` by the stated naming convention, and no redundant dependency facts such as CIDRs are requested that could conflict."
+        ],
+        "File layout": [
+          "[2] Variables, outputs, versions and core resources sit in `variables.tf`, `outputs.tf`, `versions.tf` and `main.tf`, and the resources in `main.tf` form one cohesive instance bundle of moderate length.",
+          "[2] Resources live in `main.tf`, inputs in `variables.tf`, outputs in `outputs.tf`, and version and provider config in `versions.tf`, with `main.tf` at a manageable size.",
+          "[2] Code is split into `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, and `main.tf` holds a single cohesive concern well under the line-count threshold."
+        ],
+        "Sensitive values": [
+          "[2] No secrets are handled, since only IAM-authenticated users are created (\"No built-in (password) users are managed here\"), so no passwords exist as variables or outputs.",
+          "[2] No secrets are handled: only IAM users are created (\"No built-in (password) users are managed here\"), so no passwords exist as inputs or outputs.",
+          "[2] No passwords or secrets exist anywhere, because only IAM-authenticated users are created, so there is nothing to mark sensitive."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The only `lifecycle` use is a precondition, and deletion protection uses the native `deletion_protection` and `deletion_protection_enabled` attributes rather than `prevent_destroy` or `ignore_changes`.",
+          "[2] The module uses the native `deletion_protection`/`deletion_protection_enabled` attributes instead of `prevent_destroy`, the `lifecycle` block holds only a validation `precondition`, and there is no `ignore_changes`.",
+          "[2] Deletion safety uses the native `deletion_protection` and `deletion_protection_enabled` attributes rather than `prevent_destroy`, and the only `lifecycle` content is a precondition."
+        ],
+        "Documentation": [
+          "[1] Every variable and output has a description, but the `database_flags` validation message lists `ssl_min_protocol_version` among \"module-managed flags\" even though the module never sets that flag.",
+          "[2] Every variable and output has an accurate description, and targeted comments explain non-obvious choices such as the service-account name suffix handling and flags applied last so they always win.",
+          "[2] Every variable and output has an accurate description (e.g. `high_availability` explains its null-means-prod-default behaviour), and comments explain the non-obvious service-account username trimming and the flag-precedence merge."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] There is no `null_resource`, no `local-exec` and no deprecated resource form anywhere in the module.",
+          "[2] The module contains no `null_resource`, `local-exec` or deprecated resource forms.",
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form, and all configuration uses current `google_sql_*` resources."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] All resources are authored directly, with no remote module call, and no input lets consumers bypass the fixed private-IP, ENCRYPTED_ONLY SSL or IAM-auth posture.",
+          "[2] Resources are authored directly with no remote module call, and the `database_flags` validation blocks overriding the enforced IAM-auth and audit flags, so no input silently undoes the security posture.",
+          "[2] Resources are authored directly with no remote module, and the `database_flags` validation blocks overriding the module's IAM-auth and audit flags, so the security posture cannot be silently undone."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "61de9b66c2447719",
+      "tf_sloc": 361
+    },
+    "gemini-3.1-pro-preview": {
+      "overall": 78.9,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 0,
+        "Internal logic": 2,
+        "Scope": 1,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The inputs give the specialist DBAs the controls their discipline expects (`tier`, `availability_type`, `database_flags`, `disk_*`, maintenance and backup windows), while the module fixes the settings that should be uniform, such as `ipv4_enabled = false`, `ssl_mode = \"ENCRYPTED_ONLY\"` and an always-on `insights_config`.",
+          "[1] The module rightly gives the DBAs their controls (`tier`, `database_version`, `availability_type`, `database_flags`, maintenance window) and hardcodes posture (`ipv4_enabled = false`, `ssl_mode`), but `vpc_network` takes a raw network path instead of choosing among the three known environment networks, and there is no input for the IAM principals the brief says access is audited by.",
+          "[1] The module encodes firm opinions: `ipv4_enabled = false`, `ssl_mode = \"ENCRYPTED_ONLY\"`, and a forced `cloudsql.iam_authentication`. However, `vpc_network` is a free-form full network path even though the brief settles the choice to `apps-dev`/`apps-staging`/`apps-prod`, and most other inputs (`disk_type`, `disk_autoresize`, `disk_size`) are one-per-attribute pass-throughs."
+        ],
+        "Variables and validation": [
+          "[0] No variable has a `validation` block, so realistic mistakes go unguarded, including `availability_type` values other than REGIONAL/ZONAL, `maintenance_window_day` outside 1\u20137, `maintenance_window_hour` outside 0\u201323, and a malformed `backup_start_time`.",
+          "[0] No variable has a `validation` block, so `availability_type`, `disk_type`, `maintenance_window_day` (1-7), `maintenance_window_hour` (0-23) and the `backup_start_time` HH:MM format are all unguarded against realistic typos.",
+          "[0] No variable has a `validation` block, so realistic mistakes go uncaught: `availability_type` (REGIONAL/ZONAL), `maintenance_window_day` (1-7), `maintenance_window_hour` (0-23) and the `backup_start_time` HH:MM format."
+        ],
+        "Internal logic": [
+          "[2] The `merged_flags_map` and `final_flags` locals readably merge the DBA's flags with a forced `cloudsql.iam_authentication = \"on\"`, computing the enforced posture instead of asking for it.",
+          "[2] The `merged_flags_map`/`final_flags` locals are a short, readable merge that forces `cloudsql.iam_authentication = \"on\"` over any consumer-supplied flags.",
+          "[2] The `merged_flags_map`/`final_flags` locals turn the consumer's flag list into a map and force `cloudsql.iam_authentication = \"on\"` in a short, readable step."
+        ],
+        "Scope": [
+          "[1] The module creates only `google_sql_database_instance.main`, with no `google_sql_user` IAM-type users or `roles/cloudsql.instanceUser` bindings, so the identity-based access the brief says security audits is enabled by flag but never actually provisioned.",
+          "[1] The instance's posture is well covered (private IP only, SSL, backups, PITR, insights), but the module creates no `google_sql_user` IAM users or databases, even though the brief centres database access on Google identities.",
+          "[1] Only `google_sql_database_instance.main` is created, with no `google_sql_user` IAM users or access grants for the Google identities the brief says security audits by, even though IAM auth is forced on."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] The inline blocks (`ip_configuration`, `backup_configuration`, `database_flags`) have no separate-resource equivalents in the provider, so no dual-style choice is being made.",
+          "[2] `database_flags`, `ip_configuration` and `backup_configuration` exist only as inline settings blocks on `google_sql_database_instance`, with no separate-resource alternative.",
+          "[2] The inline blocks used (`ip_configuration`, `backup_configuration`, the `database_flags` dynamic block) have no separate-resource alternative in the provider."
+        ],
+        "Outputs": [
+          "[2] The outputs `instance_name`, `instance_connection_name`, `private_ip_address` and `instance_self_link` cover what consumers need to connect to and reference the instance, without dumping every attribute.",
+          "[2] The outputs `instance_name`, `instance_connection_name`, `private_ip_address` and `instance_self_link` cover what consumers need to connect to and reference the instance.",
+          "[2] Outputs cover what consumers need to connect and reference the instance (`instance_connection_name`, `private_ip_address`, `instance_name`, `instance_self_link`) without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] There is no `count`, and the only repetition is the `dynamic \"database_flags\"` block iterating with `for_each`.",
+          "[2] No `count` is used, and the repeated flags are produced with a `dynamic \"database_flags\"` block iterated via `for_each`.",
+          "[2] There is no `count`, and the only repetition is the `dynamic \"database_flags\"` block iterating with `for_each`."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module takes only the network's identity (`vpc_network`) and asks for no derivable facts about it that could be entered inconsistently.",
+          "[2] Only the network's identity (`vpc_network`) is taken as input, and no derivable facts such as a CIDR are requested.",
+          "[2] The module takes only the network's identity (`vpc_network`) and asks for no derived facts that could contradict it."
+        ],
+        "File layout": [
+          "[2] Resources live in `main.tf`, inputs in `variables.tf` and outputs in `outputs.tf`, appropriate for a single-concern module.",
+          "[2] Resources, variables and outputs sit in `main.tf`, `variables.tf` and `outputs.tf` respectively, which suits a single-resource module.",
+          "[2] Resources are in `main.tf`, inputs in `variables.tf` and outputs in `outputs.tf`, appropriate for a single-concern module; the empty `schema_test.tf` is harmless."
+        ],
+        "Sensitive values": [
+          "[2] The module handles no secrets, since there are no password inputs or outputs and authentication relies on the enforced `cloudsql.iam_authentication` flag.",
+          "[2] No variable or output carries a secret, and the module creates no password-based users, so there is nothing to mark sensitive.",
+          "[2] No variable or output carries a secret (no passwords or credentials), so there is nothing to mark sensitive."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] There are no `lifecycle` blocks, and protection uses the resource's native `deletion_protection = var.deletion_protection`.",
+          "[2] There are no `lifecycle` blocks; protection uses the resource's native `deletion_protection` attribute.",
+          "[2] There are no `lifecycle` blocks, and the resource relies on its native `deletion_protection` attribute instead of `prevent_destroy`."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate `description`, and the comment on the flag-merge local correctly explains the non-obvious override of `cloudsql.iam_authentication`.",
+          "[2] Every variable and output has an accurate description, and the comment on `merged_flags_map` correctly explains that the IAM authentication flag is forced on.",
+          "[2] Every variable and output has an accurate `description`, and the locals comment correctly explains why the IAM-auth flag overrides consumer input."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] There is no `null_resource`, no `local-exec`, and no deprecated resource forms.",
+          "[2] There is no `null_resource`, no `local-exec` and no deprecated resource form anywhere in the module.",
+          "[2] There is no `null_resource`, no `local-exec`, and no deprecated resource form."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The resources are authored directly with no remote module call, and the forced merge in `merged_flags_map` stops `database_flags` from silently disabling IAM authentication.",
+          "[2] No input can undo the enforced posture: public IPv4 and `ssl_mode` are hardcoded, the IAM authentication flag cannot be overridden through `database_flags`, and the module calls no remote modules.",
+          "[2] The resources are authored directly with no remote module call, and no input can re-enable public IP or disable SSL."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "5fe22d9b7b30eb6b",
+      "tf_sloc": 138
+    },
+    "gpt-5.5-2026-04-23": {
+      "overall": 84.2,
+      "sections": {
+        "Interface design": 1,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 0
+      },
+      "evidence": {
+        "Interface design": [
+          "[1] The DBA-facing controls are appropriate (tier, edition, availability_type, backups, maintenance_window, database_flags, iam_database_users with IAM auth forced on), but `ssl_mode` exposes ALLOW_UNENCRYPTED_AND_ENCRYPTED as a security knob, and three overlapping network inputs (network_project_id, network_name, private_network_self_link) over-configure a decision `environment` already settles.",
+          "[1] The DBA-facing inputs are well judged, but `ssl_mode` makes encryption in transit a knob (it accepts `ALLOW_UNENCRYPTED_AND_ENCRYPTED`), and three overlapping network inputs (`network_project_id`, `network_name`, `private_network_self_link`) overconfigure something `environment` already settles.",
+          "[1] The DBA-facing controls (tier, edition, availability_type, backups, maintenance_window, database_flags) fit a specialist audience and `environment` neatly settles the network, but `private_network_self_link` re-opens the network decision the brief already settles (one `apps-<env>` VPC per environment), which is overconfiguration."
+        ],
+        "Variables and validation": [
+          "[1] Inputs are deliberately guarded (environment enum, backup_start_time regex, transaction_log_retention_days 1\u20137, the secondary_zone precondition), but `private_network_self_link` silently overrides `network_project_id`/`network_name`, an avoidable pair of inputs that can be set to conflict.",
+          "[1] Validation is deliberate and teaches (e.g. `backup_start_time` regex, `maintenance_window` ranges), but `private_network_self_link` silently overrides `network_project_id`/`network_name`, an avoidable pair of inputs that can be set to conflict.",
+          "[1] Most inputs are deliberately guarded (enums, `backup_start_time` regex, `maintenance_window` ranges, the `secondary_zone` precondition), but `private_network_self_link` silently overrides `network_project_id`/`network_name`, an avoidable pair of inputs that can be set to conflict."
+        ],
+        "Internal logic": [
+          "[2] Locals derive the network path from `environment`, force the IAM-auth flag via merge, and compute the service-account username (trimsuffix) and IAM member prefix from a single type input, keeping the expressions readable.",
+          "[2] `local.iam_database_users` derives the Cloud SQL username (trimming `.gserviceaccount.com`) and the IAM member prefix from the type, and `local.private_network` infers the network from `environment`, so the module needs fewer inputs and stays readable.",
+          "[2] Readable locals derive `private_network` from `environment` and the IAM username and member format from the identity type, and they force `cloudsql.iam_authentication` on via `merge`, without convoluted chains."
+        ],
+        "Scope": [
+          "[2] The module creates the private-IP-only instance with backups, PITR and Query Insights, plus `google_sql_database`, IAM `google_sql_user`, and `roles/cloudsql.instanceUser`/`client` grants that match the identity-audited access requirement without gold-plating.",
+          "[2] The module creates the private-IP-only instance with backups, PITR and IAM auth, plus `google_sql_database`, `google_sql_user` IAM principals and the `roles/cloudsql.instanceUser`/`client` grants, which matches the brief's identity-audited access without gold-plating.",
+          "[2] The module creates the instance with private-only IP, backups with PITR, and deletion protection, plus `google_sql_database`, IAM database users and the matching `roles/cloudsql.instanceUser`/`client` grants, which suits the brief's identity-based access without gold-plating."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] Databases, users and IAM bindings are separate resources (`google_sql_database`, `google_sql_user`, `google_project_iam_member`), and the settings blocks have no separate-resource alternative.",
+          "[2] Databases and users are separate `google_sql_database`/`google_sql_user` resources, and the inline `settings` blocks such as `database_flags` have no separate-resource alternative.",
+          "[2] Databases, users and IAM bindings are separate resources, and the nested `settings` blocks such as `database_flags` have no separate-resource alternative."
+        ],
+        "Outputs": [
+          "[2] Outputs cover what consumers need to connect and administer (connection_name, private_ip_address, instance_name, iam_database_users usernames) without dumping every attribute.",
+          "[2] The outputs cover what consumers need, including `connection_name`, `private_ip_address`, `instance_name` and the computed `iam_database_users` usernames, without dumping every attribute.",
+          "[2] The outputs cover what consumers need to connect, including `connection_name`, `private_ip_address`, `instance_name` and the `iam_database_users` usernames, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] All multiplicity uses `for_each` keyed by database name or identity email, and the `location_preference` dynamic block uses `[] : [1]` only as an on/off toggle.",
+          "[2] All multiplicity uses `for_each` (databases, IAM users, IAM grants), and no `count` appears anywhere.",
+          "[2] All multiplicity uses `for_each` (`google_sql_database.databases`, `google_sql_user.iam`, the IAM members), and `count` is never used."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module takes only the network's identity (name/project or self-link) and never asks for derived facts such as a CIDR that could mismatch the network.",
+          "[2] The module takes only the network's identity, constructing the self-link from `network_project_id`/`network_name`, and never asks for derivable facts such as a CIDR.",
+          "[2] The network is taken by identity only (name or self-link) with no dependent facts like a CIDR requested, so there is nothing a lookup would make more authoritative."
+        ],
+        "File layout": [
+          "[2] Files are split into main.tf, variables.tf, outputs.tf and versions.tf, and main.tf holds a modest set of core resources.",
+          "[2] Code is split across `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf`, with `main.tf` at a manageable size for one concern.",
+          "[2] Resources, variables, outputs and version/provider configuration sit in `main.tf`, `variables.tf`, `outputs.tf` and `versions.tf` respectively."
+        ],
+        "Sensitive values": [
+          "[2] There are no password users or secret inputs; access is purely IAM-based (`google_sql_user` with CLOUD_IAM_* types), so nothing needs to be marked sensitive.",
+          "[2] Only IAM database users are created and no passwords or secrets are accepted or output, so nothing needs `sensitive = true`.",
+          "[2] There are no password users or secret inputs, because authentication is IAM-only via `google_sql_user` of type `CLOUD_IAM_*`, so nothing requires `sensitive`."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] The module uses the native `deletion_protection`/`deletion_protection_enabled` rather than `prevent_destroy`, and its lifecycle block contains only a precondition, with no `ignore_changes`.",
+          "[2] The `lifecycle` block holds only a precondition, and deletion protection uses the native `deletion_protection`/`deletion_protection_enabled` attributes rather than `prevent_destroy`.",
+          "[2] The module uses the native `deletion_protection`/`deletion_protection_enabled` rather than `prevent_destroy`, and its only `lifecycle` content is a validating precondition."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate description (e.g., the 0 sentinel on disk_autoresize_limit_gb), and the README correctly summarizes the baked-in decisions with usage examples.",
+          "[2] Every variable and output has an accurate description, and the README's \"standard decisions baked in\" list matches the code, e.g. private IP only and forced `cloudsql.iam_authentication`.",
+          "[2] Every variable and output has an accurate description, and the README correctly describes the baked-in decisions and usage examples."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, `local-exec`, or deprecated resource forms.",
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form anywhere in the module.",
+          "[2] There is no `null_resource`, `local-exec`, or deprecated resource form anywhere in the module."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[0] The `ssl_mode` validation accepts \"ALLOW_UNENCRYPTED_AND_ENCRYPTED\", letting a consumer silently downgrade the encryption-in-transit posture the module otherwise establishes with its ENCRYPTED_ONLY default.",
+          "[0] The module establishes encrypted-only connections by default, yet `ssl_mode` accepts `ALLOW_UNENCRYPTED_AND_ENCRYPTED`, letting a consumer silently weaken that posture.",
+          "[0] The module defaults to encryption-only, yet the `ssl_mode` input accepts `ALLOW_UNENCRYPTED_AND_ENCRYPTED`, which lets a consumer silently drop the transport-encryption posture the module otherwise establishes."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "4171771a109979de",
+      "tf_sloc": 403
+    },
+    "ref-flexible": {
+      "overall": 100.0,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 2,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The inputs fit a specialist DBA audience: the module exposes `tier`, `database_flags`, `high_availability`, `backup`, `maintenance_day`/`maintenance_hour` and `kms_key_name`, and it fixes the shared posture (`ipv4_enabled = false`, IAM-only auth, connection logging) so no input can override it.",
+          "[2] The inputs are the controls a DBA team expects (`tier`, `high_availability`, `database_flags`, the `backup` object, the maintenance window, `ssl_mode`), while IAM-only authentication, private-IP-only networking (`ipv4_enabled = false`), PD_SSD disks and query insights are fixed so they are the same on every instance.",
+          "[2] The inputs expose the decisions DBAs genuinely own (`tier`, `high_availability`, `database_flags`, `backup`, `maintenance_day`/`maintenance_hour`, `databases`, `iam_users`/`iam_service_accounts`), while fixed choices such as `ipv4_enabled = false`, `edition`, `disk_type` and IAM-only authentication are settled by the module."
+        ],
+        "Variables and validation": [
+          "[1] The module guards inputs deliberately (`backup.start_time` regex, `log_retention_days` 1-7, maintenance ranges, service-account suffix), but the `database_version` validation allows only POSTGRES_15\u201317 and so rejects valid Cloud SQL versions such as POSTGRES_14.",
+          "[2] The mistakes a consumer would realistically make are guarded: `database_version`, `ssl_mode`, `maintenance_day`/`maintenance_hour`, the `backup.start_time` format, `backup.log_retention_days` (1\u20137) and the `iam_service_accounts` email suffix all have validations with explanatory messages, and no condition rejects a valid value.",
+          "[2] Realistic mistakes are guarded with explanatory messages, for example `backup.log_retention_days` limited to 1\u20137 for the Enterprise edition, the `backup.start_time` HH:MM regex, the `ssl_mode` allow-list, and the `iam_service_accounts` suffix check that tells people to use `iam_users` instead, and no input pair can be set to conflict."
+        ],
+        "Internal logic": [
+          "[2] `local.login_grants` builds the member\u00d7role map with `setproduct` in a readable way, and `private_network` is derived from the network name plus `data.google_client_config.current.project` rather than requiring another input.",
+          "[2] The `login_grants` local uses `setproduct` to turn the user and service-account lists into instance-scoped role grants, and `deletion_policy` is inferred from `var.deletion_protection`; both are clear and not over-clever.",
+          "[2] Readable locals build `login_members`, and `login_grants` comes from a single `setproduct`, while `availability_type` and the database `deletion_policy` are derived from concept inputs instead of extra variables."
+        ],
+        "Scope": [
+          "[2] The module creates the instance, `google_sql_database`, IAM database users and instance-conditioned `google_project_iam_member` login grants, with private IP, backups and optional CMEK \u2014 proportionate to the brief without gold-plating.",
+          "[2] The module creates the instance, its databases, IAM database users for people and service accounts, and instance-conditioned `google_project_iam_member` grants (`roles/cloudsql.instanceUser` and `roles/cloudsql.client`), which is exactly what identity-audited access requires and nothing the brief did not imply.",
+          "[2] The module creates the instance with private IP, backups/PITR, optional CMEK, IAM database users and instance-scoped conditional `google_project_iam_member` grants, which fits the brief's identity-audited, private-networked use case without gold-plating."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] Databases and users are separate `google_sql_database` and `google_sql_user` resources, and the dynamic `database_flags` block is the provider's only form for flags.",
+          "[2] Users and databases are separate `google_sql_user`/`google_sql_database` resources, and `database_flags` is inline only because the provider has no separate-resource form for it.",
+          "[2] Users, databases and IAM bindings are separate resources (`google_sql_user`, `google_sql_database`, `google_project_iam_member`), and the `settings` blocks are configurable only inline on `google_sql_database_instance`."
+        ],
+        "Outputs": [
+          "[2] The outputs `connection_name`, `private_ip_address` and `server_ca_cert` cover what connectors and clients need, without dumping every attribute.",
+          "[2] The outputs `connection_name`, `private_ip_address` and `server_ca_cert` cover what connectors and clients need, without dumping every attribute.",
+          "[2] `connection_name`, `private_ip_address` and `server_ca_cert` cover what connectors and clients need, without dumping every attribute."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] `google_sql_database`, both `google_sql_user` resources and `google_project_iam_member.sql_login` all use `for_each` over sets or maps keyed by stable values.",
+          "[2] `google_sql_database`, both `google_sql_user` resources and `google_project_iam_member.sql_login` all use `for_each` over sets or maps, and `count` is never used.",
+          "[2] Every repeated resource (`google_sql_database.this`, `google_sql_user.iam`, `google_sql_user.iam_service_account`, `google_project_iam_member.sql_login`) uses `for_each` over sets or maps, and `count` is never used."
+        ],
+        "Data sources vs inputs": [
+          "[2] The module takes only the network name and resolves the project via `data.google_client_config.current` instead of asking for redundant facts.",
+          "[2] The module takes only the network name as input and derives the project from `data.google_client_config.current` to build the private network path, rather than asking for redundant facts.",
+          "[2] The module takes the network's identity (`var.network`) and resolves the project from `data.google_client_config.current`, rather than asking for derived facts that could mismatch."
+        ],
+        "File layout": [
+          "[2] Resources, variables, outputs, provider and version constraints are split across `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`, and `main.tf` stays small.",
+          "[2] The module is split into `main.tf` (the core instance bundle, about 130 lines), `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`.",
+          "[2] The module is split into `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`, which suits a single-concern module of this size."
+        ],
+        "Sensitive values": [
+          "[2] Authentication is IAM-only with no password inputs or `google_sql_user` passwords, and the `server_ca_cert` output is marked `sensitive = true`.",
+          "[2] Authentication is IAM-only, so no password input or hardcoded secret exists, and the `server_ca_cert` output is marked `sensitive = true`.",
+          "[2] The module accepts and creates no passwords (authentication is IAM-only), and the one cert-bearing output, `server_ca_cert`, is marked `sensitive = true`."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] There are no `lifecycle` blocks; protection uses the native `deletion_protection` attribute instead of `prevent_destroy`.",
+          "[2] There are no `lifecycle` blocks; the instance uses the native `deletion_protection` attribute instead of `prevent_destroy`.",
+          "[2] No `lifecycle` blocks are used, and protection relies on the native `deletion_protection` attribute."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has a description, and comments accurately explain non-obvious choices such as the `.gserviceaccount.com` trimming, the ABANDON `deletion_policy`, and why both IAM roles are needed.",
+          "[2] Every variable and output has an accurate description, and comments explain the non-obvious points: the flag merge order, the service-account name suffix trimming, and why both IAM roles are needed.",
+          "[2] Every variable and output has an accurate description, and comments explain the non-obvious points accurately (the flags merge order, the `ABANDON` deletion_policy behavior, the trimmed service-account user names, and `user_labels` not inheriting `default_labels`)."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] The module contains no `null_resource`, no `local-exec` and no deprecated resource forms.",
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form anywhere in the module.",
+          "[2] The module uses no `null_resource`, no `local-exec` and no deprecated resource forms."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] The required flags are merged after `var.database_flags`, so consumers cannot disable IAM auth or connection logging, and no remote modules are called.",
+          "[2] User `database_flags` are merged before the enforced `cloudsql.iam_authentication`/logging flags, so no input can silently override the security posture, and no remote module is called.",
+          "[2] No input can override the enforced posture, because `cloudsql.iam_authentication` and connection logging are merged after `var.database_flags` and `ipv4_enabled` is hardcoded `false`, and the module calls no remote modules."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "11e734ed076b81d0",
+      "tf_sloc": 240
+    },
+    "ref-lean": {
+      "overall": 94.7,
+      "sections": {
+        "Interface design": 2,
+        "Variables and validation": 1,
+        "Internal logic": 2,
+        "Scope": 2,
+        "Inline Resource Configuration vs Separate Resources": 2,
+        "Outputs": 2,
+        "Iteration: for_each vs count": 2,
+        "Data sources vs inputs": 2,
+        "File layout": 2,
+        "Sensitive values": 2,
+        "Lifecycle meta-arguments": 2,
+        "Documentation": 2,
+        "Deprecated and escape-hatch patterns": 2,
+        "Anti-patterns (immediate credibility loss)": 2
+      },
+      "evidence": {
+        "Interface design": [
+          "[2] The DBAs get the controls their discipline expects (`tier`, `postgres_version`, `database_flags`, `databases`, `maintenance_window`, `backup_start_time`), while settled decisions are made by the module: private-only networking, `ssl_mode = \"ENCRYPTED_ONLY\"`, IAM authentication, and HA plus backup retention derived from the `environment` concept.",
+          "[2] DBA-owned decisions (`tier`, `postgres_version`, `database_flags`, `maintenance_window`, `backup_start_time`, `disk_size_gb`) are inputs, while settled posture (private-only `ip_configuration`, `ssl_mode = \"ENCRYPTED_ONLY\"`, enforced IAM auth flags) is fixed and the `environment` concept drives HA and backup retention.",
+          "[2] DBAs get the controls their discipline expects (`tier`, `postgres_version`, `database_flags`, `maintenance_window`, `backup_start_time`), while posture is fixed by the module (`ipv4_enabled = false`, `ssl_mode = \"ENCRYPTED_ONLY\"`, forced IAM auth) and HA and retention are inferred from `environment`."
+        ],
+        "Variables and validation": [
+          "[1] Inputs are guarded deliberately (environment, version, maintenance window, backup time, service-account suffix), but the `name` regex `^[a-z][a-z0-9-]{2,61}[a-z0-9]$` rejects valid short Cloud SQL instance names such as `db1`, and `iam_users` does not stop a service-account email from being created as a `CLOUD_IAM_USER`.",
+          "[1] Inputs are guarded deliberately (`environment`, `maintenance_window`, `backup_start_time`, `iam_service_accounts` suffix), but the `postgres_version` condition `contains([15, 16, 17], ...)` rejects versions Cloud SQL supports, such as 14 and 18, and the `name` regex rejects valid instance names shorter than 4 characters.",
+          "[1] Most inputs are guarded deliberately, but the `postgres_version` check `contains([15, 16, 17], ...)` rejects still-supported versions such as 14, and the `name` regex requires at least 4 characters, rejecting valid shorter Cloud SQL instance names."
+        ],
+        "Internal logic": [
+          "[2] Readable locals derive values from concept inputs: `is_prod` drives `retained_backups` and `availability_type`, `login_grants` builds the IAM pairs with `setproduct`, and `database_flags` uses an ordered `merge` that applies the enforced flags last.",
+          "[2] Locals derive `availability_type` and `retained_backups` from `is_prod`, build `login_grants` with a readable `setproduct`, and order the `database_flags` merge so the enforced flags win.",
+          "[2] Readable locals derive `is_prod`, `retained_backups`, the instance-scoped `login_grants` via `setproduct`, and a `database_flags` merge that applies the mandatory flags last."
+        ],
+        "Scope": [
+          "[2] Beyond the instance, the module creates the databases, the IAM database users, and instance-scoped `roles/cloudsql.instanceUser`/`roles/cloudsql.client` grants, and it sets connection logging, backups with PITR and query insights, all proportionate to the brief without gold-plating.",
+          "[2] The module creates the instance, databases, IAM database users for people and service accounts, and instance-scoped conditional `google_project_iam_member` login grants, plus private networking, TLS enforcement, backups with PITR and query insights, without gold-plating.",
+          "[2] The module creates the instance with private-only networking, backups/PITR and query insights, plus `google_sql_database`, IAM `google_sql_user` resources and condition-scoped `google_project_iam_member` grants, which is proportionate to a standard DBA PostgreSQL module."
+        ],
+        "Inline Resource Configuration vs Separate Resources": [
+          "[2] Databases, users and IAM bindings are separate resources (`google_sql_database`, `google_sql_user`, `google_project_iam_member`); the inline `database_flags` block has no separate-resource alternative.",
+          "[2] Databases, users and IAM grants are separate resources (`google_sql_database`, `google_sql_user`, `google_project_iam_member`), and `database_flags` is a settings block with no separate-resource alternative.",
+          "[2] Databases and users are separate `google_sql_database`/`google_sql_user` resources, and `database_flags` are inline-only settings on the instance."
+        ],
+        "Outputs": [
+          "[2] `instance_name`, `connection_name` and `private_ip_address` cover what connectors and the Auth Proxy need, without dumping every attribute.",
+          "[2] The module outputs `instance_name`, `connection_name` and `private_ip_address`, which are what connectors and applications need, without dumping every attribute.",
+          "[2] Outputs cover what consumers need to connect: `instance_name`, `connection_name` for the connectors/Auth Proxy, and `private_ip_address`."
+        ],
+        "Iteration: for_each vs count": [
+          "[2] All repeated resources (`google_sql_database.this`, `google_sql_user.iam`, `google_sql_user.iam_service_account`, `google_project_iam_member.sql_login`) use `for_each`, and `count` is never used.",
+          "[2] All multiplicity uses `for_each` (`google_sql_database.this`, `google_sql_user.iam`, `google_sql_user.iam_service_account`, `google_project_iam_member.sql_login`), and `count` is never used.",
+          "[2] Databases, both user types and the IAM grants all use `for_each` over sets or maps, and no `count` is used."
+        ],
+        "Data sources vs inputs": [
+          "[2] The private network is resolved with `data \"google_compute_network\" \"this\"` from `apps-${var.environment}` rather than being requested as a raw network ID input.",
+          "[2] The VPC is resolved authoritatively with `data \"google_compute_network\" \"this\"` from `apps-${var.environment}` rather than being requested as a raw network ID or self-link.",
+          "[2] The VPC is resolved authoritatively with `data \"google_compute_network\" \"this\"` from the environment name rather than being asked for as a raw network ID."
+        ],
+        "File layout": [
+          "[2] Resources, variables, outputs, provider and version constraints sit in `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`, and `main.tf` stays under the suggested length for a single concern.",
+          "[2] Code is split into `main.tf`, `variables.tf`, `outputs.tf`, `providers.tf` and `versions.tf`, and `main.tf` holds a single cohesive concern of moderate length.",
+          "[1] Variables, outputs, providers and versions have their own files, but `main.tf` mixes the instance with a distinct access concern (IAM users and project IAM grants) that would be better in a separate file."
+        ],
+        "Sensitive values": [
+          "[2] The module uses IAM authentication only and never creates, accepts or outputs a password, so there is no secret to mark sensitive.",
+          "[2] The module uses only `CLOUD_IAM_USER` and `CLOUD_IAM_SERVICE_ACCOUNT` users and enforces `cloudsql.iam_authentication`, so no password or secret is ever accepted, generated or output.",
+          "[2] The module uses IAM authentication only, so no password or other secret is accepted, stored or output."
+        ],
+        "Lifecycle meta-arguments": [
+          "[2] There are no `lifecycle` blocks; protection uses the native `deletion_protection`/`deletion_protection_enabled` attributes instead of `prevent_destroy`.",
+          "[2] No `lifecycle` blocks are used; protection relies on the native `deletion_protection` and `deletion_protection_enabled` attributes.",
+          "[2] There are no `lifecycle` blocks; protection uses the native `deletion_protection` and `deletion_protection_enabled` attributes."
+        ],
+        "Documentation": [
+          "[2] Every variable and output has an accurate description, and the comments explain the non-obvious points, such as the service-account suffix trimming, the ABANDON deletion policy, and why the security flags are merged last.",
+          "[2] Every variable and output has an accurate description, and comments explain the non-obvious points (flag merge order, the service-account name suffix trim, why both IAM roles are needed, `ABANDON` vs `DELETE` behaviour).",
+          "[2] Every variable and output has an accurate description, and comments explain non-obvious behavior such as the service-account name suffix trimming and the `deletion_policy` ABANDON semantics."
+        ],
+        "Deprecated and escape-hatch patterns": [
+          "[2] There is no `null_resource`, `local-exec` or deprecated resource form anywhere in the module.",
+          "[2] There are no `null_resource`, `local-exec` or deprecated resource forms anywhere in the module.",
+          "[2] There is no `null_resource`, no `local-exec`, and no deprecated resource forms."
+        ],
+        "Anti-patterns (immediate credibility loss)": [
+          "[2] No input can undo the security posture: the `local.database_flags` merge places `cloudsql.iam_authentication` and the connection-logging flags last, and `ipv4_enabled = false` is hardcoded.",
+          "[2] No input can weaken the established posture, because the enforced flags are merged after `var.database_flags`; resources are authored directly rather than via remote modules.",
+          "[2] `var.database_flags` is merged before the forced `cloudsql.iam_authentication`/logging flags, so no input can silently undo the security posture, and no remote module is called."
+        ]
+      },
+      "unparsed_sections": [],
+      "module_sha": "284465d3e2e25ce4",
+      "tf_sloc": 226
+    }
+  },
+  "calibration": {
+    "fixture": "G002",
+    "judge_model": "anthropic/claude-opus-5-5",
+    "method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)",
+    "cells": 112,
+    "agreement": 0.973,
+    "by_section": {
+      "Interface design": 0.875,
+      "Variables and validation": 1.0,
+      "Internal logic": 1.0,
+      "Scope": 1.0,
+      "Inline Resource Configuration vs Separate Resources": 1.0,
+      "Outputs": 1.0,
+      "Iteration: for_each vs count": 1.0,
+      "Data sources vs inputs": 1.0,
+      "File layout": 0.875,
+      "Sensitive values": 1.0,
+      "Lifecycle meta-arguments": 1.0,
+      "Documentation": 0.875,
+      "Deprecated and escape-hatch patterns": 1.0,
+      "Anti-patterns (immediate credibility loss)": 1.0
+    },
+    "misses": [
+      {
+        "module": "claude-sonnet-5-5",
+        "section": "Documentation",
+        "human": 0,
+        "judge": 2
+      },
+      {
+        "module": "claude-fable-5-1",
+        "section": "Interface design",
+        "human": 1,
+        "judge": 2
+      },
+      {
+        "module": "gpt-5.5-2026-04-23",
+        "section": "File layout",
+        "human": 1,
+        "judge": 2
+      }
+    ],
+    "unfilled": 0,
+    "failing_sections": []
+  },
+  "agreement": 0.973,
+  "agreement_method": "exact per-cell agreement with the doctrine owner's section grades (0/1/2)"
+}

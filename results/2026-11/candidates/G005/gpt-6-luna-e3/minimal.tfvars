@@ -1,0 +1,5 @@
+project_id             = "example-prod-123456"
+cluster_name           = "apps-prod-us-central1"
+region                 = "us-central1"
+network_name           = "apps-prod"
+master_ipv4_cidr_block = "172.16.0.0/28"

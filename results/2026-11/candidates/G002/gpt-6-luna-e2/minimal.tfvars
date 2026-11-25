@@ -1,0 +1,6 @@
+project_id    = "example-project"
+instance_name = "dba-sample-dev"
+region        = "us-central1"
+environment   = "dev"
+database_name = "app"
+tier          = "db-custom-2-7680"

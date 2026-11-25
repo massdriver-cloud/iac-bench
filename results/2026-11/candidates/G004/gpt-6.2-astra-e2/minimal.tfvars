@@ -1,0 +1,6 @@
+service                        = "checkout"
+primary_client_security_group  = "sg-0123456789abcdef0"
+recovery_client_security_group = "sg-0abcdef0123456789"
+application_role_name          = "checkout-prod"
+alarm_topic_primary            = "arn:aws:sns:us-east-1:123456789012:db-oncall"
+alarm_topic_recovery           = "arn:aws:sns:us-west-2:123456789012:db-oncall"

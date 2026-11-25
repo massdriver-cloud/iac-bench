@@ -66,6 +66,9 @@ Mechanics:
   reaches storage data planes with Entra ID (`ARM_STORAGE_USE_AZUREAD`), so a
   storage account with shared-key access disabled can be created. Whether the model writes its own provider
   block is a design choice, neither required nor punished mechanically.
+- `tofu` runs with the provider configuration variables (`AWS_*`, `GOOGLE_*`,
+  `ARM_*`), its own `TF_*` settings and basic process variables such as
+  `PATH` and `HOME`; nothing else from the harness environment reaches it.
 - `examples/` may be shipped as documentation (the judge reads source), but it
   is not part of the mechanical evidence chain.
 
@@ -105,8 +108,17 @@ references it makes and its expression tree. Static checks never evaluate
 expressions: `local.strict`, ternaries, `merge()` calls all arrive as `"${...}"`
 expression text. Tofu's evaluator is the only trustworthy one, and plan JSON is
 its output; the solver evaluates expression trees only to propose inputs for a
-plan to confirm (see Solve-then-confirm). So every
-check declares which lens it looks through, chosen by what the question is:
+plan to confirm (see Solve-then-confirm).
+
+The static lens reads the module as deployed: every local module it calls
+(`source = "./..."`) joins the root's source. The child's resources, data
+sources and locals appear under names prefixed with the call's label, each
+`var.<name>` inside them reads as the call's argument (or the child
+variable's default), and the child's variables, outputs and provider settings
+stay out, so interface checks see only the root's. Directories the module never
+calls, such as examples, are not read.
+
+So every check declares which lens it looks through, chosen by what the question is:
 
 - **Static HCL lens** (`hclq`, parsed source) — questions about *how the code
   is written*: is this attribute a hardcoded literal; is it fed by any
@@ -261,7 +273,8 @@ every fixture's items by the engine, with no per-fixture opt-out. Entries must
 be fixture-independent and use the static lens or a harness fact; they carry `B`-prefixed ids so
 reports keep rubric (`H*`), audience-fit (`A*`), baseline (`B*`), and
 expertise (`E*`) provenance legible, and they pool into the mechanical score
-at their declared weights.
+at their declared weights. A baseline `mandatory:` list joins every fixture's
+mandatory items.
 
 Rules that keep this from rotting:
 

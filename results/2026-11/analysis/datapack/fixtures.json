@@ -1,0 +1,1100 @@
+{
+ "G001": {
+  "brief": "# Request: a standard bucket module for our app teams\n\nOur application teams keep hand-rolling S3 buckets for the assets their applications store and work with \u2014 user uploads, images and videos, generated files, logs \u2014 and every one comes out slightly different and usually wrong somewhere. Build the reusable OpenTofu module that will become the standard way an app team gets a bucket for its application's assets. The people who will use it are application developers who don't know S3 well and shouldn't have to: they'll copy an example, fill in a couple of obvious inputs, and trust the module's judgment for everything else. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H3"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 18,
+    "posture": "hardcoded",
+    "description": "Privacy is a property, not a knob \u2014 a public access block exists with all four settings hardcoded true, its existence unconditional, and every planned instance stays fully enabled across the entire sweep."
+   },
+   {
+    "id": "H3",
+    "weight": 14,
+    "posture": "hardcoded",
+    "description": "Encryption at rest is a property, not a knob \u2014 configured unconditionally in the source (dedicated resource or inline), present in every reachable plan. Which algorithm is a design choice; whether to encrypt is not."
+   },
+   {
+    "id": "H6",
+    "weight": 6,
+    "posture": "reachable",
+    "description": "Lifecycle cost management volunteered \u2014 transition and/or expiration rules appear at defaults or under some documented input."
+   },
+   {
+    "id": "H7",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Noncurrent-version handling \u2014 expiration or transition for old object versions. (Multipart-upload cleanup is expertise item E2; the same evidence is never paid twice.)"
+   },
+   {
+    "id": "H8",
+    "weight": 5,
+    "posture": "reachable",
+    "description": "Versioning offered \u2014 enabled at defaults or under some input."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Server access logging offered \u2014 the mechanism (direct toggle or inferred from a generalized setting) is a design choice and not scored."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 consumers can influence the bucket's name (directly, as a prefix, or through a concept such as purpose). Naming is the one input every app team obviously has."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no encryption key is demanded. Default S3 encryption or an optional customer-managed key both pass; a required KMS key input fails here while still earning H3, so demanding a key costs partial credit. Disabling encryption is H3's failure, not this item's."
+   },
+   {
+    "id": "A3",
+    "weight": 1,
+    "posture": null,
+    "description": "Restraint \u2014 no input controls object ownership or ACLs."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no CDN or static-website architecture: no distribution, origin access control, or website configuration at defaults or under any documented input, and no bucket policy granting the CloudFront service. Distribution was never part of the request."
+   },
+   {
+    "id": "A5",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 8 or fewer inputs, falling linearly to zero at 16. This audience fills in \"a couple of obvious inputs\". A race to expose every setting in order to satisfy exposure checks is the failure this guards against: pass-through modules encode less expertise than tuned ones."
+   },
+   {
+    "id": "H12",
+    "weight": 2,
+    "posture": "ladder",
+    "description": "Consumers can add their own tags through an optional input. Full credit when that input feeds the provider's default_tags, so every resource is tagged by one setting; half credit when it is applied resource by resource, which every new resource must remember to repeat. Influence is detected syntactically (taint through locals). Demanding a required input for tags is scope invention, judged under Unstated assumptions."
+   },
+   {
+    "id": "H15",
+    "weight": 4,
+    "posture": null,
+    "description": "Explicit provider configuration with a configurable region \u2014 the module declares its aws provider block and an input feeds its region (a default is fine). A standalone module that relies on the implicit provider leaves the region to whatever environment runs it."
+   },
+   {
+    "id": "H13",
+    "weight": 4,
+    "posture": null,
+    "description": "Access logging actually works: some bucket policy's document grants the logging service permission to deliver. Checked in the policy expression (resolved through locals), not plan JSON \u2014 ARN-interpolating policies are unknown at plan time."
+   },
+   {
+    "id": "H14",
+    "weight": 3,
+    "posture": null,
+    "description": "force_destroy is accessible (per Destructive defaults) \u2014 some documented input influences it, directly or inferred from a concept such as environment. Hardcoded either way, or absent entirely, leaves the consumer no way out. Influence is detected syntactically (taint through locals) \u2014 a strong signal, not a semantics proof."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   },
+   {
+    "id": "B3_plans_required_only",
+    "weight": 5,
+    "posture": null,
+    "description": "The module plans with only its required inputs, every optional variable at its default. An optional variable whose default fails the plan (for example, its own validation rejects it) breaks every caller who leaves it out; it should be required. A module that plans only with every minimal.tfvars value is scored from that plan and fails this item."
+   },
+   {
+    "id": "B4_no_host_access",
+    "weight": 10,
+    "posture": null,
+    "description": "The module reads nothing from the machine that runs OpenTofu: no files under /proc, no external data source, no local-exec provisioner. Its behavior comes from its inputs and the cloud APIs. A module that reads the operator's process environment or runs programs on their machine can see every credential in that environment."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_ownership_controls",
+    "description": "BucketOwnerEnforced ownership controls (ACLs disabled)."
+   },
+   {
+    "id": "E2_multipart_cleanup",
+    "description": "Aborts incomplete multipart uploads (storage garbage collection)."
+   },
+   {
+    "id": "E4_tls_enforcement",
+    "description": "Bucket policy denies non-TLS (aws:SecureTransport) access."
+   },
+   {
+    "id": "E5_regional_domain_output",
+    "description": "Outputs bucket_regional_domain_name for downstream wiring."
+   },
+   {
+    "id": "E6_intelligent_tiering",
+    "description": "Uses or offers Intelligent-Tiering storage class awareness."
+   },
+   {
+    "id": "E7_name_uniqueness",
+    "description": "Bucket names include a uniqueness mechanism (random suffix, account id) seen through locals, or delegate to bucket_prefix \u2014 S3's namespace is global. Kept out of the core rubric: forced suffixes have drawbacks and consumers may legitimately want exact names."
+   },
+   {
+    "id": "E9_consumer_access_policies",
+    "description": "Ships ready-to-attach access policies for the bucket's consumers (read-only and/or read-write), as managed IAM policies or as policy documents exposed through outputs."
+   }
+  ],
+  "total_weight": 101
+ },
+ "G002": {
+  "brief": "# Request: a standard PostgreSQL module for the DBA team\n\nOur DBA team runs every PostgreSQL database on Cloud SQL, and today each instance is clicked together in the console, so no two are configured alike and nobody can say with confidence how any of them is set up. Build the reusable OpenTofu module the DBAs will use to stand up and manage those instances from now on. They know PostgreSQL and Cloud SQL deeply and expect to own the decisions that are genuinely theirs to make, but they don't want to re-decide, instance by instance, the things that should be the same everywhere. The applications that connect run on GKE and Compute Engine in our custom VPC networks, one per environment (`apps-dev`, `apps-staging` and `apps-prod`); the network team owns those networks and has already set up private services access on each. The instances go in the same Google Cloud project as those networks, and the Google provider is already configured for that project. Every engineer and every workload already has a Google identity, and the security team audits database access by those identities. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 14,
+    "posture": "hardcoded",
+    "description": "No public IP \u2014 the instance is reachable only on the private network. ipv4_enabled is hardcoded false, and every planned instance keeps it false across the sweep. Network reachability is never a knob, whoever the audience is."
+   },
+   {
+    "id": "H2",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "Encrypted connections are required on every planned instance. Every ssl_mode value the source can produce rejects unencrypted clients: a literal, or an input confined to such modes (a bool choosing between them, or a validation listing them), and no plan across the sweep accepts unencrypted clients. Choosing between encrypted-only and client certificates is a DBA decision; offering unencrypted connections is not."
+   },
+   {
+    "id": "H3",
+    "weight": 6,
+    "posture": "default_on",
+    "description": "Deletion protection ships on with a real opt-out \u2014 either the native API-level flag or the provider-level guard. Hardcoded on in either form leaves no way to retire an instance."
+   },
+   {
+    "id": "H4",
+    "weight": 6,
+    "posture": "default_on",
+    "description": "Automated backups ship on with a real opt-out (full credit); always-on with no opt-out earns partial credit \u2014 DBAs running throwaway instances lose the choice, but nothing is blocked. Hardcoded off or absent fails."
+   },
+   {
+    "id": "H5",
+    "weight": 4,
+    "posture": "default_on",
+    "description": "Point-in-time recovery ships on with a real opt-out (full credit); always-on earns partial credit \u2014 retained transaction logs bill as backup storage, so test instances legitimately turn it off. Hardcoded off or absent fails."
+   },
+   {
+    "id": "H6",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "High availability is offered \u2014 a regional (failover) instance appears at defaults or under some documented input."
+   },
+   {
+    "id": "H7",
+    "weight": 4,
+    "posture": null,
+    "description": "No raw credential input \u2014 no variable feeds an instance root password or a database user password. Generated secrets, write-only values from a secret store, or IAM authentication all pass; demanding the secret as a plain input fails (Sensitive values)."
+   },
+   {
+    "id": "H8",
+    "weight": 2,
+    "posture": null,
+    "description": "Consumers can add their own labels through an optional input that reaches the instance's user_labels. Cloud SQL instances keep labels inside settings and do not inherit the provider's default_labels, and nothing else this module creates carries labels, so user_labels is the setting that labels anything."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "ladder",
+    "description": "Explicit provider configuration with a configurable region. Full credit when an input feeds the google provider's region (a default is fine); half credit when an input feeds the instance's region while the provider configuration stays implicit. Neither leaves the region to whatever environment runs the module. The project is not scored: in GCP it conventionally travels with the credentials."
+   },
+   {
+    "id": "H10",
+    "weight": 4,
+    "posture": null,
+    "description": "No database password stored in state \u2014 no database user's password and no instance root password is set through an attribute OpenTofu records. IAM database authentication, or write-only passwords (password_wo, root_password_wo), pass; generated or supplied passwords written to the ordinary attributes land in state in plain text and fail."
+   },
+   {
+    "id": "H11",
+    "weight": 4,
+    "posture": "ladder",
+    "description": "Removing a database from the module's input does not drop its data by default. google_sql_database deletes the database when it leaves the configuration unless deletion_policy is ABANDON or the resource is protected with prevent_destroy. Full credit for a guard on by default with a real opt-out (deletion_policy chosen through an input); 0.75 for an always-on guard; nothing when databases are dropped on removal. A module that creates no databases has nothing to drop and passes."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 machine tier (sizing) is a DBA decision."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the PostgreSQL major version is a DBA decision."
+   },
+   {
+    "id": "A3",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 engine flags (database_flags) can be set per instance."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the maintenance window (day and/or hour) is controllable."
+   },
+   {
+    "id": "A5",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the backup schedule or retention (start time, retained backups, or transaction-log retention) is controllable."
+   },
+   {
+    "id": "A6",
+    "weight": 1,
+    "posture": null,
+    "description": "Exposure \u2014 storage sizing (disk size or autoresize limit) is controllable."
+   },
+   {
+    "id": "A7",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the VPC network the instance attaches to is an input (required or defaulted), directly or through a data-source lookup. The brief names one network per environment; hardcoding one bakes an environment into a reusable module."
+   },
+   {
+    "id": "A8",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 25 or fewer inputs, falling linearly to zero at 35. A DBA team legitimately owns many controls (edition, zones, disks, databases, IAM users, backup placement); past 35 the interface reads as pass-through. A race to expose every setting in order to satisfy exposure checks is the failure this guards against: pass-through modules encode less expertise than tuned ones."
+   },
+   {
+    "id": "A9",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no networking setup. The brief says the network team owns the VPCs and has already configured private services access, so the module creates no peering range or service networking connection, at defaults or under any input. Building networking turns a database module into a networking module the DBAs would then own."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   },
+   {
+    "id": "B3_plans_required_only",
+    "weight": 5,
+    "posture": null,
+    "description": "The module plans with only its required inputs, every optional variable at its default. An optional variable whose default fails the plan (for example, its own validation rejects it) breaks every caller who leaves it out; it should be required. A module that plans only with every minimal.tfvars value is scored from that plan and fails this item."
+   },
+   {
+    "id": "B4_no_host_access",
+    "weight": 10,
+    "posture": null,
+    "description": "The module reads nothing from the machine that runs OpenTofu: no files under /proc, no external data source, no local-exec provisioner. Its behavior comes from its inputs and the cloud APIs. A module that reads the operator's process environment or runs programs on their machine can see every credential in that environment."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_backups_survive_deletion",
+    "description": "Automated backups outlive the instance: retain_backups_on_delete or a final backup on deletion. Cloud SQL otherwise deletes them with it."
+   },
+   {
+    "id": "E2_customer_managed_key",
+    "description": "A customer-managed encryption key can be supplied (encryption_key_name). Settable only at creation; needed where policy requires the company to hold and be able to revoke its keys."
+   },
+   {
+    "id": "E3_iam_database_login",
+    "description": "IAM database authentication is enabled (the cloudsql.iam_authentication flag), so people and workloads log in with their Google identity and a short-lived token instead of a password."
+   },
+   {
+    "id": "E4_manages_databases",
+    "description": "The DBAs can declare the instance's databases through an input. Managing databases is a core DBA responsibility."
+   },
+   {
+    "id": "E5_manages_users",
+    "description": "The DBAs can declare the instance's database users (IAM or built-in) through an input. Managing users is a core DBA responsibility."
+   },
+   {
+    "id": "E6_iam_login_granted",
+    "description": "The IAM principals given database users are also granted roles/cloudsql.instanceUser. Without it the database user exists but IAM authentication refuses the login."
+   },
+   {
+    "id": "E7_workload_identities",
+    "description": "Workload service accounts can be given database logins (CLOUD_IAM_SERVICE_ACCOUNT users), not only people. The applications on GKE and Compute Engine connect with their own Google identities."
+   },
+   {
+    "id": "E8_connection_audit_trail",
+    "description": "Connections and disconnections are logged (log_connections and log_disconnections), so every session is recorded under the identity that opened it for the security team's audit."
+   },
+   {
+    "id": "E9_query_insights",
+    "description": "Query Insights is enabled, giving the DBAs per-query load, latency and plan history in the console without running their own tooling."
+   }
+  ],
+  "total_weight": 107
+ },
+ "G003": {
+  "brief": "# Request: a standard App Service module for the SRE team\n\nOur SRE team operates the web services our product teams build, mostly containerized HTTP APIs, and we're consolidating them onto Azure App Service with one standard module instead of a pile of hand-built apps. The SREs will use this module to deploy and run each service. They know Azure well and think in terms of capacity, availability, health, rollouts, and observability, but they don't want to hand-tune App Service internals for every app. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "HTTPS only \u2014 plain-HTTP requests are redirected, hardcoded on every web app and deployment slot and present across the sweep. The provider default is off."
+   },
+   {
+    "id": "H2",
+    "weight": 8,
+    "posture": "hardcoded",
+    "description": "Basic-auth publishing is disabled on every web app and deployment slot \u2014 neither FTP nor Web Deploy accepts the shared publishing credentials. Both default to ON in the provider."
+   },
+   {
+    "id": "H3",
+    "weight": 6,
+    "posture": null,
+    "description": "Transport stays strong \u2014 TLS for the site and the deployment (SCM) endpoint is 1.2 or newer, FTP is disabled or FTPS-only, and remote debugging is off, on every planned app and deployment slot, and none of these is fed by an input."
+   },
+   {
+    "id": "H4",
+    "weight": 4,
+    "posture": "hardcoded",
+    "description": "A managed identity is attached unconditionally, so the app can reach other Azure services without stored credentials."
+   },
+   {
+    "id": "H5",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Health checks are offered \u2014 a health-check path is configured at defaults or under some documented input, so unhealthy instances are taken out of rotation."
+   },
+   {
+    "id": "H6",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Observability is offered \u2014 diagnostic settings or Application Insights appear at defaults or under some documented input."
+   },
+   {
+    "id": "H7",
+    "weight": 3,
+    "posture": "reachable",
+    "description": "Redundancy is offered \u2014 zone balancing on the service plan appears at defaults or under some documented input, including inputs the module requires together (zone balancing with enough instances)."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Rollouts are offered \u2014 a deployment slot (azurerm_linux_web_app_slot) is declared, at defaults or behind an input, so a release can be staged, warmed and swapped into production instead of replacing the running app in place."
+   },
+   {
+    "id": "H8",
+    "weight": 2,
+    "posture": null,
+    "description": "Tagging support is table stakes \u2014 consumers can add their own tags to the web app through an optional input."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the plan size (SKU) is an SRE capacity decision."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 instance count or autoscale bounds are controllable."
+   },
+   {
+    "id": "A3",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the health-check path is set per service."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 which container image runs is set per service."
+   },
+   {
+    "id": "A5",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 application settings (environment) can be supplied."
+   },
+   {
+    "id": "A6",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no input for App Service worker internals (32-bit worker, HTTP/2, load-balancing mode, in-app MySQL). The brief's audience explicitly doesn't want to hand-tune these."
+   },
+   {
+    "id": "A7",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 20 or fewer inputs, falling linearly to zero at 30. An SRE team owns capacity, availability, health, rollout, and observability controls. A race to expose every setting in order to satisfy exposure checks is the failure this guards against: pass-through modules encode less expertise than tuned ones."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   },
+   {
+    "id": "B3_plans_required_only",
+    "weight": 5,
+    "posture": null,
+    "description": "The module plans with only its required inputs, every optional variable at its default. An optional variable whose default fails the plan (for example, its own validation rejects it) breaks every caller who leaves it out; it should be required. A module that plans only with every minimal.tfvars value is scored from that plan and fails this item."
+   },
+   {
+    "id": "B4_no_host_access",
+    "weight": 10,
+    "posture": null,
+    "description": "The module reads nothing from the machine that runs OpenTofu: no files under /proc, no external data source, no local-exec provisioner. Its behavior comes from its inputs and the cloud APIs. A module that reads the operator's process environment or runs programs on their machine can see every credential in that environment."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_autoscale_rules",
+    "description": "Capacity follows load: an autoscale setting scales the plan between bounds instead of a fixed instance count."
+   },
+   {
+    "id": "E2_container_port",
+    "description": "The container's listening port reaches App Service (WEBSITES_PORT), so images that don't listen on port 80 receive traffic and pass health checks."
+   },
+   {
+    "id": "E3_metric_alerts",
+    "description": "Metric alerts are defined (for example 5xx rate, response time or health-check status), so the SREs are paged on symptoms rather than discovering them in dashboards."
+   },
+   {
+    "id": "E4_registry_pull_identity",
+    "description": "Images are pulled from the container registry with the app's managed identity (container_registry_use_managed_identity), so no registry password is stored in app settings."
+   },
+   {
+    "id": "E5_key_vault_references",
+    "description": "Secrets reach the app as Key Vault references in app settings (@Microsoft.KeyVault(...)), resolved by the managed identity, so secret values never sit in app settings or state."
+   }
+  ],
+  "total_weight": 87
+ },
+ "G004": {
+  "brief": "# Request: a standard Aurora PostgreSQL module for production databases\n\nOur platform team provisions the PostgreSQL databases behind our customer-facing services, and we're moving the ones that matter most onto Aurora. Today each of those databases lives in a single region, and the last regional outage took checkout down for most of an afternoon. Build the reusable OpenTofu module the platform team will use to stand up these production databases from now on. The business has set the bar: if an AWS region fails, a service's database must be serving again from another region within minutes, having lost no more than a few seconds of writes. Our services run on EKS in two US AWS regions and reach AWS through IAM roles; in each region the network team owns one VPC per environment (`apps-staging` and `apps-prod`) and has already created private database subnets in each, tagged `tier = database`. These databases hold customer and payment data. The platform engineers know AWS well but aren't database specialists: they'll fill in what's specific to each service and trust the module for the rest. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2",
+   "H3",
+   "H4"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "Storage encryption is on for every cluster, and no input can turn it off. Customer and payment data is encrypted at rest whoever runs the module."
+   },
+   {
+    "id": "H2",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "No instance is publicly accessible, at defaults or under any input, and no variable feeds publicly_accessible. Network reachability is never a knob. The module sets it false itself: left unset, AWS decides at creation from the subnets' routes, and plan cannot say which."
+   },
+   {
+    "id": "H3",
+    "weight": 8,
+    "posture": "hardcoded",
+    "description": "Encrypted connections are required. Either every cluster parameter group sets rds.force_ssl to 1 in every plan and every cluster names a parameter group, or every cluster runs Aurora PostgreSQL 17 or later (where rds.force_ssl defaults on) and no parameter group turns it off."
+   },
+   {
+    "id": "H4",
+    "weight": 8,
+    "posture": "hardcoded",
+    "description": "No ingress from the whole internet (0.0.0.0/0 or ::/0) in any security group or rule the module creates, at defaults or under any input."
+   },
+   {
+    "id": "H5",
+    "weight": 14,
+    "posture": null,
+    "description": "An Aurora global database: an aws_rds_global_cluster whose member clusters sit in two different regions at defaults. A cross-region read replica or snapshot copy cannot fail over within minutes with seconds of data loss; a global database can."
+   },
+   {
+    "id": "H6",
+    "weight": 6,
+    "posture": null,
+    "description": "The standby region has instances at defaults, so it can take writes within minutes. A headless secondary must first have an instance created and started after the region fails."
+   },
+   {
+    "id": "H7",
+    "weight": 4,
+    "posture": null,
+    "description": "At least three instances at defaults across the two regions, so a region holds a writer and a reader in different availability zones."
+   },
+   {
+    "id": "H8",
+    "weight": 6,
+    "posture": null,
+    "description": "Every cluster names a KMS key (kms_key_id), never null: a customer-managed key in each region. A secondary without one also fails at apply (F2)."
+   },
+   {
+    "id": "H9",
+    "weight": 6,
+    "posture": "ladder",
+    "description": "The master password is never a raw input, never managed by Secrets Manager on a member cluster (Aurora does not support that for global databases, and plan cannot see it), and, for full credit, never stored in state: a write-only password (master_password_wo) generated by the module. A generated password written to master_password lands in state and earns half credit."
+   },
+   {
+    "id": "H10",
+    "weight": 4,
+    "posture": null,
+    "description": "IAM database authentication is on for every cluster at defaults. The services already reach AWS through IAM roles, so database access can use the same identities instead of shared passwords."
+   },
+   {
+    "id": "H11",
+    "weight": 6,
+    "posture": "default_on",
+    "description": "Deletion protection ships on, on the clusters or the global cluster. Full credit with a real opt-out; 0.75 when hardcoded on, which protects the production database but means OpenTofu can never retire it, even intentionally, without editing the module."
+   },
+   {
+    "id": "H12",
+    "weight": 4,
+    "posture": "ladder",
+    "description": "Destroying a cluster takes a final snapshot: skip_final_snapshot is false on every cluster at defaults and a final_snapshot_identifier is set. Full credit with an opt-out (an input feeds skip_final_snapshot); 0.75 when always on."
+   },
+   {
+    "id": "H13",
+    "weight": 4,
+    "posture": null,
+    "description": "Every cluster keeps at least seven days of automated backups at defaults. The provider's default is one day."
+   },
+   {
+    "id": "H14",
+    "weight": 4,
+    "posture": null,
+    "description": "Every cluster exports its PostgreSQL log to CloudWatch at defaults, so the record of activity on a database holding payment data outlives the instance."
+   },
+   {
+    "id": "H15",
+    "weight": 4,
+    "posture": null,
+    "description": "The regions are inputs: a variable feeds a provider configuration's region (or a resource's region argument). The brief names no region, and the module serves services in different region pairs."
+   },
+   {
+    "id": "H17",
+    "weight": 6,
+    "posture": null,
+    "description": "The engine version the module ships as its default is one AWS offers for Aurora global databases, so a platform engineer who keeps the default gets a database that deploys. A required version input passes: the caller chooses it. The list is the edition's snapshot of describe-db-engine-versions (Aurora PostgreSQL, SupportsGlobalDatabases, status available, in all four US regions, Limitless versions excluded), taken 2026-11-17; a new edition refreshes it."
+   },
+   {
+    "id": "H16",
+    "weight": 2,
+    "posture": null,
+    "description": "Consumers can add their own tags through an optional input, via the provider's default_tags or the clusters' tags."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the instance class (sizing) is set per service."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the network is an input, directly (subnet IDs) or through a lookup keyed by a variable such as the environment. The brief names one VPC per environment; hardcoding one bakes an environment into the module."
+   },
+   {
+    "id": "A3",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 which clients may connect is an input: source security groups or CIDRs on an ingress rule, or the security groups attached to the clusters."
+   },
+   {
+    "id": "A4",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no networking setup. The network team owns the VPCs and subnets, so the module creates no VPC, subnet, internet gateway or NAT gateway, at defaults or under any input."
+   },
+   {
+    "id": "A5",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 12 or fewer inputs, falling linearly to zero at 22. The audience is not database specialists; a module that hands them every Aurora setting has made none of the decisions they trust it to make."
+   },
+   {
+    "id": "A6",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the engine version is set per database, so a service can choose its PostgreSQL version and upgrade it through the module."
+   },
+   {
+    "id": "A7",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the number of instances is set per database, so a service sizes its readers to its load."
+   },
+   {
+    "id": "A8",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 automated backup retention is set per database, since the retention a service's data requires varies by service."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   },
+   {
+    "id": "B3_plans_required_only",
+    "weight": 5,
+    "posture": null,
+    "description": "The module plans with only its required inputs, every optional variable at its default. An optional variable whose default fails the plan (for example, its own validation rejects it) breaks every caller who leaves it out; it should be required. A module that plans only with every minimal.tfvars value is scored from that plan and fails this item."
+   },
+   {
+    "id": "B4_no_host_access",
+    "weight": 10,
+    "posture": null,
+    "description": "The module reads nothing from the machine that runs OpenTofu: no files under /proc, no external data source, no local-exec provisioner. Its behavior comes from its inputs and the cloud APIs. A module that reads the operator's process environment or runs programs on their machine can see every credential in that environment."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_pgaudit",
+    "description": "pgaudit is loaded (shared_preload_libraries), giving a statement-level audit trail of who changed what, the record payment-data compliance expects."
+   },
+   {
+    "id": "E2_connection_logging",
+    "description": "Connections and disconnections are logged (log_connections and log_disconnections), so every session is recorded."
+   },
+   {
+    "id": "E3_performance_insights",
+    "description": "Performance Insights or Database Insights is on, giving per-query load and wait analysis without the team running its own tooling."
+   },
+   {
+    "id": "E4_enhanced_monitoring",
+    "description": "Enhanced monitoring is on (a monitoring interval above zero), giving OS-level metrics at second-level granularity."
+   },
+   {
+    "id": "E5_snapshot_tags",
+    "description": "Snapshots carry the cluster's tags (copy_tags_to_snapshot), so cost and ownership tags survive into backups."
+   },
+   {
+    "id": "E6_global_writer_endpoint",
+    "description": "An output exposes the global writer endpoint, which follows the primary through a failover, so services need no endpoint change."
+   },
+   {
+    "id": "E8_engine_version_lookup",
+    "description": "The engine version is resolved through an aws_rds_engine_version data source, so a version AWS does not offer fails at plan instead of partway through an apply."
+   },
+   {
+    "id": "E7_member_versions_follow_global",
+    "description": "Member clusters ignore engine_version changes (lifecycle ignore_changes), so a version upgraded through the global cluster does not make every later plan try to downgrade the members."
+   }
+  ],
+  "total_weight": 150
+ },
+ "G005": {
+  "brief": "# Request: a GKE Standard module for production clusters\n\nOur platform team runs the Kubernetes clusters our product teams deploy to, and we're replacing a handful of hand-built clusters with one standard module that every new cluster comes from. Build the reusable OpenTofu module the platform team will use to create and operate these clusters, all GKE Standard, from now on. Each cluster is shared by several product teams and runs production workloads, so the clusters need to be resilient and secure. Those workloads use other Google Cloud services, such as Pub/Sub, Cloud Storage and Cloud SQL. The network team owns one VPC per environment (`apps-staging` and `apps-prod`) and has already created a subnet for GKE in each of our US regions, named `<vpc>-gke-<region>`, with secondary ranges named `pods` and `services`. The clusters go in the same Google Cloud project as those VPCs. The platform team is small: its engineers know Kubernetes well but aren't GKE specialists, they'll fill in what's specific to each cluster, and they'll trust the module for the rest. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2",
+   "H4",
+   "H5"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 12,
+    "posture": null,
+    "description": "The cluster is regional: its location at defaults is a region, so the control plane and nodes are replicated across the region's zones. A zonal cluster loses its control plane during upgrades and its nodes in a zone outage, which a shared production cluster cannot accept."
+   },
+   {
+    "id": "H2",
+    "weight": 10,
+    "posture": "hardcoded",
+    "description": "Nodes have no public IP addresses, and no input can give them one. Private nodes at the cluster (private_cluster_config) or on every node pool (network_config) both pass; across the sweep, no planned cluster or pool has public nodes."
+   },
+   {
+    "id": "H3",
+    "weight": 8,
+    "posture": null,
+    "description": "The control plane is not open to the internet at defaults: its IP endpoint is private, disabled in favour of the IAM-authenticated DNS endpoint, or restricted by authorized networks that do not include 0.0.0.0/0."
+   },
+   {
+    "id": "H4",
+    "weight": 12,
+    "posture": null,
+    "description": "Workload Identity is on for every planned cluster, so workloads reach Pub/Sub, Cloud Storage and Cloud SQL with their own identities instead of the node's credentials or exported keys, and no node pool turns the GKE metadata server off (GCE_METADATA exposes the node's credentials to every pod on it)."
+   },
+   {
+    "id": "H5",
+    "weight": 10,
+    "posture": null,
+    "description": "Nodes run as a dedicated service account, not the Compute Engine default account (which holds Editor on the project), and the module grants no identity a basic role (Owner, Editor). Every node pool's service_account is set from a service account the module creates or one passed in; read from the source, since an account's email is often unknown at plan. Across the sweep no node pool plans the default account and no IAM grant plans a basic role."
+   },
+   {
+    "id": "H6",
+    "weight": 4,
+    "posture": null,
+    "description": "Node pools are managed as their own resources: the cluster has no default node pool (removed, or never created because initial_node_count is 0) and at least one google_container_node_pool is planned, so changing or replacing a pool never recreates the cluster. A cluster with no default pool needs Kubernetes 1.36 or later (F1)."
+   },
+   {
+    "id": "H7",
+    "weight": 3,
+    "posture": null,
+    "description": "A maintenance window is set at defaults, so automatic upgrades of a cluster several teams share happen when the platform team expects them, not at any hour."
+   },
+   {
+    "id": "H8",
+    "weight": 4,
+    "posture": null,
+    "description": "Nodes boot verified: every node pool enables secure boot, and no cluster turns shielded nodes off."
+   },
+   {
+    "id": "H9",
+    "weight": 3,
+    "posture": null,
+    "description": "Kubernetes Secrets can be encrypted with a customer-managed Cloud KMS key (application-layer secrets encryption), settable at creation without a rebuild later, so etcd secrets are readable only through a key the platform team controls. An input that feeds database_encryption's key passes: the key, and access to it, belong to whoever supplies it. A module that encrypts with a key of its own choosing at defaults owns the key's access too: the key works only once the GKE service agent (service-<number>@container-engine-robot.iam.gserviceaccount.com) holds roles/cloudkms.cryptoKeyEncrypterDecrypter on it, and without that GKE rejects the create with 400, so the module must grant it."
+   },
+   {
+    "id": "H10",
+    "weight": 6,
+    "posture": null,
+    "description": "Kubernetes NetworkPolicy is enforced at defaults, so product teams sharing the cluster can isolate their workloads from each other: Dataplane V2 (ADVANCED_DATAPATH) or Calico network policy."
+   },
+   {
+    "id": "H11",
+    "weight": 4,
+    "posture": "default_on",
+    "description": "Deletion protection ships on with a real opt-out. Left unset, the provider's deletion_protection defaults on; that, like a hardcoded true, earns partial credit, since the brief describes production clusters several teams depend on and retiring one is rare."
+   },
+   {
+    "id": "H12",
+    "weight": 2,
+    "posture": "hardcoded",
+    "description": "No legacy authentication can be switched on: no input feeds legacy ABAC or client-certificate issuance, and neither is on at defaults. Access goes through IAM and RBAC, where every request is tied to an identity."
+   },
+   {
+    "id": "H13",
+    "weight": 4,
+    "posture": null,
+    "description": "Node capacity scales with demand: every node pool autoscales at defaults. Several teams' workloads come and go on a shared cluster."
+   },
+   {
+    "id": "H14",
+    "weight": 6,
+    "posture": null,
+    "description": "The module's default Kubernetes version can be created. Left unset, the release channel picks a supported version; a pinned min_master_version or node pool version must be one GKE offers in every US region (or a prefix of one, or \"latest\"). Snapshot of validMasterVersions, intersected across the nine US regions, taken 2026-11-17 for this edition; a new edition refreshes it."
+   },
+   {
+    "id": "H15",
+    "weight": 6,
+    "posture": null,
+    "description": "Pods and services take their addresses from the secondary ranges the network team created: ip_allocation_policy names both ranges at defaults. Otherwise GKE carves new ranges out of a subnet the module does not own."
+   },
+   {
+    "id": "H16",
+    "weight": 4,
+    "posture": null,
+    "description": "Every cluster the module creates can sit beside the others in its VPC: the control plane's private range is not a fixed default. Leaving master_ipv4_cidr_block unset (GKE then reaches the control plane over Private Service Connect) or requiring it per cluster both pass; a literal CIDR, hardcoded or as an input's default, gives every cluster in a network the same range, and the second one fails to create."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the cluster's region is an input: the brief has a GKE subnet in every US region. An input feeding the cluster's location or the provider's region passes."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the environment's network and subnet are inputs, directly or through a data-source lookup. Hardcoding one bakes an environment into a reusable module."
+   },
+   {
+    "id": "A3",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 node machine types are chosen per cluster: an input feeds the node pools' machine_type."
+   },
+   {
+    "id": "A4",
+    "weight": 1,
+    "posture": null,
+    "description": "Consumers can add their own labels, reaching the cluster through its resource_labels or the provider's default_labels."
+   },
+   {
+    "id": "A5",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 11 or fewer inputs, falling linearly to zero at 21. The platform engineers are not GKE specialists and trust the module for everything not specific to a cluster; every input is a GKE decision handed back to them."
+   },
+   {
+    "id": "A6",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no networking. The network team owns the VPCs and their subnets, so the module creates no network, subnet, router or Cloud NAT at defaults or under any input."
+   },
+   {
+    "id": "A7",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 node pool autoscaling limits are set per cluster: inputs feed both the minimum and the maximum node count."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   },
+   {
+    "id": "B3_plans_required_only",
+    "weight": 5,
+    "posture": null,
+    "description": "The module plans with only its required inputs, every optional variable at its default. An optional variable whose default fails the plan (for example, its own validation rejects it) breaks every caller who leaves it out; it should be required. A module that plans only with every minimal.tfvars value is scored from that plan and fails this item."
+   },
+   {
+    "id": "B4_no_host_access",
+    "weight": 10,
+    "posture": null,
+    "description": "The module reads nothing from the machine that runs OpenTofu: no files under /proc, no external data source, no local-exec provisioner. Its behavior comes from its inputs and the cloud APIs. A module that reads the operator's process environment or runs programs on their machine can see every credential in that environment."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_release_channel",
+    "description": "The cluster is enrolled in the REGULAR or STABLE release channel explicitly, so upgrades follow a known cadence rather than whatever the API picks."
+   },
+   {
+    "id": "E2_google_groups_rbac",
+    "description": "Google Groups for RBAC (authenticator_groups_config) can be enabled, so teams are bound to namespaces by group and Cloud Audit Logs names the person, not a shared credential."
+   },
+   {
+    "id": "E3_vulnerability_scanning",
+    "description": "GKE security posture scans workloads for vulnerabilities (security_posture_config vulnerability_mode set explicitly)."
+   },
+   {
+    "id": "E4_cost_allocation",
+    "description": "GKE cost allocation is on, so a cluster shared by several teams bills back by namespace and label."
+   },
+   {
+    "id": "E5_surge_upgrades",
+    "description": "Node pool upgrades add capacity before draining (max_unavailable 0) or run blue-green, so upgrades do not shrink a shared cluster."
+   },
+   {
+    "id": "E6_apiserver_logs",
+    "description": "Control-plane API server logs go to Cloud Logging (logging_config enable_components includes APISERVER)."
+   },
+   {
+    "id": "E7_managed_prometheus",
+    "description": "Google Cloud Managed Service for Prometheus is enabled, giving product teams metrics without running their own Prometheus."
+   },
+   {
+    "id": "E8_dns_endpoint",
+    "description": "The control plane's DNS-based endpoint is enabled: kubectl access authenticated by IAM from anywhere, with no bastion or authorized IP list to maintain."
+   },
+   {
+    "id": "E9_node_sa_minimal_role",
+    "description": "The node service account gets the purpose-built roles/container.defaultNodeServiceAccount (or only the logging, monitoring and Artifact Registry reader roles), nothing broader."
+   },
+   {
+    "id": "E10_release_channel_input",
+    "description": "The release channel is an input, so the platform team can put a cluster on the cadence its workloads need."
+   }
+  ],
+  "total_weight": 139
+ },
+ "G006": {
+  "brief": "# Request: a standard storage account module for our app teams\n\nOur application teams create Azure storage accounts by hand for the files their applications store and work with, such as user uploads, images and videos, and generated reports and exports, and every account comes out a little different. Build the reusable OpenTofu module that will become the standard way an app team gets storage for its application. The applications run on AKS and App Service, and every application already has its own identity in our Entra ID tenant. Each application already has its own resource group in each environment, such as `orders-staging` and `orders-prod`, and an application's storage belongs in its resource group. The people who will use the module are application developers who don't know Azure Storage well and shouldn't have to: they'll copy an example, fill in a couple of obvious inputs, and trust the module's judgment for everything else. You own every design decision the module makes.\n",
+  "mandatory": [
+   "H1",
+   "H2"
+  ],
+  "items": [
+   {
+    "id": "H1",
+    "weight": 14,
+    "posture": "hardcoded",
+    "description": "No blob can be made public. allow_nested_items_to_be_public is set false and no input can turn it on; the provider default is true, so leaving it unset fails. User uploads must never be one container setting away from the internet."
+   },
+   {
+    "id": "H2",
+    "weight": 14,
+    "posture": "hardcoded",
+    "description": "Access goes through Entra ID, not account keys: shared_access_key_enabled is false and no input can turn it on. Every application already has an Entra ID identity; an account key is a credential that grants everything, never expires on its own, and names nobody in the logs."
+   },
+   {
+    "id": "H3",
+    "weight": 6,
+    "posture": null,
+    "description": "Applications get access through their identities: the module grants a Storage Blob Data role (azurerm_role_assignment) to principals it is given. Without it, an account with keys disabled is unusable until someone outside the module grants access. The role name is read from the role assignment, or from the module's code when the assignment takes it from a locals map."
+   },
+   {
+    "id": "H4",
+    "weight": 6,
+    "posture": null,
+    "description": "Deleted data can be recovered at defaults: blob soft delete and container soft delete are both on, for at least 7 days. An application bug or a mistaken delete otherwise destroys customer files permanently."
+   },
+   {
+    "id": "H5",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Blob versioning offered: enabled at defaults or under some input, so an overwritten file can be restored."
+   },
+   {
+    "id": "H6",
+    "weight": 4,
+    "posture": "hardcoded",
+    "description": "Transport stays encrypted: no input can lower the minimum TLS version below 1.2 or allow plain HTTP, and every plan keeps both."
+   },
+   {
+    "id": "H7",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Blob access logs offered: a diagnostic setting on the account's blob service sends read, write and delete logs somewhere, at defaults or under some input, so every read of an application's files can be traced to an identity."
+   },
+   {
+    "id": "H8",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Redundancy beyond one datacenter offered: zone or geo redundancy (ZRS, GZRS, GRS and their read-access variants) at defaults or under some input, such as an environment."
+   },
+   {
+    "id": "H9",
+    "weight": 4,
+    "posture": "reachable",
+    "description": "Lifecycle cost management offered: a management policy tiers or expires blobs, at defaults or under some input. Generated reports and exports pile up."
+   },
+   {
+    "id": "H10",
+    "weight": 2,
+    "posture": "hardcoded",
+    "description": "Data cannot be replicated out to another tenant: cross-tenant replication is never on, and no input can turn it on."
+   },
+   {
+    "id": "A1",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 consumers influence the account's name (directly, as a prefix, or through the application's name). Naming is the one input every app team obviously has."
+   },
+   {
+    "id": "A2",
+    "weight": 2,
+    "posture": null,
+    "description": "Restraint \u2014 no encryption key demanded. Microsoft-managed keys or an optional customer-managed key both pass; a required key input fails."
+   },
+   {
+    "id": "A3",
+    "weight": 1,
+    "posture": null,
+    "description": "Restraint \u2014 no input for the account's kind or performance tier. Those are Azure Storage internals this audience should not be asked about."
+   },
+   {
+    "id": "A4",
+    "weight": 8,
+    "posture": "budget",
+    "description": "Interface budget \u2014 full credit at 9 or fewer inputs, falling linearly to zero at 17. This audience fills in a couple of obvious inputs; every other input is an Azure Storage decision handed back to them."
+   },
+   {
+    "id": "A5",
+    "weight": 1,
+    "posture": null,
+    "description": "Consumers can add their own tags through an optional input that reaches the account."
+   },
+   {
+    "id": "A6",
+    "weight": 2,
+    "posture": null,
+    "description": "Exposure \u2014 the application's containers are an input, so each app gets the containers it stores its files in."
+   },
+   {
+    "id": "B1_provider_constraints",
+    "weight": 5,
+    "posture": null,
+    "description": "required_providers declared with constraints that cannot admit a new major version (~>, an upper bound, or a pin) \u2014 an unconstrained provider is broken, not a style choice."
+   },
+   {
+    "id": "B2_descriptions",
+    "weight": 2,
+    "posture": null,
+    "description": "Every variable and output carries a description."
+   },
+   {
+    "id": "B3_plans_required_only",
+    "weight": 5,
+    "posture": null,
+    "description": "The module plans with only its required inputs, every optional variable at its default. An optional variable whose default fails the plan (for example, its own validation rejects it) breaks every caller who leaves it out; it should be required. A module that plans only with every minimal.tfvars value is scored from that plan and fails this item."
+   },
+   {
+    "id": "B4_no_host_access",
+    "weight": 10,
+    "posture": null,
+    "description": "The module reads nothing from the machine that runs OpenTofu: no files under /proc, no external data source, no local-exec provisioner. Its behavior comes from its inputs and the cloud APIs. A module that reads the operator's process environment or runs programs on their machine can see every credential in that environment."
+   }
+  ],
+  "expertise": [
+   {
+    "id": "E1_infrastructure_encryption",
+    "description": "Infrastructure encryption is on (a second layer of encryption at rest). It can only be set when the account is created."
+   },
+   {
+    "id": "E2_oauth_default",
+    "description": "The portal defaults to Entra ID authorization for this account (default_to_oauth_authentication), so people browsing it use their own identities."
+   },
+   {
+    "id": "E3_entra_provider_documented",
+    "description": "With shared keys disabled, the module documents that the azurerm provider must reach storage with Entra ID (storage_use_azuread or ARM_STORAGE_USE_AZUREAD); without it, creating the account fails with 403 KeyBasedAuthenticationNotPermitted."
+   },
+   {
+    "id": "E4_name_uniqueness",
+    "description": "The module makes the account name valid and globally unique (a random or derived suffix, lowercased and trimmed to fit). Storage account names are global, 3 to 24 lowercase letters and digits."
+   },
+   {
+    "id": "E5_point_in_time_restore",
+    "description": "Point-in-time restore or the change feed is on, so a container can be rolled back after bulk corruption."
+   },
+   {
+    "id": "E6_delete_lock",
+    "description": "A CanNotDelete management lock protects the account, at defaults or under some input."
+   },
+   {
+    "id": "E7_location_from_resource_group",
+    "description": "The account's location comes from its resource group (a data source lookup), so it lands beside the application's other resources."
+   },
+   {
+    "id": "E8_local_users_off",
+    "description": "Local users (SFTP accounts outside Entra ID) are disabled (local_user_enabled false)."
+   }
+  ],
+  "total_weight": 100
+ }
+}

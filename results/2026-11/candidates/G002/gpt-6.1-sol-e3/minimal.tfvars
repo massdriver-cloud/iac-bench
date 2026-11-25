@@ -1,0 +1,6 @@
+project_id        = "dba-platform-dev"
+region            = "us-central1"
+instance_name     = "postgres-dev"
+network_self_link = "https://www.googleapis.com/compute/v1/projects/dba-platform-dev/global/networks/apps-dev"
+postgres_version  = "POSTGRES_17"
+tier              = "db-custom-1-3840"

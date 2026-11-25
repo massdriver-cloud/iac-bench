@@ -1,0 +1,5 @@
+project_id         = "apps-platform-prod"
+name               = "apps-prod-us1"
+environment        = "prod"
+region             = "us-central1"
+control_plane_cidr = "172.16.0.0/28"

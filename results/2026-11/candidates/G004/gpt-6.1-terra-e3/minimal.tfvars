@@ -1,0 +1,9 @@
+service_name                        = "checkout"
+environment                         = "staging"
+primary_region                      = "us-east-1"
+secondary_region                    = "us-west-2"
+primary_client_security_group_ids   = ["sg-0123456789abcdef0"]
+secondary_client_security_group_ids = ["sg-0123456789abcdef1"]
+database_name                       = "checkout"
+secondary_alarm_topic_arns          = ["arn:aws:sns:us-west-2:123456789012:database-alerts"]
+master_password                     = "ExampleOnlyChangeThisPassword987654321"

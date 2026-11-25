@@ -1,0 +1,20 @@
+terraform {
+  required_version = ">= 1.6.0"
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 4.0.0, < 6.0.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  storage_use_azuread = true
+
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = true
+    }
+  }
+}

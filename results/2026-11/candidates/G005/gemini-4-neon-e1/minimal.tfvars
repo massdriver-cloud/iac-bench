@@ -1,0 +1,5 @@
+project_id         = "my-platform-prod"
+environment        = "prod"
+region             = "us-central1"
+cluster_name       = "apps-prod-us-central1"
+control_plane_cidr = "172.16.0.0/28"

@@ -1,0 +1,5 @@
+project_id      = "example-project"
+region          = "us-central1"
+instance_name   = "postgres-example"
+private_network = "projects/example-project/global/networks/apps-dev"
+tier            = "db-custom-2-7680"

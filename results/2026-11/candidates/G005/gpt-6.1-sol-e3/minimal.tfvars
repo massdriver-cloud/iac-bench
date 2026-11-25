@@ -1,0 +1,5 @@
+project_id              = "apps-prod-platform"
+name                    = "prod-central"
+environment             = "prod"
+region                  = "us-central1"
+control_plane_ipv4_cidr = "172.20.0.0/28"

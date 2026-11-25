@@ -7,7 +7,7 @@ authors:
     given-names: Chris
     affiliation: Massdriver
 repository-code: "https://github.com/massdriver-cloud/iac-bench"
-url: "https://www.massdriver.cloud/blogs/iac-bench-2026-10-results"
+url: "https://www.massdriver.cloud/blogs/iac-bench-2026-11-results"
 license: Apache-2.0
 keywords:
   - benchmark
@@ -24,10 +24,21 @@ preferred-citation:
   institution:
     name: Massdriver
   year: 2026
-  month: 10
-  number: "Release 2026-10"
-  url: "https://www.massdriver.cloud/blogs/iac-bench-2026-10-results"
+  month: 11
+  number: "Release 2026-11"
+  url: "https://www.massdriver.cloud/blogs/iac-bench-2026-11-results"
 references:
+  - type: data
+    title: "iac-bench 2026-11 data release"
+    authors:
+      - family-names: Hill
+        given-names: Chris
+    publisher:
+      name: Zenodo
+    year: 2026
+    version: "2026-11"
+    doi: "10.5281/zenodo.24517718"
+    license: CC-BY-4.0
   - type: data
     title: "iac-bench 2026-10 data release"
     authors:

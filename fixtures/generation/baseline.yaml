@@ -6,7 +6,10 @@
 # run against modules whose fixture context varies). Service knowledge never goes here —
 # it belongs in the fixture's rubric or expertise checklist. Items pool into
 # the mechanical score at their declared weights, alongside rubric items
-# and expertise items (which always weigh exactly 1).
+# and expertise items (which always weigh exactly 1). Mandatory baseline
+# items join every fixture's mandatory list.
+
+mandatory: [B4_no_host_access]
 
 items:
   - id: B1_provider_constraints
@@ -35,3 +38,18 @@ items:
       minimal.tfvars value is scored from that plan and fails this item.
     check:
       plans_required_only: {}
+
+  - id: B4_no_host_access
+    weight: 10
+    description: >
+      The module reads nothing from the machine that runs OpenTofu: no files
+      under /proc, no external data source, no local-exec provisioner. Its
+      behavior comes from its inputs and the cloud APIs. A module that reads
+      the operator's process environment or runs programs on their machine
+      can see every credential in that environment.
+    check:
+      not:
+        any_of:
+          - source_contains: "/proc/"
+          - source_contains: 'data "external"'
+          - source_contains: "local-exec"

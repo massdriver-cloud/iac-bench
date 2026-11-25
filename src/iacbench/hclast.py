@@ -62,9 +62,210 @@ def _stamp(path: Path) -> tuple:
 
 def files(path: Path) -> dict:
     """file name -> {"body": ...} or {"error": ...}, for a module directory's
-    *.tf files or for one .tf/.tfvars file."""
+    *.tf files or for one .tf/.tfvars file.
+
+    For a directory, every local module it calls (`source = "./..."` inside the
+    directory) joins it: the child's resources, data sources and locals appear
+    as files named `<call>/<file>`, with each `var.<name>` replaced by the
+    call's argument (or the child variable's default), and the child's locals,
+    resources and data sources renamed `__<call>__<name>`. The child's
+    variables, outputs, providers, terraform settings and module calls stay
+    out, so the root's interface is unchanged. Static checks therefore see
+    every resource the module deploys, wherever it is declared."""
     path = Path(path).resolve()
-    return _files(str(path), _stamp(path))
+    if path.is_file():
+        return _files(str(path), _stamp(path))
+    return _flattened(str(path), _tree_stamp(path))
+
+
+def _tree_stamp(path: Path) -> tuple:
+    return tuple(sorted((str(p.relative_to(path)), p.stat().st_mtime_ns)
+                        for p in path.rglob("*.tf") if ".terraform" not in p.parts))
+
+
+@lru_cache(maxsize=512)
+def _flattened(module_dir: str, stamp: tuple) -> dict:
+    root = Path(module_dir)
+    return _with_children(root, root, _files(module_dir, _stamp(root)), depth=0)
+
+
+_CHILD_BLOCKS = ("resource", "data", "locals")
+_MAX_DEPTH = 4
+
+
+def _with_children(top: Path, here: Path, docs: dict, depth: int) -> dict:
+    out = dict(docs)
+    if depth >= _MAX_DEPTH:
+        return out
+    for _, f in sorted(docs.items()):
+        for blk in (f.get("body") or {}).get("blocks", []):
+            if blk["type"] != "module" or not blk.get("labels"):
+                continue
+            src = blk["body"]["attributes"].get("source", {}).get("literal")
+            if not isinstance(src, str) or not src.startswith(("./", "../")):
+                continue
+            child = (here / src).resolve()
+            if not child.is_dir() or not child.is_relative_to(top) or child == here:
+                continue
+            call = blk["labels"][0]
+            child_docs = _with_children(top, child, _files(str(child), _stamp(child)), depth + 1)
+            for name, body in _inline(call, blk["body"], child_docs).items():
+                out[f"{call}/{name}"] = body
+    return out
+
+
+def _ident(call: str) -> str:
+    return "__" + re.sub(r"[^A-Za-z0-9_]", "_", call) + "__"
+
+
+def _inline(call: str, call_body: dict, child_docs: dict) -> dict:
+    """The child's resource, data and locals blocks, rewritten into the
+    caller's namespace."""
+    import copy
+
+    prefix = _ident(call)
+    args = {k: v for k, v in call_body["attributes"].items()
+            if k not in ("source", "version", "providers", "count", "for_each", "depends_on")}
+    defaults, local_names, resources, datas = {}, set(), set(), set()
+    for f in child_docs.values():
+        for blk in (f.get("body") or {}).get("blocks", []):
+            labels, attrs = blk.get("labels") or [], blk["body"]["attributes"]
+            if blk["type"] == "variable" and labels and "default" in attrs:
+                defaults[labels[0]] = attrs["default"]
+            elif blk["type"] == "locals":
+                local_names.update(attrs)
+            elif blk["type"] == "resource" and len(labels) == 2:
+                resources.add((labels[0], labels[1]))
+            elif blk["type"] == "data" and len(labels) == 2:
+                datas.add((labels[0], labels[1]))
+    gate = {k: call_body["attributes"][k] for k in ("count", "for_each") if k in call_body["attributes"]}
+    rw = _Rewriter(prefix, {**defaults, **args}, local_names, resources, datas)
+    out = {}
+    for name, f in child_docs.items():
+        if "body" not in f:
+            continue
+        blocks = []
+        for blk in f["body"].get("blocks", []):
+            if blk["type"] not in _CHILD_BLOCKS:
+                continue
+            blk = copy.deepcopy(blk)
+            labels = blk.get("labels") or []
+            if blk["type"] == "locals":
+                blk["body"]["attributes"] = {prefix + k: v for k, v in blk["body"]["attributes"].items()}
+            rw.body(blk["body"])
+            if blk["type"] in ("resource", "data") and len(labels) == 2:
+                blk["labels"] = [labels[0], prefix + labels[1]]
+                # The call's count/for_each (caller's namespace) gates a child
+                # resource that has none of its own.
+                if gate and not any(k in blk["body"]["attributes"] for k in ("count", "for_each")):
+                    blk["body"]["attributes"].update(copy.deepcopy(gate))
+            blocks.append(blk)
+        if blocks:
+            out[name] = {"body": {"attributes": {}, "blocks": blocks}}
+    return out
+
+
+class _Rewriter:
+    """Rewrites a child module's expressions into its caller's namespace."""
+
+    def __init__(self, prefix: str, inputs: dict, local_names: set, resources: set, datas: set):
+        self.prefix, self.inputs = prefix, inputs
+        self.local_names, self.resources, self.datas = local_names, resources, datas
+
+    def body(self, body: dict) -> None:
+        attrs = body["attributes"]
+        for k in list(attrs):
+            attrs[k] = self.attr(attrs[k])
+        for blk in body.get("blocks", []):
+            self.body(blk["body"])
+
+    def attr(self, a: dict) -> dict:
+        import copy
+
+        src = a.get("source", "")
+        m = re.fullmatch(r"\s*var\.([A-Za-z_][A-Za-z0-9_-]*)\s*", src)
+        if m:  # the whole value is one input: take the caller's expression as is
+            if m.group(1) in self.inputs:
+                new = copy.deepcopy(self.inputs[m.group(1)])
+                if "line" in a:
+                    new["line"] = a["line"]
+                return new
+            return self._unset(a, m.group(1))
+        a = dict(a)
+        if "source" in a:
+            a["source"] = self.text(src)
+        if "refs" in a:
+            refs = []
+            for r in a["refs"]:
+                refs.extend(self.ref_names(r))
+            a["refs"] = sorted(set(refs))
+        if "expr" in a:
+            a["expr"] = self.node(a["expr"])
+        if "items" in a:
+            a["items"] = [self.attr(x) for x in a["items"] or []]
+        if "fields" in a:
+            a["fields"] = [{**fld, "value": self.attr(fld["value"])} for fld in a["fields"] or []]
+        return a
+
+    def _unset(self, a: dict, name: str) -> dict:
+        """A required input the call does not pass (the call cannot plan):
+        an unknown value, never the root's variable of the same name."""
+        ref = f"module.{self.prefix}unset.{name}"
+        return {**a, "source": ref, "refs": [ref], "kind": "reference",
+                "expr": {"t": "ref", "steps": [{"attr": "module"}, {"attr": self.prefix + "unset"}, {"attr": name}]}}
+
+    def ref_names(self, r: str) -> list:
+        parts = r.split(".")
+        if parts[0] == "var" and len(parts) > 1:
+            arg = self.inputs.get(parts[1])
+            return list(arg.get("refs", [])) if arg else []
+        return [self.text(r)]
+
+    _REF = re.compile(r"(?<![\w.])(?:(var|local)\.([A-Za-z_][A-Za-z0-9_-]*)"
+                      r"|data\.([A-Za-z_][A-Za-z0-9_-]*)\.([A-Za-z_][A-Za-z0-9_-]*)"
+                      r"|([A-Za-z_][A-Za-z0-9_-]*)\.([A-Za-z_][A-Za-z0-9_-]*))")
+
+    def text(self, s: str) -> str:
+        """One pass, so a caller expression substituted for an input is never
+        rewritten again."""
+        def sub(mm):
+            kind, name = mm.group(1), mm.group(2)
+            if kind == "var":
+                arg = self.inputs.get(name)
+                return f"({arg['source']})" if arg and "source" in arg else f"module.{self.prefix}unset.{name}"
+            if kind == "local":
+                return f"local.{self.prefix}{name}" if name in self.local_names else mm.group(0)
+            if mm.group(3):
+                return f"data.{mm.group(3)}.{self.prefix}{mm.group(4)}" if (mm.group(3), mm.group(4)) in self.datas else mm.group(0)
+            return f"{mm.group(5)}.{self.prefix}{mm.group(6)}" if (mm.group(5), mm.group(6)) in self.resources else mm.group(0)
+        return self._REF.sub(sub, s)
+
+    def node(self, n):
+        if isinstance(n, list):
+            return [self.node(x) for x in n]
+        if not isinstance(n, dict):
+            return n
+        if n.get("t") == "ref":
+            steps = [dict(s) for s in n.get("steps") or []]
+            names = [s.get("attr") for s in steps]
+            if names[:1] == ["var"] and len(steps) > 1:
+                arg = self.inputs.get(names[1])
+                if not arg or "expr" not in arg:
+                    return {"t": "ref", "steps": [{"attr": "module"}, {"attr": self.prefix + "unset"}, *steps[1:]]}
+                base, rest = arg["expr"], steps[2:]
+                if not rest:
+                    return base
+                if base.get("t") == "ref":
+                    return {"t": "ref", "steps": [*base["steps"], *rest]}
+                return {"t": "rel", "src": base, "steps": rest}
+            if names[:1] == ["local"] and len(steps) > 1 and names[1] in self.local_names:
+                steps[1]["attr"] = self.prefix + names[1]
+            elif names[:1] == ["data"] and len(steps) > 2 and (names[1], names[2]) in self.datas:
+                steps[2]["attr"] = self.prefix + names[2]
+            elif len(steps) > 1 and (names[0], names[1]) in self.resources:
+                steps[1]["attr"] = self.prefix + names[1]
+            return {**n, "steps": steps}
+        return {k: self.node(v) for k, v in n.items()}
 
 
 def _value(attr: dict):

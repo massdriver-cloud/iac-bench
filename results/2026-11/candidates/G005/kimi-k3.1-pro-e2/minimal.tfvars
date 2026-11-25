@@ -1,0 +1,5 @@
+project_id             = "example-project-123456"
+cluster_name           = "shared-staging"
+region                 = "us-central1"
+environment            = "staging"
+master_ipv4_cidr_block = "172.16.0.0/28"

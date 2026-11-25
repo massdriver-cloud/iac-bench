@@ -1,0 +1,14 @@
+name                             = "checkout"
+environment                      = "apps-staging"
+primary_region                   = "us-east-1"
+secondary_region                 = "us-west-2"
+primary_vpc_id                   = "vpc-0123456789abcdef0"
+secondary_vpc_id                 = "vpc-0fedcba9876543210"
+primary_database_subnet_ids      = ["subnet-0123456789abcdef0", "subnet-0123456789abcdef1"]
+secondary_database_subnet_ids    = ["subnet-0fedcba9876543210", "subnet-0fedcba9876543211"]
+primary_eks_security_group_ids   = ["sg-0123456789abcdef0"]
+secondary_eks_security_group_ids = ["sg-0fedcba9876543210"]
+eks_iam_role_names               = ["checkout-eks-workload"]
+database_name                    = "checkout"
+master_username                  = "checkout_admin"
+iam_database_username            = "checkout_app"

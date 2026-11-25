@@ -1,0 +1,6 @@
+environment      = "staging"
+service_name     = "checkout"
+database_name    = "checkoutdb"
+master_username  = "dbadmin"
+primary_region   = "us-east-1"
+secondary_region = "us-west-2"

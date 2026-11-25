@@ -1,0 +1,9 @@
+# Blind label -> real candidate. Do not open until every grade is filled.
+Module A: claude-haiku-4-5-20251001
+Module B: claude-sonnet-5-5
+Module C: ref-lean
+Module D: gemini-3.1-pro-preview
+Module E: gpt-5.5-2026-04-23
+Module F: claude-fable-5-1
+Module G: claude-opus-5-5
+Module H: ref-flexible
