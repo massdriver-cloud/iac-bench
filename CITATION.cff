@@ -36,8 +36,8 @@ references:
     publisher:
       name: Zenodo
     year: 2026
-    version: "2026-11"
-    doi: "10.5281/zenodo.24517718"
+    version: "2026-11.1"
+    doi: "10.5281/zenodo.24540782"
     license: CC-BY-4.0
   - type: data
     title: "iac-bench 2026-10 data release"

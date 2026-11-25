@@ -7,10 +7,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G001/gemini-4-carbon-e1",
     "gate": true,
-    "rubric": 0.812,
-    "mechanical": 0.824,
+    "rubric": 0.791,
+    "mechanical": 0.806,
     "judge": 89.5,
-    "composite": 84.53,
+    "composite": 83.27,
     "mandatory_failures": [],
     "items_lost": {
      "A4": false,
@@ -31,6 +31,7 @@
     "variables": 28,
     "tf_sloc": 759,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 31707,
     "seconds": 896,
     "cost_usd": 0.599,
@@ -128,10 +129,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G001/gemini-4-carbon-e2",
     "gate": true,
-    "rubric": 0.762,
-    "mechanical": 0.778,
+    "rubric": 0.736,
+    "mechanical": 0.755,
     "judge": 84.2,
-    "composite": 79.72,
+    "composite": 78.11,
     "mandatory_failures": [],
     "items_lost": {
      "A4": false,
@@ -153,6 +154,7 @@
     "variables": 27,
     "tf_sloc": 948,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 42917,
     "seconds": 1398,
     "cost_usd": 0.873,
@@ -250,10 +252,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/gemini-4-carbon-e3",
     "gate": true,
-    "rubric": 0.812,
-    "mechanical": 0.824,
+    "rubric": 0.791,
+    "mechanical": 0.806,
     "judge": 86.8,
-    "composite": 83.72,
+    "composite": 82.46,
     "mandatory_failures": [],
     "items_lost": {
      "A4": false,
@@ -274,6 +276,7 @@
     "variables": 17,
     "tf_sloc": 768,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 42067,
     "seconds": 1007,
     "cost_usd": 0.803,
@@ -373,10 +376,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G002/gemini-4-carbon-e1",
     "gate": true,
-    "rubric": 0.776,
-    "mechanical": 0.784,
+    "rubric": 0.753,
+    "mechanical": 0.764,
     "judge": 97.4,
-    "composite": 84.1,
+    "composite": 82.7,
     "mandatory_failures": [],
     "items_lost": {
      "H3": 0.5,
@@ -400,6 +403,7 @@
     "variables": 35,
     "tf_sloc": 833,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 37788,
     "seconds": 747,
     "cost_usd": 0.774,
@@ -497,10 +501,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G002/gemini-4-carbon-e2",
     "gate": true,
-    "rubric": 0.882,
-    "mechanical": 0.883,
+    "rubric": 0.87,
+    "mechanical": 0.872,
     "judge": 86.8,
-    "composite": 87.85,
+    "composite": 87.08,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -522,6 +526,7 @@
     "variables": 27,
     "tf_sloc": 644,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 28164,
     "seconds": 512,
     "cost_usd": 0.514,
@@ -619,10 +624,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/gemini-4-carbon-e3",
     "gate": true,
-    "rubric": 0.847,
-    "mechanical": 0.85,
+    "rubric": 0.831,
+    "mechanical": 0.836,
     "judge": 97.4,
-    "composite": 88.72,
+    "composite": 87.74,
     "mandatory_failures": [],
     "items_lost": {
      "H3": 0.5,
@@ -645,6 +650,7 @@
     "variables": 28,
     "tf_sloc": 771,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 51165,
     "seconds": 841,
     "cost_usd": 0.875,
@@ -744,10 +750,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G003/gemini-4-carbon-e1",
     "gate": true,
-    "rubric": 0.816,
-    "mechanical": 0.826,
+    "rubric": 0.792,
+    "mechanical": 0.805,
     "judge": 78.9,
-    "composite": 81.49,
+    "composite": 80.02,
     "mandatory_failures": [
      "H2"
     ],
@@ -766,6 +772,7 @@
     "variables": 19,
     "tf_sloc": 1274,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 64220,
     "seconds": 2144,
     "cost_usd": 1.321,
@@ -863,10 +870,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G003/gemini-4-carbon-e2",
     "gate": true,
-    "rubric": 0.717,
-    "mechanical": 0.733,
+    "rubric": 0.681,
+    "mechanical": 0.7,
     "judge": 81.6,
-    "composite": 75.79,
+    "composite": 73.48,
     "mandatory_failures": [
      "H1"
     ],
@@ -887,6 +894,7 @@
     "variables": 22,
     "tf_sloc": 1178,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 55024,
     "seconds": 1243,
     "cost_usd": 1.003,
@@ -984,10 +992,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G003/gemini-4-carbon-e3",
     "gate": true,
-    "rubric": 0.841,
-    "mechanical": 0.85,
+    "rubric": 0.821,
+    "mechanical": 0.832,
     "judge": 86.8,
-    "composite": 85.54,
+    "composite": 84.28,
     "mandatory_failures": [],
     "items_lost": {
      "H3": false,
@@ -1005,6 +1013,7 @@
     "variables": 21,
     "tf_sloc": 1150,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 50566,
     "seconds": 1642,
     "cost_usd": 0.889,
@@ -1104,10 +1113,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/gemini-4-carbon-e1",
     "gate": true,
-    "rubric": 0.44,
-    "mechanical": 0.44,
+    "rubric": 0.436,
+    "mechanical": 0.436,
     "judge": 84.2,
-    "composite": 43.43,
+    "composite": 43.15,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1129,6 +1138,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 69653,
     "seconds": 1622,
     "cost_usd": 1.035,
@@ -1226,10 +1236,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/gemini-4-carbon-e2",
     "gate": true,
-    "rubric": 0.44,
-    "mechanical": 0.436,
+    "rubric": 0.436,
+    "mechanical": 0.432,
     "judge": 84.2,
-    "composite": 43.18,
+    "composite": 42.9,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1251,6 +1261,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 59740,
     "seconds": 2732,
     "cost_usd": 1.229,
@@ -1348,10 +1359,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/gemini-4-carbon-e3",
     "gate": true,
-    "rubric": 0.423,
-    "mechanical": 0.424,
+    "rubric": 0.418,
+    "mechanical": 0.419,
     "judge": 84.2,
-    "composite": 42.31,
+    "composite": 41.96,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1374,6 +1385,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 60906,
     "seconds": 2660,
     "cost_usd": 1.168,
@@ -1473,10 +1485,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G005/gemini-4-carbon-e1",
     "gate": true,
-    "rubric": 0.906,
-    "mechanical": 0.906,
+    "rubric": 0.899,
+    "mechanical": 0.899,
     "judge": 92.1,
-    "composite": 91.05,
+    "composite": 90.56,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.0,
@@ -1497,6 +1509,7 @@
     "variables": 36,
     "tf_sloc": 843,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 49154,
     "seconds": 1096,
     "cost_usd": 0.943,
@@ -1594,10 +1607,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G005/gemini-4-carbon-e2",
     "gate": true,
-    "rubric": 0.906,
-    "mechanical": 0.899,
+    "rubric": 0.899,
+    "mechanical": 0.892,
     "judge": 92.1,
-    "composite": 90.56,
+    "composite": 90.07,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.0,
@@ -1618,6 +1631,7 @@
     "variables": 42,
     "tf_sloc": 880,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 46626,
     "seconds": 897,
     "cost_usd": 0.803,
@@ -1715,10 +1729,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G005/gemini-4-carbon-e3",
     "gate": true,
-    "rubric": 0.942,
-    "mechanical": 0.933,
+    "rubric": 0.938,
+    "mechanical": 0.928,
     "judge": 89.5,
-    "composite": 92.16,
+    "composite": 91.81,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.0
@@ -1738,6 +1752,7 @@
     "variables": 26,
     "tf_sloc": 689,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 46517,
     "seconds": 1014,
     "cost_usd": 0.892,
@@ -1837,10 +1852,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G006/gemini-4-carbon-e1",
     "gate": true,
-    "rubric": 0.92,
-    "mechanical": 0.917,
+    "rubric": 0.911,
+    "mechanical": 0.908,
     "judge": 84.2,
-    "composite": 89.45,
+    "composite": 88.82,
     "mandatory_failures": [],
     "items_lost": {
      "A4": 0.0
@@ -1858,6 +1873,7 @@
     "variables": 24,
     "tf_sloc": 601,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 38012,
     "seconds": 894,
     "cost_usd": 0.677,
@@ -1955,10 +1971,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G006/gemini-4-carbon-e2",
     "gate": true,
-    "rubric": 0.92,
-    "mechanical": 0.907,
+    "rubric": 0.911,
+    "mechanical": 0.898,
     "judge": 71.1,
-    "composite": 84.82,
+    "composite": 84.19,
     "mandatory_failures": [],
     "items_lost": {
      "A4": 0.0
@@ -1976,6 +1992,7 @@
     "variables": 26,
     "tf_sloc": 593,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 41186,
     "seconds": 1208,
     "cost_usd": 0.761,
@@ -2073,10 +2090,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G006/gemini-4-carbon-e3",
     "gate": true,
-    "rubric": 0.92,
-    "mechanical": 0.917,
+    "rubric": 0.911,
+    "mechanical": 0.908,
     "judge": 76.3,
-    "composite": 87.08,
+    "composite": 86.45,
     "mandatory_failures": [],
     "items_lost": {
      "A4": 0.0
@@ -2094,6 +2111,7 @@
     "variables": 28,
     "tf_sloc": 614,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 50242,
     "seconds": 1654,
     "cost_usd": 1.203,
@@ -2190,12 +2208,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 83.72,
+   "composite_median": 82.46,
    "composite_range": [
-    79.72,
-    84.53
+    78.11,
+    83.27
    ],
-   "rubric_median": 0.812,
+   "rubric_median": 0.791,
    "judge_median": 86.8,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2222,12 +2240,12 @@
    "median_seconds": 1007
   },
   "G002": {
-   "composite_median": 87.85,
+   "composite_median": 87.08,
    "composite_range": [
-    84.1,
-    88.72
+    82.7,
+    87.74
    ],
-   "rubric_median": 0.847,
+   "rubric_median": 0.831,
    "judge_median": 97.4,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2256,12 +2274,12 @@
    "median_seconds": 747
   },
   "G003": {
-   "composite_median": 81.49,
+   "composite_median": 80.02,
    "composite_range": [
-    75.79,
-    85.54
+    73.48,
+    84.28
    ],
-   "rubric_median": 0.816,
+   "rubric_median": 0.792,
    "judge_median": 81.6,
    "gate_failures": 0,
    "insecure_attempts": 2,
@@ -2286,12 +2304,12 @@
    "median_seconds": 1642
   },
   "G004": {
-   "composite_median": 43.18,
+   "composite_median": 42.9,
    "composite_range": [
-    42.31,
-    43.43
+    41.96,
+    43.15
    ],
-   "rubric_median": 0.44,
+   "rubric_median": 0.436,
    "judge_median": 84.2,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2317,12 +2335,12 @@
    "median_seconds": 2660
   },
   "G005": {
-   "composite_median": 91.05,
+   "composite_median": 90.56,
    "composite_range": [
-    90.56,
-    92.16
+    90.07,
+    91.81
    ],
-   "rubric_median": 0.906,
+   "rubric_median": 0.899,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2348,12 +2366,12 @@
    "median_seconds": 1014
   },
   "G006": {
-   "composite_median": 87.08,
+   "composite_median": 86.45,
    "composite_range": [
-    84.82,
-    89.45
+    84.19,
+    88.82
    ],
-   "rubric_median": 0.92,
+   "rubric_median": 0.911,
    "judge_median": 76.3,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2376,5 +2394,5 @@
    "median_seconds": 1208
   }
  },
- "overall": 79.1
+ "overall": 78.2
 }

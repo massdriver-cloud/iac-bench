@@ -7,10 +7,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G001/kimi-k3.1-pro-e1",
     "gate": true,
-    "rubric": 0.871,
-    "mechanical": 0.852,
+    "rubric": 0.857,
+    "mechanical": 0.837,
     "judge": 92.1,
-    "composite": 87.27,
+    "composite": 86.22,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.5,
@@ -30,6 +30,7 @@
     "variables": 12,
     "tf_sloc": 340,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 12502,
     "seconds": 511,
     "cost_usd": 0.174,
@@ -127,10 +128,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G001/kimi-k3.1-pro-e2",
     "gate": true,
-    "rubric": 0.871,
-    "mechanical": 0.852,
+    "rubric": 0.857,
+    "mechanical": 0.837,
     "judge": 86.8,
-    "composite": 85.68,
+    "composite": 84.63,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.5,
@@ -150,6 +151,7 @@
     "variables": 12,
     "tf_sloc": 360,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 12640,
     "seconds": 526,
     "cost_usd": 0.162,
@@ -247,10 +249,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/kimi-k3.1-pro-e3",
     "gate": true,
-    "rubric": 0.861,
-    "mechanical": 0.852,
+    "rubric": 0.846,
+    "mechanical": 0.837,
     "judge": 94.7,
-    "composite": 88.05,
+    "composite": 87.0,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.375,
@@ -270,6 +272,7 @@
     "variables": 13,
     "tf_sloc": 333,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 19099,
     "seconds": 778,
     "cost_usd": 0.276,
@@ -369,10 +372,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G002/kimi-k3.1-pro-e1",
     "gate": true,
-    "rubric": 0.893,
-    "mechanical": 0.875,
+    "rubric": 0.881,
+    "mechanical": 0.863,
     "judge": 86.8,
-    "composite": 87.29,
+    "composite": 86.45,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -394,6 +397,7 @@
     "variables": 24,
     "tf_sloc": 411,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 14590,
     "seconds": 559,
     "cost_usd": 0.213,
@@ -491,10 +495,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G002/kimi-k3.1-pro-e2",
     "gate": true,
-    "rubric": 0.93,
-    "mechanical": 0.918,
+    "rubric": 0.923,
+    "mechanical": 0.91,
     "judge": 94.7,
-    "composite": 92.67,
+    "composite": 92.11,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -515,6 +519,7 @@
     "variables": 20,
     "tf_sloc": 380,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 26660,
     "seconds": 921,
     "cost_usd": 0.431,
@@ -612,10 +617,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/kimi-k3.1-pro-e3",
     "gate": true,
-    "rubric": 0.859,
-    "mechanical": 0.853,
+    "rubric": 0.844,
+    "mechanical": 0.839,
     "judge": 86.8,
-    "composite": 85.75,
+    "composite": 84.77,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -639,6 +644,7 @@
     "variables": 27,
     "tf_sloc": 399,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 19216,
     "seconds": 720,
     "cost_usd": 0.3,
@@ -738,10 +744,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G003/kimi-k3.1-pro-e1",
     "gate": true,
-    "rubric": 0.908,
-    "mechanical": 0.902,
+    "rubric": 0.896,
+    "mechanical": 0.89,
     "judge": 94.7,
-    "composite": 91.55,
+    "composite": 90.71,
     "mandatory_failures": [],
     "items_lost": {
      "A7": 0.0
@@ -756,6 +762,7 @@
     "variables": 50,
     "tf_sloc": 1011,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 42983,
     "seconds": 1912,
     "cost_usd": 0.669,
@@ -853,10 +860,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G003/kimi-k3.1-pro-e2",
     "gate": true,
-    "rubric": 0.908,
-    "mechanical": 0.902,
+    "rubric": 0.896,
+    "mechanical": 0.89,
     "judge": 92.1,
-    "composite": 90.77,
+    "composite": 89.93,
     "mandatory_failures": [],
     "items_lost": {
      "A7": 0.0
@@ -871,6 +878,7 @@
     "variables": 54,
     "tf_sloc": 1016,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 39071,
     "seconds": 1764,
     "cost_usd": 0.582,
@@ -968,10 +976,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G003/kimi-k3.1-pro-e3",
     "gate": true,
-    "rubric": 0.908,
-    "mechanical": 0.902,
+    "rubric": 0.896,
+    "mechanical": 0.89,
     "judge": 92.1,
-    "composite": 90.77,
+    "composite": 89.93,
     "mandatory_failures": [],
     "items_lost": {
      "A7": 0.0
@@ -986,6 +994,7 @@
     "variables": 51,
     "tf_sloc": 988,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 46604,
     "seconds": 1866,
     "cost_usd": 0.715,
@@ -1085,10 +1094,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/kimi-k3.1-pro-e1",
     "gate": true,
-    "rubric": 0.408,
-    "mechanical": 0.403,
+    "rubric": 0.401,
+    "mechanical": 0.397,
     "judge": 84.2,
-    "composite": 40.84,
+    "composite": 40.39,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1113,6 +1122,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 32470,
     "seconds": 1129,
     "cost_usd": 0.469,
@@ -1210,10 +1220,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/kimi-k3.1-pro-e2",
     "gate": true,
-    "rubric": 0.4,
-    "mechanical": 0.396,
+    "rubric": 0.393,
+    "mechanical": 0.389,
     "judge": 78.9,
-    "composite": 39.52,
+    "composite": 39.03,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1238,6 +1248,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 44453,
     "seconds": 1362,
     "cost_usd": 0.693,
@@ -1335,10 +1346,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/kimi-k3.1-pro-e3",
     "gate": true,
-    "rubric": 0.417,
-    "mechanical": 0.411,
+    "rubric": 0.411,
+    "mechanical": 0.406,
     "judge": 84.2,
-    "composite": 41.44,
+    "composite": 41.02,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1361,6 +1372,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 41583,
     "seconds": 1326,
     "cost_usd": 0.681,
@@ -1460,10 +1472,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G005/kimi-k3.1-pro-e1",
     "gate": true,
-    "rubric": 0.942,
-    "mechanical": 0.933,
+    "rubric": 0.938,
+    "mechanical": 0.928,
     "judge": 84.2,
-    "composite": 90.57,
+    "composite": 90.22,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.0
@@ -1483,6 +1495,7 @@
     "variables": 22,
     "tf_sloc": 720,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 49552,
     "seconds": 1366,
     "cost_usd": 0.852,
@@ -1580,10 +1593,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G005/kimi-k3.1-pro-e2",
     "gate": true,
-    "rubric": 0.891,
-    "mechanical": 0.871,
+    "rubric": 0.882,
+    "mechanical": 0.862,
     "judge": 94.7,
-    "composite": 89.38,
+    "composite": 88.75,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1605,6 +1618,7 @@
     "variables": 20,
     "tf_sloc": 550,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 33238,
     "seconds": 908,
     "cost_usd": 0.526,
@@ -1702,10 +1716,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G005/kimi-k3.1-pro-e3",
     "gate": true,
-    "rubric": 0.896,
-    "mechanical": 0.89,
+    "rubric": 0.888,
+    "mechanical": 0.882,
     "judge": 100.0,
-    "composite": 92.3,
+    "composite": 91.74,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1727,6 +1741,7 @@
     "variables": 19,
     "tf_sloc": 567,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 31289,
     "seconds": 906,
     "cost_usd": 0.477,
@@ -1826,10 +1841,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G006/kimi-k3.1-pro-e1",
     "gate": true,
-    "rubric": 0.91,
-    "mechanical": 0.898,
+    "rubric": 0.9,
+    "mechanical": 0.888,
     "judge": 89.5,
-    "composite": 89.71,
+    "composite": 89.01,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1849,6 +1864,7 @@
     "variables": 10,
     "tf_sloc": 214,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 28138,
     "seconds": 1031,
     "cost_usd": 0.535,
@@ -1946,10 +1962,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G006/kimi-k3.1-pro-e2",
     "gate": true,
-    "rubric": 0.94,
-    "mechanical": 0.926,
+    "rubric": 0.933,
+    "mechanical": 0.918,
     "judge": 92.1,
-    "composite": 92.45,
+    "composite": 91.89,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1968,6 +1984,7 @@
     "variables": 6,
     "tf_sloc": 200,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 17157,
     "seconds": 663,
     "cost_usd": 0.278,
@@ -2065,10 +2082,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G006/kimi-k3.1-pro-e3",
     "gate": true,
-    "rubric": 0.89,
-    "mechanical": 0.861,
+    "rubric": 0.878,
+    "mechanical": 0.847,
     "judge": 86.8,
-    "composite": 86.31,
+    "composite": 85.33,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -2088,6 +2105,7 @@
     "variables": 14,
     "tf_sloc": 320,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 19912,
     "seconds": 800,
     "cost_usd": 0.3,
@@ -2184,12 +2202,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 87.27,
+   "composite_median": 86.22,
    "composite_range": [
-    85.68,
-    88.05
+    84.63,
+    87.0
    ],
-   "rubric_median": 0.871,
+   "rubric_median": 0.857,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2214,12 +2232,12 @@
    "median_seconds": 526
   },
   "G002": {
-   "composite_median": 87.29,
+   "composite_median": 86.45,
    "composite_range": [
-    85.75,
-    92.67
+    84.77,
+    92.11
    ],
-   "rubric_median": 0.893,
+   "rubric_median": 0.881,
    "judge_median": 86.8,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2248,12 +2266,12 @@
    "median_seconds": 720
   },
   "G003": {
-   "composite_median": 90.77,
+   "composite_median": 89.93,
    "composite_range": [
-    90.77,
-    91.55
+    89.93,
+    90.71
    ],
-   "rubric_median": 0.908,
+   "rubric_median": 0.896,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2273,12 +2291,12 @@
    "median_seconds": 1866
   },
   "G004": {
-   "composite_median": 40.84,
+   "composite_median": 40.39,
    "composite_range": [
-    39.52,
-    41.44
+    39.03,
+    41.02
    ],
-   "rubric_median": 0.408,
+   "rubric_median": 0.401,
    "judge_median": 84.2,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2307,12 +2325,12 @@
    "median_seconds": 1326
   },
   "G005": {
-   "composite_median": 90.57,
+   "composite_median": 90.22,
    "composite_range": [
-    89.38,
-    92.3
+    88.75,
+    91.74
    ],
-   "rubric_median": 0.896,
+   "rubric_median": 0.888,
    "judge_median": 94.7,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2339,12 +2357,12 @@
    "median_seconds": 908
   },
   "G006": {
-   "composite_median": 89.71,
+   "composite_median": 89.01,
    "composite_range": [
-    86.31,
-    92.45
+    85.33,
+    91.89
    ],
-   "rubric_median": 0.91,
+   "rubric_median": 0.9,
    "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2370,5 +2388,5 @@
    "median_seconds": 800
   }
  },
- "overall": 81.1
+ "overall": 80.4
 }

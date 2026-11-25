@@ -1,2 +1,2 @@
-name    = "dba-pg-prod"
-network = "apps-prod"
+name    = "apps-dev-postgres"
+network = "apps-dev"

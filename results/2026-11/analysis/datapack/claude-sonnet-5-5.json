@@ -7,10 +7,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G001/claude-sonnet-5-5-e1",
     "gate": true,
-    "rubric": 0.842,
-    "mechanical": 0.833,
+    "rubric": 0.824,
+    "mechanical": 0.816,
     "judge": 94.7,
-    "composite": 86.72,
+    "composite": 85.53,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.75,
@@ -31,6 +31,7 @@
     "variables": 10,
     "tf_sloc": 251,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8230,
     "seconds": 183,
     "cost_usd": 0.116,
@@ -128,10 +129,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G001/claude-sonnet-5-5-e2",
     "gate": true,
-    "rubric": 0.822,
-    "mechanical": 0.824,
+    "rubric": 0.802,
+    "mechanical": 0.806,
     "judge": 97.4,
-    "composite": 86.9,
+    "composite": 85.64,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -152,6 +153,7 @@
     "variables": 8,
     "tf_sloc": 253,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8405,
     "seconds": 106,
     "cost_usd": 0.141,
@@ -249,10 +251,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/claude-sonnet-5-5-e3",
     "gate": true,
-    "rubric": 0.842,
-    "mechanical": 0.833,
+    "rubric": 0.824,
+    "mechanical": 0.816,
     "judge": 86.8,
-    "composite": 84.35,
+    "composite": 83.16,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.75,
@@ -273,6 +275,7 @@
     "variables": 10,
     "tf_sloc": 241,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 7652,
     "seconds": 161,
     "cost_usd": 0.117,
@@ -372,10 +375,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G002/claude-sonnet-5-5-e1",
     "gate": true,
-    "rubric": 0.917,
-    "mechanical": 0.915,
+    "rubric": 0.908,
+    "mechanical": 0.907,
     "judge": 100.0,
-    "composite": 94.05,
+    "composite": 93.49,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -397,6 +400,7 @@
     "variables": 28,
     "tf_sloc": 374,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 11180,
     "seconds": 113,
     "cost_usd": 0.165,
@@ -494,10 +498,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G002/claude-sonnet-5-5-e2",
     "gate": true,
-    "rubric": 0.893,
-    "mechanical": 0.884,
+    "rubric": 0.881,
+    "mechanical": 0.873,
     "judge": 100.0,
-    "composite": 91.88,
+    "composite": 91.11,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -519,6 +523,7 @@
     "variables": 25,
     "tf_sloc": 323,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 7515,
     "seconds": 80,
     "cost_usd": 0.105,
@@ -616,10 +621,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/claude-sonnet-5-5-e3",
     "gate": true,
-    "rubric": 0.885,
-    "mechanical": 0.885,
+    "rubric": 0.873,
+    "mechanical": 0.875,
     "judge": 94.7,
-    "composite": 90.36,
+    "composite": 89.66,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -642,6 +647,7 @@
     "variables": 26,
     "tf_sloc": 345,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8383,
     "seconds": 90,
     "cost_usd": 0.114,
@@ -741,10 +747,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G003/claude-sonnet-5-5-e1",
     "gate": true,
-    "rubric": 0.88,
-    "mechanical": 0.887,
+    "rubric": 0.865,
+    "mechanical": 0.873,
     "judge": 86.8,
-    "composite": 88.13,
+    "composite": 87.15,
     "mandatory_failures": [
      "H2"
     ],
@@ -762,6 +768,7 @@
     "variables": 23,
     "tf_sloc": 465,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 25923,
     "seconds": 383,
     "cost_usd": 0.397,
@@ -859,10 +866,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G003/claude-sonnet-5-5-e2",
     "gate": true,
-    "rubric": 0.834,
-    "mechanical": 0.833,
+    "rubric": 0.813,
+    "mechanical": 0.812,
     "judge": 89.5,
-    "composite": 85.16,
+    "composite": 83.69,
     "mandatory_failures": [
      "H2"
     ],
@@ -880,6 +887,7 @@
     "variables": 28,
     "tf_sloc": 544,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 10295,
     "seconds": 331,
     "cost_usd": 0.154,
@@ -977,10 +985,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G003/claude-sonnet-5-5-e3",
     "gate": true,
-    "rubric": 0.809,
-    "mechanical": 0.809,
+    "rubric": 0.784,
+    "mechanical": 0.785,
     "judge": 92.1,
-    "composite": 84.26,
+    "composite": 82.58,
     "mandatory_failures": [],
     "items_lost": {
      "H3": false,
@@ -997,6 +1005,7 @@
     "variables": 27,
     "tf_sloc": 515,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 13803,
     "seconds": 362,
     "cost_usd": 0.213,
@@ -1096,10 +1105,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/claude-sonnet-5-5-e1",
     "gate": true,
-    "rubric": 0.435,
-    "mechanical": 0.422,
+    "rubric": 0.43,
+    "mechanical": 0.417,
     "judge": 100.0,
-    "composite": 44.54,
+    "composite": 44.19,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1123,6 +1132,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 16104,
     "seconds": 220,
     "cost_usd": 0.247,
@@ -1220,10 +1230,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/claude-sonnet-5-5-e2",
     "gate": true,
-    "rubric": 0.427,
-    "mechanical": 0.421,
+    "rubric": 0.422,
+    "mechanical": 0.416,
     "judge": 84.2,
-    "composite": 42.1,
+    "composite": 41.75,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1248,6 +1258,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 13436,
     "seconds": 201,
     "cost_usd": 0.186,
@@ -1345,10 +1356,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/claude-sonnet-5-5-e3",
     "gate": true,
-    "rubric": 0.449,
-    "mechanical": 0.443,
+    "rubric": 0.446,
+    "mechanical": 0.439,
     "judge": 92.1,
-    "composite": 44.79,
+    "composite": 44.51,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1370,6 +1381,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 11826,
     "seconds": 170,
     "cost_usd": 0.167,
@@ -1469,10 +1481,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G005/claude-sonnet-5-5-e1",
     "gate": true,
-    "rubric": 0.942,
-    "mechanical": 0.933,
+    "rubric": 0.938,
+    "mechanical": 0.928,
     "judge": 86.8,
-    "composite": 91.35,
+    "composite": 91.0,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.5,
@@ -1494,6 +1506,7 @@
     "variables": 16,
     "tf_sloc": 329,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8307,
     "seconds": 85,
     "cost_usd": 0.116,
@@ -1591,10 +1604,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G005/claude-sonnet-5-5-e2",
     "gate": true,
-    "rubric": 0.941,
-    "mechanical": 0.932,
+    "rubric": 0.936,
+    "mechanical": 0.927,
     "judge": 81.6,
-    "composite": 89.72,
+    "composite": 89.37,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.6,
@@ -1615,6 +1628,7 @@
     "variables": 15,
     "tf_sloc": 343,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 9427,
     "seconds": 85,
     "cost_usd": 0.13,
@@ -1712,10 +1726,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G005/claude-sonnet-5-5-e3",
     "gate": true,
-    "rubric": 0.958,
-    "mechanical": 0.934,
+    "rubric": 0.955,
+    "mechanical": 0.929,
     "judge": 89.5,
-    "composite": 92.23,
+    "composite": 91.88,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.9,
@@ -1736,6 +1750,7 @@
     "variables": 12,
     "tf_sloc": 305,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 10187,
     "seconds": 88,
     "cost_usd": 0.15,
@@ -1835,10 +1850,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G006/claude-sonnet-5-5-e1",
     "gate": true,
-    "rubric": 0.94,
-    "mechanical": 0.926,
+    "rubric": 0.933,
+    "mechanical": 0.918,
     "judge": 92.1,
-    "composite": 92.45,
+    "composite": 91.89,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1857,6 +1872,7 @@
     "variables": 11,
     "tf_sloc": 195,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 7428,
     "seconds": 205,
     "cost_usd": 0.122,
@@ -1954,10 +1970,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G006/claude-sonnet-5-5-e2",
     "gate": true,
-    "rubric": 0.95,
-    "mechanical": 0.935,
+    "rubric": 0.944,
+    "mechanical": 0.929,
     "judge": 92.1,
-    "composite": 93.08,
+    "composite": 92.66,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1976,6 +1992,7 @@
     "variables": 10,
     "tf_sloc": 190,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8165,
     "seconds": 221,
     "cost_usd": 0.133,
@@ -2073,10 +2090,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G006/claude-sonnet-5-5-e3",
     "gate": true,
-    "rubric": 0.99,
-    "mechanical": 0.963,
+    "rubric": 0.989,
+    "mechanical": 0.959,
     "judge": 89.5,
-    "composite": 94.26,
+    "composite": 93.98,
     "mandatory_failures": [],
     "items_lost": {
      "A4": 0.875
@@ -2094,6 +2111,7 @@
     "variables": 10,
     "tf_sloc": 205,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8467,
     "seconds": 177,
     "cost_usd": 0.125,
@@ -2190,12 +2208,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 86.72,
+   "composite_median": 85.53,
    "composite_range": [
-    84.35,
-    86.9
+    83.16,
+    85.64
    ],
-   "rubric_median": 0.842,
+   "rubric_median": 0.824,
    "judge_median": 94.7,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2222,12 +2240,12 @@
    "median_seconds": 161
   },
   "G002": {
-   "composite_median": 91.88,
+   "composite_median": 91.11,
    "composite_range": [
-    90.36,
-    94.05
+    89.66,
+    93.49
    ],
-   "rubric_median": 0.893,
+   "rubric_median": 0.881,
    "judge_median": 100.0,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2255,12 +2273,12 @@
    "median_seconds": 90
   },
   "G003": {
-   "composite_median": 85.16,
+   "composite_median": 83.69,
    "composite_range": [
-    84.26,
-    88.13
+    82.58,
+    87.15
    ],
-   "rubric_median": 0.834,
+   "rubric_median": 0.813,
    "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 2,
@@ -2283,12 +2301,12 @@
    "median_seconds": 362
   },
   "G004": {
-   "composite_median": 44.54,
+   "composite_median": 44.19,
    "composite_range": [
-    42.1,
-    44.79
+    41.75,
+    44.51
    ],
-   "rubric_median": 0.435,
+   "rubric_median": 0.43,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2316,12 +2334,12 @@
    "median_seconds": 201
   },
   "G005": {
-   "composite_median": 91.35,
+   "composite_median": 91.0,
    "composite_range": [
-    89.72,
-    92.23
+    89.37,
+    91.88
    ],
-   "rubric_median": 0.942,
+   "rubric_median": 0.938,
    "judge_median": 86.8,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2349,12 +2367,12 @@
    "median_seconds": 85
   },
   "G006": {
-   "composite_median": 93.08,
+   "composite_median": 92.66,
    "composite_range": [
-    92.45,
-    94.26
+    91.89,
+    93.98
    ],
-   "rubric_median": 0.95,
+   "rubric_median": 0.944,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2378,5 +2396,5 @@
    "median_seconds": 205
   }
  },
- "overall": 82.1
+ "overall": 81.4
 }
