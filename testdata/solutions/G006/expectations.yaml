@@ -46,7 +46,7 @@ bad_minimal:
   # A bare account at provider defaults: public containers allowed, shared
   # keys on, no soft delete, no grants, LRS, a required location.
   gate: true
-  max_score: 0.43
+  max_score: 0.4
   must_fail: [H1, H2, H3, H4, H5, H7, H8, H9]
 bad_passthrough:
   # ref_lean with Azure Storage internals as inputs: a required location and

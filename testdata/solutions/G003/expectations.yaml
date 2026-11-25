@@ -47,7 +47,7 @@ bad_passthrough:
   # worker internals exposed (A6), 23 inputs past the A7 budget, unbounded provider (B1),
   # no descriptions (B2). It still earns the exposure items and zone
   # balancing as reachable.
-  max_score: 0.42
+  max_score: 0.35
   must_fail: [H1, H2, H3, H4, H6, A6, A7, B1_provider_constraints, B2_descriptions]
 bad_minimal:
   gate: true
@@ -57,7 +57,7 @@ bad_minimal:
   # majors (B1). H3 passes: provider defaults are already strong transport
   # and nothing weakens them.
   # Few inputs earn the full A7 budget; exposure items carry the penalty.
-  max_score: 0.39
+  max_score: 0.30
   must_pass: [H3, A6]
   must_fail: [H1, H2, H4, H5, H6, H7, H8, H9, A1, A2, A3, A5, B1_provider_constraints, B2_descriptions]
 bad_unsafe:

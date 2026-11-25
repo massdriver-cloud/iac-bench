@@ -274,7 +274,10 @@ be fixture-independent and use the static lens or a harness fact; they carry `B`
 reports keep rubric (`H*`), audience-fit (`A*`), baseline (`B*`), and
 expertise (`E*`) provenance legible, and they pool into the mechanical score
 at their declared weights. A baseline `mandatory:` list joins every fixture's
-mandatory items.
+mandatory items. An item marked `penalty: true` weighs 0: passing it earns
+nothing, and failing it multiplies the composite by 0.5, as a known apply
+failure does. Penalty items are for defects no module should have, whose
+absence is no achievement (a module that creates nothing passes them).
 
 Rules that keep this from rotting:
 

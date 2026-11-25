@@ -141,6 +141,9 @@ class GenerationFixture:
             collisions = {i["id"] for i in baseline_items} & {i["id"] for i in data["items"]}
             if collisions:
                 raise ValueError(f"fixture {data['id']} redeclares baseline item(s): {collisions}")
+        bad = [i["id"] for i in data["items"] + baseline_items if i.get("penalty") and i.get("weight", 0) != 0]
+        if bad:
+            raise ValueError(f"penalty item(s) must weigh 0: {bad}")
         return cls(
             id=data["id"],
             domain=data["domain"],
@@ -189,6 +192,9 @@ class GenerationResult:
     # semantic_score and mechanical_score carry APPLY_FAILURE_FACTOR and the
     # raw_* fields keep the unmultiplied values.
     apply_failures: list = field(default_factory=list)
+    # Penalty items (weight 0, `penalty: true`) that failed. Passing one earns
+    # nothing; failing one carries APPLY_FAILURE_FACTOR like an apply failure.
+    penalties: list = field(default_factory=list)
     raw_semantic_score: float | None = None
     raw_mechanical_score: float | None = None
 
@@ -200,6 +206,7 @@ class GenerationResult:
             and self.semantic_score >= 0.8
             and not self.mandatory_failures
             and not self.apply_failures
+            and not self.penalties
             else "fail"
         )
 
@@ -482,6 +489,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
 
     score = passed_weight / total_weight if total_weight else 0.0
     mandatory_failures = [m for m in fixture.mandatory if float(items.get(m, 0.0)) < 1.0]
+    penalties = [i["id"] for i in fixture.items if i.get("penalty") and float(items.get(i["id"], 0.0)) < 1.0]
 
     # ---- expertise checklist: same verbs, separate unweighted subscore.
     expertise: dict = {}
@@ -505,7 +513,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         round((passed_weight + exp_passed) / mech_denominator, 3) if mech_denominator else 0.0
     )
     raw_semantic, raw_mechanical = round(score, 3), mechanical_score
-    if apply_failures:
+    if apply_failures or penalties:
         score *= APPLY_FAILURE_FACTOR
         mechanical_score = round(mechanical_score * APPLY_FAILURE_FACTOR, 3)
 
@@ -515,6 +523,7 @@ def score_generation(fixture: GenerationFixture, module_dir: Path, work_root: Pa
         mechanical_score=mechanical_score,
         mandatory_failures=mandatory_failures,
         apply_failures=apply_failures,
+        penalties=penalties,
         raw_semantic_score=raw_semantic,
         raw_mechanical_score=raw_mechanical,
         gate=True,

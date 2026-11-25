@@ -240,6 +240,7 @@ def generation_scorer():
                 "expertise_score": result.expertise_score,
                 "mandatory_failures": result.mandatory_failures,
                 "apply_failures": result.apply_failures,
+                "penalties": result.penalties,
                 "raw_semantic_score": result.raw_semantic_score,
                 "raw_mechanical_score": result.raw_mechanical_score,
                 "probe_plans": result.probe_plans,
