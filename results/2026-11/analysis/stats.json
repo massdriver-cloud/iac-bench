@@ -219,16 +219,16 @@
    ]
   },
   "gemini-3.8-flash": {
-   "composite": 60.92166666666667,
+   "composite": 62.75333333333333,
    "ci95": [
-    57.875,
-    65.87833333333333
+    58.846666666666664,
+    66.50333333333333
    ],
-   "mechanical_only": 60.71666666666667,
+   "mechanical_only": 63.33333333333333,
    "judge_only": 67.1,
    "per_fixture": {
     "G001": 63.36,
-    "G002": 51.59,
+    "G002": 62.58,
     "G003": 76.03,
     "G004": 39.59,
     "G005": 82.39,
@@ -1128,7 +1128,7 @@
    "qwen3.8-2.4t-a95b": 0.051,
    "kimi-k3": 0.0684,
    "gemini-3.1-pro-preview": 0.5132,
-   "gemini-3.8-flash": 0.9107,
+   "gemini-3.8-flash": 0.8678,
    "gemini-3.6-flash": 0.9777
   },
   "gemini-3.1-pro-preview": {
@@ -1153,7 +1153,7 @@
    "qwen3.8-2.4t-a95b": 0.0535,
    "kimi-k3": 0.0739,
    "deepseek-v4-pro-0813": 0.4868,
-   "gemini-3.8-flash": 0.9913,
+   "gemini-3.8-flash": 0.9773,
    "gemini-3.6-flash": 0.999
   },
   "gemini-3.8-flash": {
@@ -1177,9 +1177,9 @@
    "gemini-4-argon": 0.0,
    "qwen3.8-2.4t-a95b": 0.0,
    "kimi-k3": 0.0,
-   "deepseek-v4-pro-0813": 0.0892,
-   "gemini-3.1-pro-preview": 0.0087,
-   "gemini-3.6-flash": 0.8554
+   "deepseek-v4-pro-0813": 0.1322,
+   "gemini-3.1-pro-preview": 0.0227,
+   "gemini-3.6-flash": 0.9068
   },
   "gemini-3.6-flash": {
    "claude-fable-5-2": 0.0,
@@ -1204,7 +1204,7 @@
    "kimi-k3": 0.0,
    "deepseek-v4-pro-0813": 0.0223,
    "gemini-3.1-pro-preview": 0.001,
-   "gemini-3.8-flash": 0.1444
+   "gemini-3.8-flash": 0.0931
   }
  }
 }

@@ -2621,8 +2621,8 @@ G002,google/gemini-3.8-flash,2,expertise,E6_iam_login_granted,False
 G002,google/gemini-3.8-flash,2,expertise,E7_workload_identities,True
 G002,google/gemini-3.8-flash,2,expertise,E8_connection_audit_trail,True
 G002,google/gemini-3.8-flash,2,expertise,E9_query_insights,True
-G002,google/gemini-3.8-flash,3,rubric,H1,False
-G002,google/gemini-3.8-flash,3,rubric,H2,False
+G002,google/gemini-3.8-flash,3,rubric,H1,True
+G002,google/gemini-3.8-flash,3,rubric,H2,True
 G002,google/gemini-3.8-flash,3,rubric,H3,0.5
 G002,google/gemini-3.8-flash,3,rubric,H4,1.0
 G002,google/gemini-3.8-flash,3,rubric,H5,1.0

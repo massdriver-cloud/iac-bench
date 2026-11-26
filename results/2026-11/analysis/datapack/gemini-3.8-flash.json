@@ -644,17 +644,12 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/gemini-3.8-flash-e3",
     "gate": true,
-    "rubric": 0.443,
-    "mechanical": 0.472,
+    "rubric": 0.691,
+    "mechanical": 0.698,
     "judge": 50.0,
-    "composite": 48.04,
-    "mandatory_failures": [
-     "H1",
-     "H2"
-    ],
+    "composite": 63.86,
+    "mandatory_failures": [],
     "items_lost": {
-     "H1": false,
-     "H2": false,
      "H3": 0.5,
      "H7": false,
      "H9": 0.5,
@@ -2297,22 +2292,22 @@
    "median_seconds": 653
   },
   "G002": {
-   "composite_median": 51.59,
+   "composite_median": 62.58,
    "composite_range": [
-    48.04,
-    62.58
+    51.59,
+    63.86
    ],
-   "rubric_median": 0.495,
+   "rubric_median": 0.656,
    "judge_median": 55.3,
    "gate_failures": 0,
-   "insecure_attempts": 3,
+   "insecure_attempts": 2,
    "item_loss_counts": {
     "A8": 3,
     "B1_provider_constraints": 1,
-    "H1": 2,
+    "H1": 1,
     "H10": 3,
     "H11": 3,
-    "H2": 3,
+    "H2": 2,
     "H3": 3,
     "H7": 3,
     "H9": 3
@@ -2465,5 +2460,5 @@
    "median_seconds": 912
   }
  },
- "overall": 60.9
+ "overall": 62.8
 }

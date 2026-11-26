@@ -17,7 +17,7 @@ human calibration of the judge.
 | OpenTofu | 1.12.5 |
 | Limits | 300 messages and 3600 seconds per attempt |
 | Runs | G004–G006 and the eight new models on G001–G003: 2026-11-23 and 2026-11-24, judged 2026-11-24. The G001–G003 attempts of the sixteen 2026-10 models are the 2026-10 attempts (2026-10-22 and 2026-11-10), rescored under the current rubrics, except GLM-5.3 on G002 and G003, Kimi K3 on G003 and Gemini 3.6 Flash on G003, run again on 2026-11-23 under the current limits. Version 2026-11.1 replaces Gemini 3.8 Flash's G002 attempts, which ran on 2026-11-24 without GCP credentials in the environment, with a run on 2026-11-25 |
-| Scoring | every attempt scored with the code at tag `2026-11.1`, recorded in the logs as engine commit `e0c760a` (the same code before merge) |
+| Scoring | every attempt scored with the code at tag `2026-11.1`, recorded in the logs as engine commit `df5e4f2` (the same code before merge) |
 | Archive | Zenodo, [doi:10.5281/zenodo.24540782](https://doi.org/10.5281/zenodo.24540782) |
 | Prices | OpenRouter list prices on each model's run date (`prices.yaml`) |
 
