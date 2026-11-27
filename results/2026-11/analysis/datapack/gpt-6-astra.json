@@ -7,10 +7,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G001/gpt-6-astra-e1",
     "gate": true,
-    "rubric": 0.782,
-    "mechanical": 0.769,
+    "rubric": 0.758,
+    "mechanical": 0.745,
     "judge": 94.7,
-    "composite": 82.24,
+    "composite": 80.56,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -32,6 +32,7 @@
     "variables": 6,
     "tf_sloc": 194,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 4361,
     "seconds": 157,
     "cost_usd": 0.318,
@@ -129,10 +130,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G001/gpt-6-astra-e2",
     "gate": true,
-    "rubric": 0.693,
-    "mechanical": 0.685,
+    "rubric": 0.659,
+    "mechanical": 0.653,
     "judge": 94.7,
-    "composite": 76.36,
+    "composite": 74.12,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -156,6 +157,7 @@
     "variables": 4,
     "tf_sloc": 166,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 4195,
     "seconds": 189,
     "cost_usd": 0.301,
@@ -253,10 +255,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/gpt-6-astra-e3",
     "gate": true,
-    "rubric": 0.693,
-    "mechanical": 0.685,
+    "rubric": 0.659,
+    "mechanical": 0.653,
     "judge": 92.1,
-    "composite": 75.58,
+    "composite": 73.34,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -280,6 +282,7 @@
     "variables": 4,
     "tf_sloc": 170,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 4736,
     "seconds": 246,
     "cost_usd": 0.34,
@@ -379,10 +382,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G002/gpt-6-astra-e1",
     "gate": true,
-    "rubric": 0.921,
-    "mechanical": 0.892,
+    "rubric": 0.912,
+    "mechanical": 0.882,
     "judge": 100.0,
-    "composite": 92.44,
+    "composite": 91.74,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -404,6 +407,7 @@
     "variables": 15,
     "tf_sloc": 247,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5895,
     "seconds": 146,
     "cost_usd": 0.414,
@@ -501,10 +505,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G002/gpt-6-astra-e2",
     "gate": true,
-    "rubric": 0.893,
-    "mechanical": 0.875,
+    "rubric": 0.881,
+    "mechanical": 0.863,
     "judge": 100.0,
-    "composite": 91.25,
+    "composite": 90.41,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -526,6 +530,7 @@
     "variables": 20,
     "tf_sloc": 315,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 6766,
     "seconds": 171,
     "cost_usd": 0.532,
@@ -623,10 +628,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/gpt-6-astra-e3",
     "gate": true,
-    "rubric": 0.977,
-    "mechanical": 0.944,
+    "rubric": 0.974,
+    "mechanical": 0.939,
     "judge": 94.7,
-    "composite": 94.49,
+    "composite": 94.14,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -646,6 +651,7 @@
     "variables": 19,
     "tf_sloc": 290,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 6411,
     "seconds": 158,
     "cost_usd": 0.447,
@@ -746,9 +752,9 @@
     "candidate_dir": "candidates/G003/gpt-6-astra-e1",
     "gate": true,
     "rubric": 1.0,
-    "mechanical": 0.989,
+    "mechanical": 0.988,
     "judge": 97.4,
-    "composite": 98.45,
+    "composite": 98.38,
     "mandatory_failures": [],
     "items_lost": {},
     "expertise": {
@@ -761,6 +767,7 @@
     "variables": 19,
     "tf_sloc": 563,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 21718,
     "seconds": 574,
     "cost_usd": 1.901,
@@ -859,9 +866,9 @@
     "candidate_dir": "candidates/G003/gpt-6-astra-e2",
     "gate": true,
     "rubric": 1.0,
-    "mechanical": 0.989,
+    "mechanical": 0.988,
     "judge": 92.1,
-    "composite": 96.86,
+    "composite": 96.79,
     "mandatory_failures": [],
     "items_lost": {},
     "expertise": {
@@ -874,6 +881,7 @@
     "variables": 19,
     "tf_sloc": 632,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 22297,
     "seconds": 561,
     "cost_usd": 1.802,
@@ -971,10 +979,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G003/gpt-6-astra-e3",
     "gate": true,
-    "rubric": 0.991,
-    "mechanical": 0.98,
+    "rubric": 0.99,
+    "mechanical": 0.978,
     "judge": 92.1,
-    "composite": 96.23,
+    "composite": 96.09,
     "mandatory_failures": [],
     "items_lost": {
      "A7": 0.9
@@ -989,6 +997,7 @@
     "variables": 21,
     "tf_sloc": 524,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 14731,
     "seconds": 484,
     "cost_usd": 1.206,
@@ -1088,10 +1097,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/gpt-6-astra-e1",
     "gate": true,
-    "rubric": 0.926,
-    "mechanical": 0.911,
+    "rubric": 0.921,
+    "mechanical": 0.905,
     "judge": 84.2,
-    "composite": 89.03,
+    "composite": 88.61,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -1114,6 +1123,7 @@
     "variables": 14,
     "tf_sloc": 812,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 23128,
     "seconds": 647,
     "cost_usd": 1.803,
@@ -1211,10 +1221,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/gpt-6-astra-e2",
     "gate": true,
-    "rubric": 0.883,
-    "mechanical": 0.864,
+    "rubric": 0.875,
+    "mechanical": 0.855,
     "judge": 89.5,
-    "composite": 87.33,
+    "composite": 86.7,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -1238,6 +1248,7 @@
     "variables": 11,
     "tf_sloc": 798,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 18053,
     "seconds": 576,
     "cost_usd": 1.34,
@@ -1335,10 +1346,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/gpt-6-astra-e3",
     "gate": true,
-    "rubric": 0.878,
-    "mechanical": 0.865,
+    "rubric": 0.869,
+    "mechanical": 0.856,
     "judge": 92.1,
-    "composite": 88.18,
+    "composite": 87.55,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -1363,6 +1374,7 @@
     "variables": 13,
     "tf_sloc": 664,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 14432,
     "seconds": 521,
     "cost_usd": 1.075,
@@ -1462,10 +1474,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G005/gpt-6-astra-e1",
     "gate": true,
-    "rubric": 0.941,
-    "mechanical": 0.925,
+    "rubric": 0.936,
+    "mechanical": 0.919,
     "judge": 89.5,
-    "composite": 91.6,
+    "composite": 91.18,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1487,6 +1499,7 @@
     "variables": 15,
     "tf_sloc": 489,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 13955,
     "seconds": 303,
     "cost_usd": 1.151,
@@ -1584,10 +1597,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G005/gpt-6-astra-e2",
     "gate": true,
-    "rubric": 0.937,
-    "mechanical": 0.921,
+    "rubric": 0.932,
+    "mechanical": 0.915,
     "judge": 97.4,
-    "composite": 93.69,
+    "composite": 93.27,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1609,6 +1622,7 @@
     "variables": 12,
     "tf_sloc": 341,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8972,
     "seconds": 197,
     "cost_usd": 0.655,
@@ -1706,10 +1720,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G005/gpt-6-astra-e3",
     "gate": true,
-    "rubric": 0.971,
-    "mechanical": 0.946,
+    "rubric": 0.969,
+    "mechanical": 0.942,
     "judge": 86.8,
-    "composite": 92.26,
+    "composite": 91.98,
     "mandatory_failures": [],
     "items_lost": {
      "A5": 0.5
@@ -1729,6 +1743,7 @@
     "variables": 16,
     "tf_sloc": 500,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 18064,
     "seconds": 339,
     "cost_usd": 1.298,
@@ -1828,10 +1843,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G006/gpt-6-astra-e1",
     "gate": true,
-    "rubric": 0.96,
-    "mechanical": 0.926,
+    "rubric": 0.956,
+    "mechanical": 0.918,
     "judge": 94.7,
-    "composite": 93.23,
+    "composite": 92.67,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false
@@ -1849,6 +1864,7 @@
     "variables": 7,
     "tf_sloc": 197,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 6569,
     "seconds": 294,
     "cost_usd": 0.525,
@@ -1946,10 +1962,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G006/gpt-6-astra-e2",
     "gate": true,
-    "rubric": 0.96,
-    "mechanical": 0.926,
+    "rubric": 0.956,
+    "mechanical": 0.918,
     "judge": 92.1,
-    "composite": 92.45,
+    "composite": 91.89,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false
@@ -1967,6 +1983,7 @@
     "variables": 7,
     "tf_sloc": 172,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5724,
     "seconds": 322,
     "cost_usd": 0.471,
@@ -2064,10 +2081,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G006/gpt-6-astra-e3",
     "gate": true,
-    "rubric": 0.96,
-    "mechanical": 0.935,
+    "rubric": 0.956,
+    "mechanical": 0.929,
     "judge": 92.1,
-    "composite": 93.08,
+    "composite": 92.66,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false
@@ -2085,6 +2102,7 @@
     "variables": 7,
     "tf_sloc": 174,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5875,
     "seconds": 310,
     "cost_usd": 0.453,
@@ -2181,12 +2199,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 76.36,
+   "composite_median": 74.12,
    "composite_range": [
-    75.58,
-    82.24
+    73.34,
+    80.56
    ],
-   "rubric_median": 0.693,
+   "rubric_median": 0.659,
    "judge_median": 94.7,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2215,12 +2233,12 @@
    "median_seconds": 189
   },
   "G002": {
-   "composite_median": 92.44,
+   "composite_median": 91.74,
    "composite_range": [
-    91.25,
-    94.49
+    90.41,
+    94.14
    ],
-   "rubric_median": 0.921,
+   "rubric_median": 0.912,
    "judge_median": 100.0,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2247,10 +2265,10 @@
    "median_seconds": 158
   },
   "G003": {
-   "composite_median": 96.86,
+   "composite_median": 96.79,
    "composite_range": [
-    96.23,
-    98.45
+    96.09,
+    98.38
    ],
    "rubric_median": 1.0,
    "judge_median": 92.1,
@@ -2272,12 +2290,12 @@
    "median_seconds": 561
   },
   "G004": {
-   "composite_median": 88.18,
+   "composite_median": 87.55,
    "composite_range": [
-    87.33,
-    89.03
+    86.7,
+    88.61
    ],
-   "rubric_median": 0.883,
+   "rubric_median": 0.875,
    "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2307,12 +2325,12 @@
    "median_seconds": 576
   },
   "G005": {
-   "composite_median": 92.26,
+   "composite_median": 91.98,
    "composite_range": [
-    91.6,
-    93.69
+    91.18,
+    93.27
    ],
-   "rubric_median": 0.941,
+   "rubric_median": 0.936,
    "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2340,12 +2358,12 @@
    "median_seconds": 303
   },
   "G006": {
-   "composite_median": 93.08,
+   "composite_median": 92.66,
    "composite_range": [
-    92.45,
-    93.23
+    91.89,
+    92.67
    ],
-   "rubric_median": 0.96,
+   "rubric_median": 0.956,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2368,5 +2386,5 @@
    "median_seconds": 310
   }
  },
- "overall": 89.9
+ "overall": 89.1
 }

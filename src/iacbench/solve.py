@@ -1171,20 +1171,40 @@ def _map_values(m: Module, coll: dict, seen: frozenset) -> list | None:
 _MISSING_ATTR = object()
 
 
+def _constant_nonempty(node: dict | None) -> bool:
+    """A `for_each` that is a non-empty literal collection: the dynamic block
+    renders whatever any input says."""
+    if not node:
+        return False
+    if node.get("t") in ("tuple", "object"):
+        return bool(node.get("items"))
+    if node.get("t") == "lit":
+        return isinstance(node.get("v"), (list, dict)) and bool(node.get("v"))
+    return False
+
+
 def attr_nodes(body: dict, path: list) -> list:
     """Expression trees at a dotted attribute path through nested blocks.
-    A missing attribute yields _MISSING_ATTR; a `dynamic` block on the path
-    yields None (generated content is never closed)."""
+    A missing attribute yields _MISSING_ATTR. A `dynamic` block on the path
+    whose for_each is a non-empty literal always renders, so its content is
+    read like a static block; any other `dynamic` block yields None
+    (generated content an input can remove is never closed)."""
     head, rest = path[0], path[1:]
     if not rest:
         attr = body["attributes"].get(head)
         return [attr["expr"] if attr else _MISSING_ATTR]
-    if any(b["type"] == "dynamic" and b["labels"][:1] == [head] for b in body["blocks"]):
-        return [None]
+    out: list = []
+    dynamic = [b for b in body["blocks"] if b["type"] == "dynamic" and b["labels"][:1] == [head]]
+    for blk in dynamic:
+        for_each = blk["body"]["attributes"].get("for_each")
+        content = next((c for c in blk["body"]["blocks"] if c["type"] == "content"), None)
+        if content is None or not _constant_nonempty(for_each["expr"] if for_each else None):
+            return [None]
+        out += attr_nodes(content["body"], rest)
     blocks = [b for b in body["blocks"] if b["type"] == head]
-    if not blocks:
+    if not blocks and not dynamic:
         return [_MISSING_ATTR]
-    return [n for b in blocks for n in attr_nodes(b["body"], rest)]
+    return out + [n for b in blocks for n in attr_nodes(b["body"], rest)]
 
 
 def existence_open(m: Module, res: Resource) -> bool:

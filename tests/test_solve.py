@@ -61,10 +61,16 @@ def test_closed_values_needs_an_unconditional_instance(tmp_path):
     assert not closed(d, "x_db", {"enabled": True})
 
 
-def test_closed_values_fails_dynamic_and_missing(tmp_path):
+def test_closed_values_dynamic_and_missing(tmp_path):
+    # A dynamic block that always renders is read like a static block; one an
+    # input can remove is a knob.
     d = module(tmp_path, 'resource "x_db" "this" {\n  dynamic "settings" {\n    for_each = [1]\n'
                          '    content { ssl_mode = "ENCRYPTED_ONLY" }\n  }\n}\n')
-    assert not closed(d, "x_db", {"settings.ssl_mode": SECURE})
+    assert closed(d, "x_db", {"settings.ssl_mode": SECURE})
+    (tmp_path / "gated").mkdir()
+    gated = module(tmp_path / "gated", 'variable "on" {\n  type = bool\n}\nresource "x_db" "this" {\n  dynamic "settings" {\n'
+                   '    for_each = var.on ? [1] : []\n    content { ssl_mode = "ENCRYPTED_ONLY" }\n  }\n}\n')
+    assert not closed(gated, "x_db", {"settings.ssl_mode": SECURE})
     (tmp_path / "missing").mkdir()
     missing = module(tmp_path / "missing", 'resource "x_db" "this" {}\n')
     assert not closed(missing, "x_db", {"enabled": True})

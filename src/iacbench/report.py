@@ -36,6 +36,7 @@ class Attempt:
     mechanical_score: float | None = None
     mandatory_failures: list | None = None
     apply_failures: list | None = None
+    penalties: list | None = None
     raw_mechanical_score: float | None = None
     gate: bool | None = None
     module_sha: str | None = None
@@ -100,6 +101,7 @@ def collect_attempts(log_dir: Path) -> list:
                     mechanical_score=meta.get("mechanical_score"),
                     mandatory_failures=meta.get("mandatory_failures"),
                     apply_failures=meta.get("apply_failures"),
+                    penalties=meta.get("penalties"),
                     raw_mechanical_score=meta.get("raw_mechanical_score"),
                     gate=meta.get("gate"),
                     module_sha=meta.get("module_sha"),
@@ -110,11 +112,12 @@ def collect_attempts(log_dir: Path) -> list:
 
 
 def _composite(a: Attempt, grade: float, w: dict) -> float:
-    """0-100 composite. A known apply failure multiplies the whole composite,
-    judge share included, by APPLY_FAILURE_FACTOR."""
+    """0-100 composite. A known apply failure or a failed penalty item
+    multiplies the whole composite, judge share included, by
+    APPLY_FAILURE_FACTOR."""
     from iacbench.generation import APPLY_FAILURE_FACTOR
 
-    if a.apply_failures:
+    if a.apply_failures or a.penalties:
         mech = a.raw_mechanical_score if a.raw_mechanical_score is not None else a.mechanical_score
         return APPLY_FAILURE_FACTOR * 100 * (w["mechanical"] * mech + w["grade"] * grade / 100)
     return 100 * (w["mechanical"] * a.mechanical_score + w["grade"] * grade / 100)
@@ -324,8 +327,10 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
                 findings[item] = findings.get(item, 0) + 1
         gate_failures = sum(1 for a in group if a.gate is False)
         apply_failed = sum(1 for a in group if a.apply_failures)
+        penalized = sum(1 for a in group if a.penalties)
         marks = [f"✗gate({gate_failures}/{len(group)})"] if gate_failures else []
         marks += [f"✗apply({apply_failed}/{len(group)})"] if apply_failed else []
+        marks += [f"✗penalty({penalized}/{len(group)})"] if penalized else []
         marks += [f"⚠{item}({c}/{len(group)})" for item, c in sorted(findings.items())]
         flag = " ".join(marks) or "—"
         base = {
@@ -336,6 +341,7 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
             "grade_cell": grade_cell, "flag": flag, "findings": findings,
             "gate_failures": gate_failures,
             "apply_failures": apply_failed,
+            "penalized": penalized,
             "insecure_attempts": sum(1 for a in group if a.mandatory_failures),
         }
         if calibrated_pairs and len(calibrated_pairs) < len(group):
@@ -447,6 +453,11 @@ def render_leaderboard(attempts: list, judge_dirs: list) -> str:
             findings_lines.append(
                 f"- **{r['model']}** ({r['fixture']}): plans but would fail at apply (a known "
                 f"apply failure; score multiplied by 0.5) in {r['apply_failures']}/{r['n']} attempt(s)"
+            )
+        if r.get("penalized"):
+            findings_lines.append(
+                f"- **{r['model']}** ({r['fixture']}): failed a penalty item (score multiplied "
+                f"by 0.5) in {r['penalized']}/{r['n']} attempt(s)"
             )
         for item, c in sorted(r["findings"].items()):
             findings_lines.append(

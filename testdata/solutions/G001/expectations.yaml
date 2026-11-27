@@ -21,12 +21,12 @@ bad_passthrough:
   # Choosing the algorithm through an input is allowed; it demands no key,
   # so A2 passes, and A3/A4 restraint it never violates pass too. Its 14
   # inputs leave 25% of the A5 budget.
-  max_score: 0.40
+  max_score: 0.33
   must_fail: [H1, H3, H7, H9, H15, A5, B1_provider_constraints, B2_descriptions]
   items: {A5: 0.25, H12: 0.5}
 bad_minimal:
   gate: true
-  max_score: 0.31
+  max_score: 0.23
   must_fail: [H1, H3, H6, H12, H13, H14, H15, B1_provider_constraints, B2_descriptions]
 bad_unsafe:
   gate: true

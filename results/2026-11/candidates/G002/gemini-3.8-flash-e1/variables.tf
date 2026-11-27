@@ -1,193 +1,256 @@
 variable "name" {
+  description = "The name of the Cloud SQL PostgreSQL database instance."
   type        = string
-  description = "The name of the Cloud SQL PostgreSQL instance."
 }
 
 variable "environment" {
+  description = "The environment for the instance. Accepted values: 'apps-dev', 'apps-staging', 'apps-prod' (or 'dev', 'staging', 'prod'). Determines VPC network and operational defaults."
   type        = string
-  description = "Target environment (dev, staging, or prod). Determines the VPC network (apps-<env>), default availability type, and deletion protection."
-  default     = "dev"
-
   validation {
-    condition     = contains(["dev", "staging", "prod", "apps-dev", "apps-staging", "apps-prod"], var.environment)
-    error_message = "Environment must be one of: dev, staging, prod (or apps-dev, apps-staging, apps-prod)."
+    condition     = contains(["apps-dev", "apps-staging", "apps-prod", "dev", "staging", "prod"], var.environment)
+    error_message = "environment must be one of: apps-dev, apps-staging, apps-prod, dev, staging, prod."
   }
 }
 
-variable "project" {
-  type        = string
-  description = "Google Cloud project ID where the instance will reside. If null, the provider's default project is used."
-  default     = null
-}
-
-variable "region" {
-  type        = string
-  description = "Google Cloud region for the database instance."
-  default     = "us-central1"
-}
-
-variable "zone" {
-  type        = string
-  description = "Primary Compute Engine zone (e.g. us-central1-a). If null, Cloud SQL selects automatically."
-  default     = null
-}
-
-variable "secondary_zone" {
-  type        = string
-  description = "Secondary Compute Engine zone for High Availability failover replica. If null, Cloud SQL selects automatically."
-  default     = null
-}
-
-variable "network" {
-  type        = string
-  description = "The VPC network name or self-link for Private Services Access. If null, defaults to 'apps-<environment>'."
-  default     = null
-}
-
-variable "allocated_ip_range" {
-  type        = string
-  description = "The name of the allocated IP range for the private IP connection. If null, Cloud SQL uses the PSA range automatically."
-  default     = null
-}
-
 variable "database_version" {
+  description = "The PostgreSQL database engine version (e.g. POSTGRES_14, POSTGRES_15, POSTGRES_16)."
   type        = string
-  description = "PostgreSQL version for the database instance."
-  default     = "POSTGRES_16"
+  default     = "POSTGRES_15"
+  validation {
+    condition     = startswith(var.database_version, "POSTGRES_")
+    error_message = "database_version must start with 'POSTGRES_'."
+  }
 }
 
 variable "tier" {
+  description = "The machine tier (vCPU and memory) for the Cloud SQL instance (e.g. 'db-custom-2-7680')."
   type        = string
-  description = "Machine tier for the database instance (e.g. db-custom-2-7680, db-custom-4-16384)."
   default     = "db-custom-2-7680"
 }
 
 variable "edition" {
+  description = "The Cloud SQL edition: 'ENTERPRISE' or 'ENTERPRISE_PLUS'."
   type        = string
-  description = "Cloud SQL edition (ENTERPRISE or ENTERPRISE_PLUS)."
   default     = "ENTERPRISE"
-}
-
-variable "availability_type" {
-  type        = string
-  description = "Availability type: REGIONAL (High Availability failover) or ZONAL. If null, defaults to REGIONAL for prod and ZONAL for dev/staging."
-  default     = null
-
   validation {
-    condition     = var.availability_type == null || contains(["REGIONAL", "ZONAL"], coalesce(var.availability_type, "ZONAL"))
-    error_message = "Availability type must be either REGIONAL or ZONAL."
+    condition     = contains(["ENTERPRISE", "ENTERPRISE_PLUS"], var.edition)
+    error_message = "edition must be either 'ENTERPRISE' or 'ENTERPRISE_PLUS'."
   }
 }
 
-variable "disk_size_gb" {
+variable "availability_type" {
+  description = "High Availability configuration: 'REGIONAL' (HA with automatic failover) or 'ZONAL' (single zone). If null, defaults to 'REGIONAL' in production and 'ZONAL' in dev/staging."
+  type        = string
+  default     = null
+  validation {
+    condition     = var.availability_type == null || contains(["REGIONAL", "ZONAL"], coalesce(var.availability_type, "REGIONAL"))
+    error_message = "availability_type must be either 'REGIONAL' or 'ZONAL'."
+  }
+}
+
+variable "disk_size" {
+  description = "The initial disk size in GB."
   type        = number
-  description = "Data disk size in gigabytes."
   default     = 20
 }
 
 variable "disk_type" {
+  description = "The disk type for the instance ('PD_SSD' or 'PD_HDD')."
   type        = string
-  description = "Data disk storage type (PD_SSD or PD_HDD)."
   default     = "PD_SSD"
-
   validation {
     condition     = contains(["PD_SSD", "PD_HDD"], var.disk_type)
-    error_message = "Disk type must be either PD_SSD or PD_HDD."
+    error_message = "disk_type must be either 'PD_SSD' or 'PD_HDD'."
   }
 }
 
 variable "disk_autoresize" {
+  description = "Whether to automatically increase storage capacity as disk fills up."
   type        = bool
-  description = "Whether to automatically increase disk storage capacity when approaching threshold."
   default     = true
 }
 
 variable "disk_autoresize_limit" {
+  description = "Maximum storage capacity limit in GB for auto-resizing (0 = unlimited)."
   type        = number
-  description = "Maximum size in GB to which the disk can automatically resize. 0 means unlimited."
   default     = 0
 }
 
+variable "activation_policy" {
+  description = "The activation policy for the instance ('ALWAYS', 'NEVER', 'ON_DEMAND')."
+  type        = string
+  default     = "ALWAYS"
+}
+
 variable "deletion_protection" {
+  description = "Whether to enable deletion protection. If null, defaults to true in production and false in dev/staging."
   type        = bool
-  description = "Whether to prevent accidental instance deletion. If null, defaults to true for prod/staging and false for dev."
   default     = null
 }
 
+variable "project_id" {
+  description = "Google Cloud Project ID. If null, provider project is used."
+  type        = string
+  default     = null
+}
+
+variable "region" {
+  description = "Google Cloud region for the instance. If null, provider region is used."
+  type        = string
+  default     = null
+}
+
+variable "zone" {
+  description = "Specific compute zone for zonal deployment (e.g. 'us-central1-a')."
+  type        = string
+  default     = null
+}
+
+variable "network" {
+  description = "Optional VPC network name or self link. If null, resolved automatically from var.environment."
+  type        = string
+  default     = null
+}
+
+variable "allocated_ip_range" {
+  description = "Name of the allocated PSA IP range for the instance, if specific range is required."
+  type        = string
+  default     = null
+}
+
+variable "ipv4_enabled" {
+  description = "Whether public IPv4 is enabled. Defaults to false (private services access only)."
+  type        = bool
+  default     = false
+}
+
+variable "ssl_mode" {
+  description = "SSL mode for client connections ('ENCRYPTED_ONLY', 'TRUSTED_CLIENT_CERTIFICATE_REQUIRED', or 'ALLOW_UNENCRYPTED_AND_ENCRYPTED')."
+  type        = string
+  default     = "ENCRYPTED_ONLY"
+}
+
+variable "backup_enabled" {
+  description = "Whether automated daily backups are enabled."
+  type        = bool
+  default     = true
+}
+
+variable "point_in_time_recovery_enabled" {
+  description = "Whether point-in-time recovery (WAL archive) is enabled."
+  type        = bool
+  default     = true
+}
+
+variable "backup_start_time" {
+  description = "HH:MM format start time for daily backups in UTC."
+  type        = string
+  default     = "03:00"
+}
+
+variable "retained_backups" {
+  description = "Number of daily backups to retain. If null, defaults to 30 for production and 7 for dev/staging."
+  type        = number
+  default     = null
+}
+
+variable "transaction_log_retention_days" {
+  description = "Number of days of transaction logs (WAL) to retain for point-in-time recovery."
+  type        = number
+  default     = 7
+}
+
+variable "maintenance_window_day" {
+  description = "Day of week (1-7, 1=Monday, 7=Sunday) for maintenance window."
+  type        = number
+  default     = 7
+}
+
+variable "maintenance_window_hour" {
+  description = "Hour of day (0-23 UTC) for maintenance window."
+  type        = number
+  default     = 4
+}
+
+variable "maintenance_window_update_track" {
+  description = "Update track for maintenance: 'stable', 'canary', or 'preview'."
+  type        = string
+  default     = "stable"
+}
+
+variable "query_insights_enabled" {
+  description = "Whether to enable Query Insights for query performance monitoring."
+  type        = bool
+  default     = true
+}
+
+variable "query_string_length" {
+  description = "Query string length in bytes stored in Query Insights (256-4500)."
+  type        = number
+  default     = 1024
+}
+
+variable "record_application_tags" {
+  description = "Whether Query Insights records application tags."
+  type        = bool
+  default     = true
+}
+
+variable "record_client_address" {
+  description = "Whether Query Insights records client IP address."
+  type        = bool
+  default     = true
+}
+
+variable "query_plans_per_minute" {
+  description = "Number of query plans to sample per minute for Query Insights (0-20)."
+  type        = number
+  default     = 5
+}
+
+variable "database_flags" {
+  description = "List of custom database flags to assign to the instance. Mandatory flag 'cloudsql.iam_authentication' is always enforced."
+  type = list(object({
+    name  = string
+    value = string
+  }))
+  default = []
+}
+
 variable "databases" {
-  type        = any
-  description = "List of databases to create on the instance. Entries can be database name strings or objects with name, charset, and collation."
-  default     = []
+  description = "List of databases to create on the instance."
+  type = list(object({
+    name      = string
+    charset   = optional(string, "UTF8")
+    collation = optional(string, "en_US.UTF8")
+  }))
+  default = []
 }
 
 variable "iam_users" {
+  description = "List of engineer Google account email addresses for IAM database authentication."
   type        = list(string)
-  description = "List of engineer Google identity email addresses to create as Cloud IAM database users."
   default     = []
 }
 
 variable "iam_service_accounts" {
+  description = "List of workload service account email addresses for IAM database authentication."
   type        = list(string)
-  description = "List of workload Google service account email addresses to create as Cloud IAM database service accounts."
   default     = []
 }
 
-variable "database_flags" {
-  type        = map(string)
-  description = "Map of custom PostgreSQL database flags. Merged with the standard baseline flags (IAM auth, pgAudit, connection logging)."
-  default     = {}
-}
-
-variable "backup_configuration" {
-  type = object({
-    enabled                        = optional(bool, true)
-    start_time                     = optional(string, "03:00")
-    point_in_time_recovery_enabled = optional(bool, true)
-    retained_backups               = optional(number, 14)
-    transaction_log_retention_days = optional(number, 7)
-  })
-  description = "Backup policy and point-in-time recovery configuration."
-  default     = {}
-}
-
-variable "maintenance_window" {
-  type = object({
-    day          = optional(number, 7)
-    hour         = optional(number, 4)
-    update_track = optional(string, "stable")
-  })
-  description = "Weekly maintenance window configuration. Day 1 is Monday, Day 7 is Sunday. Hour is 0-23 UTC."
-  default     = {}
-}
-
-variable "insights_config" {
-  type = object({
-    query_insights_enabled  = optional(bool, true)
-    query_string_length     = optional(number, 1024)
-    record_application_tags = optional(bool, true)
-    record_client_address   = optional(bool, true)
-    query_plans_per_minute  = optional(number, 5)
-  })
-  description = "Query Insights configuration for performance monitoring and diagnostics."
-  default     = {}
-}
-
-variable "read_replicas" {
-  type = map(object({
-    tier                  = optional(string)
-    zone                  = optional(string)
-    disk_size_gb          = optional(number)
-    disk_type             = optional(string)
-    disk_autoresize       = optional(bool, true)
-    disk_autoresize_limit = optional(number, 0)
-    database_flags        = optional(map(string), {})
+variable "users" {
+  description = "List of additional database users to create, with name, type (BUILT_IN, CLOUD_IAM_USER, CLOUD_IAM_SERVICE_ACCOUNT), and optional password."
+  type = list(object({
+    name     = string
+    type     = optional(string, "BUILT_IN")
+    password = optional(string, null)
   }))
-  description = "Optional map of read replica instances to create, keyed by replica name."
-  default     = {}
+  default = []
 }
 
 variable "labels" {
+  description = "Key/value label pairs to assign to the instance."
   type        = map(string)
-  description = "Custom labels to apply to the Cloud SQL instance."
   default     = {}
 }

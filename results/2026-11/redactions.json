@@ -479,16 +479,6 @@
       ]
     },
     {
-      "file": "logs/2026-11-24T14-35-27-00-00_generate-module_BjebQGKA5MqGMX8xKd2KDH.eval",
-      "replaced": [
-        "Azure client ID",
-        "Azure subscription ID",
-        "Azure tenant ID",
-        "client notice",
-        "credential"
-      ]
-    },
-    {
       "file": "logs/2026-11-24T14-48-41-00-00_generate-module_KbnLRjsCVGK3p42oCdZ9Pd.eval",
       "replaced": [
         "Azure subscription ID",
@@ -514,6 +504,12 @@
       "file": "logs/2026-11-24T17-09-56-00-00_generate-module_YywueU87e3vYZZoaeJV8yr.eval",
       "replaced": [
         "client notice"
+      ]
+    },
+    {
+      "file": "logs/2026-11-25T17-07-17-00-00_generate-module_Jvvm5h5YnsA5gQcw5SkSqo.eval",
+      "replaced": [
+        "GCP project ID"
       ]
     },
     {

@@ -7,10 +7,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G001/gpt-6-luna-e1",
     "gate": true,
-    "rubric": 0.683,
-    "mechanical": 0.676,
+    "rubric": 0.648,
+    "mechanical": 0.643,
     "judge": 92.1,
-    "composite": 74.95,
+    "composite": 72.64,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -34,6 +34,7 @@
     "variables": 2,
     "tf_sloc": 104,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 3891,
     "seconds": 104,
     "cost_usd": 0.003,
@@ -131,10 +132,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G001/gpt-6-luna-e2",
     "gate": true,
-    "rubric": 0.723,
-    "mechanical": 0.704,
+    "rubric": 0.692,
+    "mechanical": 0.673,
     "judge": 94.7,
-    "composite": 77.69,
+    "composite": 75.52,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -157,6 +158,7 @@
     "variables": 5,
     "tf_sloc": 120,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 3550,
     "seconds": 144,
     "cost_usd": 0.003,
@@ -254,10 +256,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/gpt-6-luna-e3",
     "gate": true,
-    "rubric": 0.733,
-    "mechanical": 0.713,
+    "rubric": 0.703,
+    "mechanical": 0.684,
     "judge": 94.7,
-    "composite": 78.32,
+    "composite": 76.29,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -280,6 +282,7 @@
     "variables": 4,
     "tf_sloc": 117,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 2277,
     "seconds": 98,
     "cost_usd": 0.002,
@@ -379,10 +382,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G002/gpt-6-luna-e1",
     "gate": true,
-    "rubric": 0.893,
-    "mechanical": 0.866,
+    "rubric": 0.881,
+    "mechanical": 0.854,
     "judge": 84.2,
-    "composite": 85.88,
+    "composite": 85.04,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -404,6 +407,7 @@
     "variables": 21,
     "tf_sloc": 248,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5377,
     "seconds": 112,
     "cost_usd": 0.004,
@@ -501,10 +505,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G002/gpt-6-luna-e2",
     "gate": true,
-    "rubric": 0.874,
-    "mechanical": 0.849,
+    "rubric": 0.861,
+    "mechanical": 0.835,
     "judge": 89.5,
-    "composite": 86.28,
+    "composite": 85.3,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -527,6 +531,7 @@
     "variables": 16,
     "tf_sloc": 217,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5012,
     "seconds": 104,
     "cost_usd": 0.004,
@@ -624,10 +629,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/gpt-6-luna-e3",
     "gate": true,
-    "rubric": 0.874,
-    "mechanical": 0.849,
+    "rubric": 0.861,
+    "mechanical": 0.835,
     "judge": 81.6,
-    "composite": 83.91,
+    "composite": 82.93,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -650,6 +655,7 @@
     "variables": 16,
     "tf_sloc": 222,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 9108,
     "seconds": 145,
     "cost_usd": 0.007,
@@ -749,10 +755,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G003/gpt-6-luna-e1",
     "gate": true,
-    "rubric": 0.966,
-    "mechanical": 0.924,
+    "rubric": 0.961,
+    "mechanical": 0.915,
     "judge": 73.7,
-    "composite": 86.79,
+    "composite": 86.16,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false
@@ -767,6 +773,7 @@
     "variables": 18,
     "tf_sloc": 299,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 9184,
     "seconds": 327,
     "cost_usd": 0.007,
@@ -864,10 +871,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G003/gpt-6-luna-e2",
     "gate": true,
-    "rubric": 0.966,
-    "mechanical": 0.935,
+    "rubric": 0.961,
+    "mechanical": 0.927,
     "judge": 73.7,
-    "composite": 87.56,
+    "composite": 87.0,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false
@@ -882,6 +889,7 @@
     "variables": 14,
     "tf_sloc": 294,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 12785,
     "seconds": 358,
     "cost_usd": 0.011,
@@ -979,10 +987,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G003/gpt-6-luna-e3",
     "gate": true,
-    "rubric": 0.936,
-    "mechanical": 0.907,
+    "rubric": 0.927,
+    "mechanical": 0.895,
     "judge": 76.3,
-    "composite": 86.38,
+    "composite": 85.54,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -998,6 +1006,7 @@
     "variables": 22,
     "tf_sloc": 323,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8563,
     "seconds": 340,
     "cost_usd": 0.006,
@@ -1097,10 +1106,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/gpt-6-luna-e1",
     "gate": true,
-    "rubric": 0.354,
-    "mechanical": 0.348,
+    "rubric": 0.343,
+    "mechanical": 0.338,
     "judge": 71.1,
-    "composite": 35.06,
+    "composite": 34.33,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1129,6 +1138,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 37366,
     "seconds": 530,
     "cost_usd": 0.031,
@@ -1226,10 +1236,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/gpt-6-luna-e2",
     "gate": true,
-    "rubric": 0.378,
-    "mechanical": 0.368,
+    "rubric": 0.37,
+    "mechanical": 0.36,
     "judge": 65.8,
-    "composite": 35.66,
+    "composite": 35.07,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1258,6 +1268,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 23148,
     "seconds": 393,
     "cost_usd": 0.017,
@@ -1355,10 +1366,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/gpt-6-luna-e3",
     "gate": true,
-    "rubric": 0.426,
-    "mechanical": 0.417,
+    "rubric": 0.421,
+    "mechanical": 0.412,
     "judge": 81.6,
-    "composite": 41.46,
+    "composite": 41.08,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.0,
@@ -1383,6 +1394,7 @@
     "apply_failures": [
      "F1_secrets_manager_on_global_member"
     ],
+    "penalties": [],
     "output_tokens": 22358,
     "seconds": 345,
     "cost_usd": 0.018,
@@ -1482,10 +1494,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G005/gpt-6-luna-e1",
     "gate": true,
-    "rubric": 0.892,
-    "mechanical": 0.859,
+    "rubric": 0.884,
+    "mechanical": 0.849,
     "judge": 89.5,
-    "composite": 86.98,
+    "composite": 86.28,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1508,6 +1520,7 @@
     "variables": 16,
     "tf_sloc": 281,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 10149,
     "seconds": 119,
     "cost_usd": 0.008,
@@ -1605,10 +1618,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G005/gpt-6-luna-e2",
     "gate": true,
-    "rubric": 0.928,
-    "mechanical": 0.886,
+    "rubric": 0.922,
+    "mechanical": 0.878,
     "judge": 97.4,
-    "composite": 91.24,
+    "composite": 90.68,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1631,6 +1644,7 @@
     "variables": 10,
     "tf_sloc": 241,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 12830,
     "seconds": 131,
     "cost_usd": 0.01,
@@ -1728,10 +1742,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G005/gpt-6-luna-e3",
     "gate": true,
-    "rubric": 0.931,
-    "mechanical": 0.902,
+    "rubric": 0.926,
+    "mechanical": 0.895,
     "judge": 89.5,
-    "composite": 89.99,
+    "composite": 89.5,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1753,6 +1767,7 @@
     "variables": 13,
     "tf_sloc": 322,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 12668,
     "seconds": 136,
     "cost_usd": 0.01,
@@ -1852,10 +1867,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G006/gpt-6-luna-e1",
     "gate": true,
-    "rubric": 0.9,
-    "mechanical": 0.87,
+    "rubric": 0.889,
+    "mechanical": 0.857,
     "judge": 92.1,
-    "composite": 88.53,
+    "composite": 87.62,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1875,6 +1890,7 @@
     "variables": 5,
     "tf_sloc": 119,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 6933,
     "seconds": 189,
     "cost_usd": 0.005,
@@ -1972,10 +1988,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G006/gpt-6-luna-e2",
     "gate": true,
-    "rubric": 0.81,
-    "mechanical": 0.796,
+    "rubric": 0.789,
+    "mechanical": 0.776,
     "judge": 86.8,
-    "composite": 81.76,
+    "composite": 80.36,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1997,6 +2013,7 @@
     "variables": 5,
     "tf_sloc": 103,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 4828,
     "seconds": 139,
     "cost_usd": 0.004,
@@ -2094,10 +2111,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G006/gpt-6-luna-e3",
     "gate": true,
-    "rubric": 0.87,
-    "mechanical": 0.852,
+    "rubric": 0.856,
+    "mechanical": 0.837,
     "judge": 94.7,
-    "composite": 88.05,
+    "composite": 87.0,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -2118,6 +2135,7 @@
     "variables": 4,
     "tf_sloc": 112,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 3961,
     "seconds": 112,
     "cost_usd": 0.003,
@@ -2214,12 +2232,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 77.69,
+   "composite_median": 75.52,
    "composite_range": [
-    74.95,
-    78.32
+    72.64,
+    76.29
    ],
-   "rubric_median": 0.723,
+   "rubric_median": 0.692,
    "judge_median": 94.7,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2248,12 +2266,12 @@
    "median_seconds": 104
   },
   "G002": {
-   "composite_median": 85.88,
+   "composite_median": 85.04,
    "composite_range": [
-    83.91,
-    86.28
+    82.93,
+    85.3
    ],
-   "rubric_median": 0.874,
+   "rubric_median": 0.861,
    "judge_median": 84.2,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2282,12 +2300,12 @@
    "median_seconds": 112
   },
   "G003": {
-   "composite_median": 86.79,
+   "composite_median": 86.16,
    "composite_range": [
-    86.38,
-    87.56
+    85.54,
+    87.0
    ],
-   "rubric_median": 0.966,
+   "rubric_median": 0.961,
    "judge_median": 73.7,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2309,12 +2327,12 @@
    "median_seconds": 340
   },
   "G004": {
-   "composite_median": 35.66,
+   "composite_median": 35.07,
    "composite_range": [
-    35.06,
-    41.46
+    34.33,
+    41.08
    ],
-   "rubric_median": 0.378,
+   "rubric_median": 0.37,
    "judge_median": 71.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2351,12 +2369,12 @@
    "median_seconds": 393
   },
   "G005": {
-   "composite_median": 89.99,
+   "composite_median": 89.5,
    "composite_range": [
-    86.98,
-    91.24
+    86.28,
+    90.68
    ],
-   "rubric_median": 0.928,
+   "rubric_median": 0.922,
    "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2386,12 +2404,12 @@
    "median_seconds": 131
   },
   "G006": {
-   "composite_median": 88.05,
+   "composite_median": 87.0,
    "composite_range": [
-    81.76,
-    88.53
+    80.36,
+    87.62
    ],
-   "rubric_median": 0.87,
+   "rubric_median": 0.856,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2419,5 +2437,5 @@
    "median_seconds": 139
   }
  },
- "overall": 77.3
+ "overall": 76.4
 }

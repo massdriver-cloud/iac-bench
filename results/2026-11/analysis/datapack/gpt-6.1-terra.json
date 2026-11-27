@@ -7,10 +7,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G001/gpt-6.1-terra-e1",
     "gate": true,
-    "rubric": 0.723,
-    "mechanical": 0.713,
+    "rubric": 0.692,
+    "mechanical": 0.684,
     "judge": 100.0,
-    "composite": 79.91,
+    "composite": 77.88,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -33,6 +33,7 @@
     "variables": 4,
     "tf_sloc": 130,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 3016,
     "seconds": 90,
     "cost_usd": 0.022,
@@ -130,10 +131,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G001/gpt-6.1-terra-e2",
     "gate": true,
-    "rubric": 0.693,
-    "mechanical": 0.685,
+    "rubric": 0.659,
+    "mechanical": 0.653,
     "judge": 94.7,
-    "composite": 76.36,
+    "composite": 74.12,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -157,6 +158,7 @@
     "variables": 2,
     "tf_sloc": 105,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 1979,
     "seconds": 64,
     "cost_usd": 0.016,
@@ -254,10 +256,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G001/gpt-6.1-terra-e3",
     "gate": true,
-    "rubric": 0.723,
-    "mechanical": 0.713,
+    "rubric": 0.692,
+    "mechanical": 0.684,
     "judge": 100.0,
-    "composite": 79.91,
+    "composite": 77.88,
     "mandatory_failures": [],
     "items_lost": {
      "H6": false,
@@ -280,6 +282,7 @@
     "variables": 4,
     "tf_sloc": 115,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 2480,
     "seconds": 91,
     "cost_usd": 0.019,
@@ -379,10 +382,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G002/gpt-6.1-terra-e1",
     "gate": true,
-    "rubric": 0.893,
-    "mechanical": 0.875,
+    "rubric": 0.881,
+    "mechanical": 0.863,
     "judge": 94.7,
-    "composite": 89.66,
+    "composite": 88.82,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -404,6 +407,7 @@
     "variables": 17,
     "tf_sloc": 227,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 6824,
     "seconds": 112,
     "cost_usd": 0.048,
@@ -501,10 +505,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G002/gpt-6.1-terra-e2",
     "gate": true,
-    "rubric": 0.874,
-    "mechanical": 0.841,
+    "rubric": 0.861,
+    "mechanical": 0.825,
     "judge": 92.1,
-    "composite": 86.5,
+    "composite": 85.38,
     "mandatory_failures": [],
     "items_lost": {
      "H4": 0.75,
@@ -527,6 +531,7 @@
     "variables": 15,
     "tf_sloc": 202,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5250,
     "seconds": 97,
     "cost_usd": 0.041,
@@ -624,10 +629,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G002/gpt-6.1-terra-e3",
     "gate": true,
-    "rubric": 0.799,
-    "mechanical": 0.772,
+    "rubric": 0.778,
+    "mechanical": 0.75,
     "judge": 84.2,
-    "composite": 79.3,
+    "composite": 77.76,
     "mandatory_failures": [],
     "items_lost": {
      "H3": 0.0,
@@ -652,6 +657,7 @@
     "variables": 11,
     "tf_sloc": 155,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 5674,
     "seconds": 100,
     "cost_usd": 0.043,
@@ -751,10 +757,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G003/gpt-6.1-terra-e1",
     "gate": true,
-    "rubric": 0.966,
-    "mechanical": 0.957,
+    "rubric": 0.961,
+    "mechanical": 0.951,
     "judge": 89.5,
-    "composite": 93.84,
+    "composite": 93.42,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false
@@ -769,6 +775,7 @@
     "variables": 20,
     "tf_sloc": 393,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 9245,
     "seconds": 322,
     "cost_usd": 0.075,
@@ -866,10 +873,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G003/gpt-6.1-terra-e2",
     "gate": true,
-    "rubric": 0.977,
-    "mechanical": 0.967,
+    "rubric": 0.974,
+    "mechanical": 0.963,
     "judge": 89.5,
-    "composite": 94.54,
+    "composite": 94.26,
     "mandatory_failures": [],
     "items_lost": {
      "B2_descriptions": false
@@ -884,6 +891,7 @@
     "variables": 18,
     "tf_sloc": 352,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 9978,
     "seconds": 336,
     "cost_usd": 0.083,
@@ -981,10 +989,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G003/gpt-6.1-terra-e3",
     "gate": true,
-    "rubric": 0.908,
-    "mechanical": 0.891,
+    "rubric": 0.896,
+    "mechanical": 0.878,
     "judge": 92.1,
-    "composite": 90.0,
+    "composite": 89.09,
     "mandatory_failures": [
      "H2"
     ],
@@ -1001,6 +1009,7 @@
     "variables": 19,
     "tf_sloc": 354,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8750,
     "seconds": 329,
     "cost_usd": 0.075,
@@ -1100,10 +1109,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G004/gpt-6.1-terra-e1",
     "gate": true,
-    "rubric": 0.81,
-    "mechanical": 0.788,
+    "rubric": 0.796,
+    "mechanical": 0.774,
     "judge": 94.7,
-    "composite": 83.57,
+    "composite": 82.59,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -1130,6 +1139,7 @@
     "variables": 12,
     "tf_sloc": 387,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 12159,
     "seconds": 345,
     "cost_usd": 0.096,
@@ -1227,10 +1237,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G004/gpt-6.1-terra-e2",
     "gate": true,
-    "rubric": 0.883,
-    "mechanical": 0.858,
+    "rubric": 0.875,
+    "mechanical": 0.848,
     "judge": 92.1,
-    "composite": 87.69,
+    "composite": 86.99,
     "mandatory_failures": [],
     "items_lost": {
      "H9": 0.5,
@@ -1254,6 +1264,7 @@
     "variables": 11,
     "tf_sloc": 433,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 10909,
     "seconds": 324,
     "cost_usd": 0.098,
@@ -1351,10 +1362,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G004/gpt-6.1-terra-e3",
     "gate": true,
-    "rubric": 0.409,
-    "mechanical": 0.398,
+    "rubric": 0.403,
+    "mechanical": 0.391,
     "judge": 84.2,
-    "composite": 40.49,
+    "composite": 40.0,
     "mandatory_failures": [],
     "items_lost": {
      "H8": false,
@@ -1382,6 +1393,7 @@
     "apply_failures": [
      "F2_encrypted_secondary_without_regional_key"
     ],
+    "penalties": [],
     "output_tokens": 14956,
     "seconds": 363,
     "cost_usd": 0.133,
@@ -1481,10 +1493,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G005/gpt-6.1-terra-e1",
     "gate": true,
-    "rubric": 0.899,
-    "mechanical": 0.866,
+    "rubric": 0.891,
+    "mechanical": 0.856,
     "judge": 94.7,
-    "composite": 89.03,
+    "composite": 88.33,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1508,6 +1520,7 @@
     "variables": 11,
     "tf_sloc": 263,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 8519,
     "seconds": 157,
     "cost_usd": 0.073,
@@ -1605,10 +1618,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G005/gpt-6.1-terra-e2",
     "gate": true,
-    "rubric": 0.924,
-    "mechanical": 0.889,
+    "rubric": 0.918,
+    "mechanical": 0.881,
     "judge": 97.4,
-    "composite": 91.45,
+    "composite": 90.89,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1631,6 +1644,7 @@
     "variables": 13,
     "tf_sloc": 305,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 7357,
     "seconds": 138,
     "cost_usd": 0.056,
@@ -1728,10 +1742,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G005/gpt-6.1-terra-e3",
     "gate": true,
-    "rubric": 0.921,
-    "mechanical": 0.893,
+    "rubric": 0.915,
+    "mechanical": 0.885,
     "judge": 97.4,
-    "composite": 91.73,
+    "composite": 91.17,
     "mandatory_failures": [],
     "items_lost": {
      "H9": false,
@@ -1754,6 +1768,7 @@
     "variables": 9,
     "tf_sloc": 253,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 7463,
     "seconds": 136,
     "cost_usd": 0.057,
@@ -1853,10 +1868,10 @@
     "epoch": 1,
     "candidate_dir": "candidates/G006/gpt-6.1-terra-e1",
     "gate": true,
-    "rubric": 0.88,
-    "mechanical": 0.833,
+    "rubric": 0.867,
+    "mechanical": 0.816,
     "judge": 78.9,
-    "composite": 81.98,
+    "composite": 80.79,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1876,6 +1891,7 @@
     "variables": 8,
     "tf_sloc": 134,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 3662,
     "seconds": 163,
     "cost_usd": 0.031,
@@ -1973,10 +1989,10 @@
     "epoch": 2,
     "candidate_dir": "candidates/G006/gpt-6.1-terra-e2",
     "gate": true,
-    "rubric": 0.9,
-    "mechanical": 0.861,
+    "rubric": 0.889,
+    "mechanical": 0.847,
     "judge": 81.6,
-    "composite": 84.75,
+    "composite": 83.77,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -1996,6 +2012,7 @@
     "variables": 6,
     "tf_sloc": 118,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 3702,
     "seconds": 192,
     "cost_usd": 0.032,
@@ -2093,10 +2110,10 @@
     "epoch": 3,
     "candidate_dir": "candidates/G006/gpt-6.1-terra-e3",
     "gate": true,
-    "rubric": 0.92,
-    "mechanical": 0.87,
+    "rubric": 0.911,
+    "mechanical": 0.857,
     "judge": 86.8,
-    "composite": 86.94,
+    "composite": 86.03,
     "mandatory_failures": [],
     "items_lost": {
      "H7": false,
@@ -2115,6 +2132,7 @@
     "variables": 8,
     "tf_sloc": 158,
     "apply_failures": [],
+    "penalties": [],
     "output_tokens": 4840,
     "seconds": 258,
     "cost_usd": 0.037,
@@ -2211,12 +2229,12 @@
  },
  "summary": {
   "G001": {
-   "composite_median": 79.91,
+   "composite_median": 77.88,
    "composite_range": [
-    76.36,
-    79.91
+    74.12,
+    77.88
    ],
-   "rubric_median": 0.723,
+   "rubric_median": 0.692,
    "judge_median": 100.0,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2245,12 +2263,12 @@
    "median_seconds": 90
   },
   "G002": {
-   "composite_median": 86.5,
+   "composite_median": 85.38,
    "composite_range": [
-    79.3,
-    89.66
+    77.76,
+    88.82
    ],
-   "rubric_median": 0.874,
+   "rubric_median": 0.861,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2281,12 +2299,12 @@
    "median_seconds": 100
   },
   "G003": {
-   "composite_median": 93.84,
+   "composite_median": 93.42,
    "composite_range": [
-    90.0,
-    94.54
+    89.09,
+    94.26
    ],
-   "rubric_median": 0.966,
+   "rubric_median": 0.961,
    "judge_median": 89.5,
    "gate_failures": 0,
    "insecure_attempts": 1,
@@ -2308,12 +2326,12 @@
    "median_seconds": 329
   },
   "G004": {
-   "composite_median": 83.57,
+   "composite_median": 82.59,
    "composite_range": [
-    40.49,
-    87.69
+    40.0,
+    86.99
    ],
-   "rubric_median": 0.81,
+   "rubric_median": 0.796,
    "judge_median": 92.1,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2347,12 +2365,12 @@
    "median_seconds": 345
   },
   "G005": {
-   "composite_median": 91.45,
+   "composite_median": 90.89,
    "composite_range": [
-    89.03,
-    91.73
+    88.33,
+    91.17
    ],
-   "rubric_median": 0.921,
+   "rubric_median": 0.915,
    "judge_median": 97.4,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2383,12 +2401,12 @@
    "median_seconds": 138
   },
   "G006": {
-   "composite_median": 84.75,
+   "composite_median": 83.77,
    "composite_range": [
-    81.98,
-    86.94
+    80.79,
+    86.03
    ],
-   "rubric_median": 0.9,
+   "rubric_median": 0.889,
    "judge_median": 81.6,
    "gate_failures": 0,
    "insecure_attempts": 0,
@@ -2414,5 +2432,5 @@
    "median_seconds": 192
   }
  },
- "overall": 86.7
+ "overall": 85.7
 }

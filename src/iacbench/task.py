@@ -240,6 +240,7 @@ def generation_scorer():
                 "expertise_score": result.expertise_score,
                 "mandatory_failures": result.mandatory_failures,
                 "apply_failures": result.apply_failures,
+                "penalties": result.penalties,
                 "raw_semantic_score": result.raw_semantic_score,
                 "raw_mechanical_score": result.raw_mechanical_score,
                 "probe_plans": result.probe_plans,
@@ -261,6 +262,24 @@ def generation_scorer():
 API_RETRY_CONFIG = GenerateConfig(max_retries=3)
 
 
+# Environment each fixture cloud's provider needs to plan: every entry is a set
+# of alternatives, at least one of which must be set.
+_CLOUD_ENV = {
+    "aws": [("AWS_ACCESS_KEY_ID", "AWS_PROFILE")],
+    "gcp": [("GOOGLE_PROJECT",), ("GOOGLE_OAUTH_ACCESS_TOKEN", "GOOGLE_CREDENTIALS", "GOOGLE_APPLICATION_CREDENTIALS")],
+    "azure": [("ARM_SUBSCRIPTION_ID",), ("ARM_CLIENT_SECRET", "ARM_USE_OIDC", "ARM_USE_MSI", "ARM_USE_CLI")],
+}
+
+
+def missing_cloud_env(cloud: str, environ=None) -> list:
+    """The credential settings the fixture's cloud needs that the environment
+    lacks, one entry per unmet requirement (alternatives joined by "|")."""
+    import os
+
+    environ = os.environ if environ is None else environ
+    return ["|".join(alts) for alts in _CLOUD_ENV.get(cloud, []) if not any(environ.get(n) for n in alts)]
+
+
 @task
 def generate_module(
     fixture: str = "G001",
@@ -275,6 +294,9 @@ def generate_module(
     from iacbench.generation import GenerationFixture
 
     gen = GenerationFixture.load(find_fixture_dir(fixture))
+    missing = missing_cloud_env(gen.cloud)
+    if missing:
+        raise RuntimeError(f"{fixture} plans against {gen.cloud}; set {', '.join(missing)} before running it")
     prompt = (PROMPTS_DIR / "generate-module.md").read_text()
     samples = [Sample(id=fixture, input=gen.brief, metadata={"fixture": fixture})]
     return Task(
