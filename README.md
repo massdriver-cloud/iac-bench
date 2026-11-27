@@ -13,11 +13,21 @@ calibration against human grades) and reported per doctrine section, so a reader
 rejects any preference can discount exactly that row, or ignore the judged layer entirely
 and use the mechanical columns alone.
 
+## Results
+
+The current leaderboard, with results per service, cost and the full write-up for each
+release, is at [massdriver.cloud/llm-rankings](https://www.massdriver.cloud/llm-rankings).
+Every published release's data (transcripts, modules, scores, judge grades and calibration)
+is under `results/<release>/` and archived on Zenodo; see `CITATION.cff` to cite one.
+
 ## What it measures
 
 Each fixture is a short brief for one cloud service and one audience: an S3 bucket for
 application teams (G001, AWS), a Cloud SQL for PostgreSQL instance for a DBA team (G002,
-GCP), an App Service web app for an SRE team (G003, Azure). The model builds a standalone
+GCP), an App Service web app for an SRE team (G003, Azure), an Aurora PostgreSQL global
+database for platform engineers who are not database specialists (G004, AWS), a GKE
+Standard cluster for a platform team (G005, GCP) and a storage account for application
+developers (G006, Azure). The model builds a standalone
 root module from the brief, shipping a `minimal.tfvars` for its required variables, and is
 scored against a weighted, brief-specific rubric, plan-only, with no resources created.
 
